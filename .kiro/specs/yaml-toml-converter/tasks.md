@@ -1,0 +1,103 @@
+# 实现计划
+
+- [x] 1. 安装依赖并注册工具
+  - [x] 1.1 安装 yaml 和 smol-toml 依赖包
+    - 运行 `npm install yaml smol-toml`
+    - _Requirements: 1.1-1.6_
+  - [x] 1.2 在 ToolId 枚举中添加 YAML_TOML_CONVERTER
+    - 修改 `src/types/tools.ts`
+    - 添加工具元数据（名称、描述、图标、分类）
+    - _Requirements: 7.1-7.4_
+  - [x] 1.3 在 ToolsPage 中注册懒加载组件
+    - 修改 `src/pages/newtab/components/ToolsPage.tsx`
+    - _Requirements: 7.1_
+
+- [x] 2. 实现转换引擎核心逻辑
+  - [x] 2.1 创建 formatConverter.ts 工具模块
+    - 创建 `src/utils/formatConverter.ts`
+    - 实现 DataFormat 类型和 ConversionResult 接口
+    - _Requirements: 1.1-1.6_
+  - [x] 2.2 实现 JSON/YAML/TOML 解析函数
+    - 实现 parseJson、parseYaml、parseToml 函数
+    - 包含错误处理和行号提取
+    - _Requirements: 3.1, 3.2, 3.3_
+  - [x] 2.3 实现 JSON/YAML/TOML 序列化函数
+    - 实现 stringifyJson、stringifyYaml、stringifyToml 函数
+    - 支持缩进选项
+    - _Requirements: 6.1, 6.2_
+  - [x] 2.4 实现主转换函数 convert
+    - 组合解析和序列化函数
+    - 处理 TOML 特殊限制（null 值、混合数组）
+    - _Requirements: 1.1-1.6, 3.4_
+  - [x] 2.5 编写属性测试：JSON-YAML 往返一致性
+    - **Property 1: JSON-YAML 往返一致性**
+    - **Validates: Requirements 1.1, 1.3**
+  - [x] 2.6 编写属性测试：JSON-TOML 往返一致性
+    - **Property 2: JSON-TOML 往返一致性**
+    - **Validates: Requirements 1.2, 1.5**
+  - [x] 2.7 编写属性测试：YAML-TOML 往返一致性
+    - **Property 3: YAML-TOML 往返一致性**
+    - **Validates: Requirements 1.4, 1.6**
+  - [x] 2.8 编写属性测试：无效输入错误处理
+    - **Property 7: 无效输入错误处理**
+    - **Validates: Requirements 3.1, 3.2, 3.3**
+  - [x] 2.9 编写属性测试：缩进选项生效
+    - **Property 8: 缩进选项生效**
+    - **Validates: Requirements 6.1, 6.2**
+
+- [x] 3. 实现格式检测器
+  - [x] 3.1 创建格式检测函数 detectFormat
+    - 在 `src/utils/formatConverter.ts` 中添加
+    - 实现 JSON、YAML、TOML 特征检测
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+  - [x] 3.2 编写属性测试：JSON 格式检测准确性
+    - **Property 4: JSON 格式检测准确性**
+    - **Validates: Requirements 2.1**
+  - [x] 3.3 编写属性测试：YAML 格式检测准确性
+    - **Property 5: YAML 格式检测准确性**
+    - **Validates: Requirements 2.2**
+  - [x] 3.4 编写属性测试：TOML 格式检测准确性
+    - **Property 6: TOML 格式检测准确性**
+    - **Validates: Requirements 2.3**
+
+- [x] 4. Checkpoint - 确保所有测试通过
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. 实现 UI 组件
+  - [x] 5.1 创建 YamlTomlConverterTool 组件骨架
+    - 创建 `src/pages/newtab/components/tools/YamlTomlConverterTool.tsx`
+    - 使用 ToolCard 包装
+    - 实现基本布局（格式选择器、输入输出区域、操作按钮）
+    - _Requirements: 7.1-7.4_
+  - [x] 5.2 集成 useRealTimeConvert Hook
+    - 实现实时转换功能
+    - 配置 300ms 防抖
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [x] 5.3 实现格式选择器和自动检测
+    - 添加源格式和目标格式下拉选择
+    - 集成格式自动检测
+    - _Requirements: 2.1-2.4_
+  - [x] 5.4 实现操作按钮功能
+    - 复制、交换、清空按钮
+    - 使用 useCopyToClipboard Hook
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [x] 5.5 实现格式化选项
+    - 缩进空格数选择（2/4）
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [x] 5.6 实现错误显示
+    - 显示包含行号的错误信息
+    - Neo-Brutalism 风格的错误提示框
+    - _Requirements: 3.1-3.4_
+
+- [x] 6. 添加国际化支持
+  - [x] 6.1 添加英文翻译
+    - 修改 `src/i18n/locales/en.json`
+    - 添加工具名称、描述、按钮文本、错误消息等
+    - _Requirements: 8.1, 8.2_
+  - [x] 6.2 添加中文翻译
+    - 修改 `src/i18n/locales/zh-CN.json`
+    - 添加对应的中文翻译
+    - _Requirements: 8.1, 8.2_
+
+- [x] 7. Final Checkpoint - 确保所有测试通过
+  - Ensure all tests pass, ask the user if questions arise.

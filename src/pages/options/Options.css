@@ -1,0 +1,8 @@
+body {
+  margin: 0;
+  background-color: var(--nb-bg, #f6f3f1);
+  color: var(--nb-text, #242425);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

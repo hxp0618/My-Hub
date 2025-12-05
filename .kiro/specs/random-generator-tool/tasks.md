@@ -1,0 +1,151 @@
+# 实现计划
+
+- [x] 1. 创建随机生成器工具函数
+  - [x] 1.1 创建 UUID 生成器函数
+    - 在 `src/utils/randomGenerators.ts` 中实现 `generateUUID` 函数
+    - 支持 v1 和 v4 版本
+    - 支持带/不带连字符选项
+    - _Requirements: 1.1, 1.2, 1.3_
+  - [x] 1.2 编写 UUID 生成器属性测试
+    - **Property 1: UUID 格式有效性**
+    - **Property 2: UUID 无连字符格式**
+    - **Validates: Requirements 1.1, 1.2, 1.3**
+  - [x] 1.3 创建 NanoID 生成器函数
+    - 实现 `generateNanoID` 函数
+    - 支持自定义长度（1-64）
+    - 使用 URL 安全字符集
+    - _Requirements: 5.1.1, 5.1.2, 5.1.4_
+  - [x] 1.4 编写 NanoID 生成器属性测试
+    - **Property 10: NanoID 格式有效性**
+    - **Property 11: NanoID 长度约束**
+    - **Validates: Requirements 5.1.1, 5.1.2, 5.1.4**
+  - [x] 1.5 创建 ULID 生成器函数
+    - 实现 `generateULID` 函数
+    - 实现 `parseULIDTimestamp` 函数
+    - 确保同毫秒内递增
+    - _Requirements: 5.2.1, 5.2.3, 5.2.4_
+  - [x] 1.6 编写 ULID 生成器属性测试
+    - **Property 12: ULID 格式有效性**
+    - **Property 13: ULID 递增性**
+    - **Validates: Requirements 5.2.1, 5.2.3**
+  - [x] 1.7 创建 ObjectId 生成器函数
+    - 实现 `generateObjectId` 函数
+    - 实现 `parseObjectIdTimestamp` 函数
+    - 包含时间戳、随机值和计数器
+    - _Requirements: 5.3.1, 5.3.3, 5.3.4_
+  - [x] 1.8 编写 ObjectId 生成器属性测试
+    - **Property 14: ObjectId 格式有效性**
+    - **Property 15: ObjectId 时间戳可提取性**
+    - **Validates: Requirements 5.3.1, 5.3.4**
+  - [x] 1.9 创建雪花 ID 生成器函数
+    - 实现 `generateSnowflakeId` 函数
+    - 实现 `parseSnowflakeTimestamp` 函数
+    - 确保递增性
+    - _Requirements: 5.1, 5.3, 5.4_
+  - [x] 1.10 编写雪花 ID 生成器属性测试
+    - **Property 9: 雪花 ID 递增性**
+    - **Validates: Requirements 5.1, 5.3**
+
+- [x] 2. Checkpoint - 确保所有测试通过
+  - 确保所有测试通过，如有问题请询问用户。
+
+- [x] 3. 创建随机字符串和数字生成器
+  - [x] 3.1 创建随机字符串生成器函数
+    - 实现 `generateRandomString` 函数
+    - 支持大写、小写、数字、特殊符号选项
+    - 支持自定义长度（1-256）
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [x] 3.2 编写随机字符串生成器属性测试
+    - **Property 4: 随机字符串字符集约束**
+    - **Property 5: 随机字符串长度约束**
+    - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5**
+  - [x] 3.3 创建随机数字生成器函数
+    - 实现 `generateRandomNumber` 函数
+    - 支持指定范围
+    - _Requirements: 3.1_
+  - [x] 3.4 编写随机数字生成器属性测试
+    - **Property 6: 随机数字范围约束**
+    - **Validates: Requirements 3.1**
+  - [x] 3.5 创建 MD5 哈希计算函数
+    - 实现 `calculateMD5` 函数
+    - 支持大小写输出选项
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+  - [x] 3.6 编写 MD5 哈希属性测试
+    - **Property 7: MD5 哈希确定性**
+    - **Property 8: MD5 大小写输出**
+    - **Validates: Requirements 4.1, 4.2, 4.3**
+  - [x] 3.7 创建批量生成工具函数
+    - 实现 `generateBatch` 函数
+    - 支持任意生成器的批量调用
+    - _Requirements: 1.4, 3.3, 5.2, 5.1.3, 5.2.2, 5.3.2_
+  - [x] 3.8 编写批量生成属性测试
+    - **Property 3: 批量生成数量一致性**
+    - **Validates: Requirements 1.4, 3.3, 5.2, 5.1.3, 5.2.2, 5.3.2**
+
+- [x] 4. Checkpoint - 确保所有测试通过
+  - 确保所有测试通过，如有问题请询问用户。
+
+- [x] 5. 创建 UI 组件
+  - [x] 5.1 重构 UUIDGeneratorTool 为 RandomGeneratorTool
+    - 将 `UUIDGeneratorTool.tsx` 重命名为 `RandomGeneratorTool.tsx`
+    - 添加标签页导航组件
+    - 实现标签页切换逻辑
+    - _Requirements: 8.1, 8.2, 8.3_
+  - [x] 5.2 实现 UUID 生成标签页
+    - 添加版本选择（v1/v4）
+    - 添加连字符选项开关
+    - 添加生成数量输入
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [x] 5.3 实现 NanoID 生成标签页
+    - 添加长度输入（1-64）
+    - 添加生成数量输入
+    - _Requirements: 5.1.1, 5.1.2, 5.1.3_
+  - [x] 5.4 实现 ULID 生成标签页
+    - 添加生成数量输入
+    - 显示时间戳信息
+    - _Requirements: 5.2.1, 5.2.2, 5.2.4_
+  - [x] 5.5 实现 ObjectId 生成标签页
+    - 添加生成数量输入
+    - 显示时间戳信息
+    - _Requirements: 5.3.1, 5.3.2, 5.3.3_
+  - [x] 5.6 实现雪花 ID 生成标签页
+    - 添加生成数量输入
+    - 显示时间戳信息
+    - _Requirements: 5.1, 5.2, 5.4_
+  - [x] 5.7 实现随机字符串生成标签页
+    - 添加字符集选项（大写、小写、数字、符号）
+    - 添加长度输入（1-256）
+    - 添加生成数量输入
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
+  - [x] 5.8 实现随机数字生成标签页
+    - 添加最小值和最大值输入
+    - 添加生成数量输入
+    - 添加输入验证
+    - _Requirements: 3.1, 3.2, 3.3, 3.4_
+  - [x] 5.9 实现 MD5 哈希标签页
+    - 添加文本输入框
+    - 添加大小写选项
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+  - [x] 5.10 实现结果展示和复制功能
+    - 实现单个结果复制
+    - 实现批量复制
+    - 实现清空功能
+    - _Requirements: 6.1, 6.2, 6.3_
+
+- [x] 6. 更新工具注册和国际化
+  - [x] 6.1 更新工具类型定义
+    - 在 `src/types/tools.ts` 中更新工具 ID 和元数据
+    - 将 UUID_GENERATOR 更新为 RANDOM_GENERATOR
+    - _Requirements: 7.1, 7.2_
+  - [x] 6.2 更新中文翻译
+    - 在 `src/i18n/locales/zh-CN.json` 中添加所有新增文本
+    - _Requirements: 7.1_
+  - [x] 6.3 更新英文翻译
+    - 在 `src/i18n/locales/en.json` 中添加所有新增文本
+    - _Requirements: 7.2_
+  - [x] 6.4 更新工具页面引用
+    - 在 `ToolsPage.tsx` 中更新组件引用
+    - _Requirements: 7.3_
+
+- [x] 7. Final Checkpoint - 确保所有测试通过
+  - 确保所有测试通过，如有问题请询问用户。

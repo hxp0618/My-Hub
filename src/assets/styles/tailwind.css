@@ -1,0 +1,1206 @@
+@import "tailwindcss";
+
+@theme {
+    --animate-spin-slow: spin 20s linear infinite;
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+}
+
+/* ==================== 主题变量定义 ==================== */
+
+/* 浅色模式（默认） */
+:root,
+:root.light {
+    color-scheme: light;
+    
+    /* 主要颜色 */
+    --color-main: #1A1A1A;
+    --color-secondary: #F3F4F6;
+    --color-text-secondary: #6B7280;
+    
+    /* 背景颜色 */
+    --color-bg: #f6f3f1;
+    --color-card: #FFFFFF;
+    
+    /* 边框和阴影 */
+    --color-border: #E5E7EB;
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    /* ==================== Neo-Brutalism 设计令牌 ==================== */
+    /* 颜色 */
+    --nb-bg: #f6f3f1;
+    --nb-card: #ffffff;
+    --nb-border: #242425;
+    --nb-text: #242425;
+    --nb-text-secondary: #6B7280;
+    
+    /* 强调色 */
+    --nb-accent-pink: #f771a7;
+    --nb-accent-yellow: #f8d773;
+    --nb-accent-blue: #71b4ea;
+    --nb-accent-green: #5fe0a8;
+    
+    /* 边框 */
+    --nb-border-width: 2px;
+    --nb-border-width-thick: 3px;
+    --nb-border-radius-lg: 12px;
+    --nb-border-radius-md: 8px;
+    --nb-border-radius-full: 9999px;
+    
+    /* 阴影 */
+    --nb-shadow: 4px 4px 0px 0px #242425;
+    --nb-shadow-hover: 2px 2px 0px 0px #242425;
+    --nb-shadow-none: 0px 0px 0px 0px #242425;
+    
+    /* 骨架屏 */
+    --color-skeleton: #E5E7EB;
+    --color-skeleton-sub: #D1D5DB;
+    
+    /* 悬停和交互状态 */
+    --color-hover: #F3F4F6;
+    --color-active: #E5E7EB;
+    
+    /* 链接颜色 */
+    --color-link: #3B82F6;
+    --color-link-hover: #2563EB;
+
+    /* 语义化颜色 - 成功 */
+    --color-success: #10B981;           /* green-500 */
+    --color-success-light: #D1FAE5;     /* green-100 */
+    --color-success-dark: #047857;      /* green-700 */
+    --color-success-text: #065F46;      /* green-800 */
+
+    /* 语义化颜色 - 错误 */
+    --color-error: #EF4444;             /* red-500 */
+    --color-error-light: #FEE2E2;       /* red-100 */
+    --color-error-dark: #DC2626;        /* red-600 */
+    --color-error-text: #991B1B;        /* red-800 */
+
+    /* 语义化颜色 - 警告 */
+    --color-warning: #F59E0B;           /* amber-500 */
+    --color-warning-light: #FEF3C7;     /* amber-100 */
+    --color-warning-dark: #D97706;      /* amber-600 */
+    --color-warning-text: #92400E;      /* amber-800 */
+
+    /* 语义化颜色 - 信息 */
+    --color-info: #3B82F6;              /* blue-500 */
+    --color-info-light: #DBEAFE;        /* blue-100 */
+    --color-info-dark: #2563EB;         /* blue-600 */
+    --color-info-text: #1E40AF;         /* blue-800 */
+
+    /* 交互状态颜色 */
+    --color-primary: #000000;
+    --color-primary-hover: #1F2937;
+    --color-accent: #3B82F6;            /* blue-500 */
+    --color-accent-hover: #2563EB;      /* blue-600 */
+    --color-accent-light: #DBEAFE;      /* blue-100 */
+
+    /* 危险操作颜色 */
+    --color-danger: #DC2626;            /* red-600 */
+    --color-danger-hover: #B91C1C;      /* red-700 */
+    --color-danger-light: #FEE2E2;      /* red-100 */
+
+    /* 标签色卡系统 */
+    /* 色卡 1 - 红色系 */
+    --color-tag-1: #FEE2E2;             /* red-100 */
+    --color-tag-1-text: #991B1B;        /* red-800 */
+    
+    /* 色卡 2 - 绿色系 */
+    --color-tag-2: #D1FAE5;             /* green-100 */
+    --color-tag-2-text: #065F46;        /* green-800 */
+    
+    /* 色卡 3 - 黄色系 */
+    --color-tag-3: #FEF3C7;             /* amber-100 */
+    --color-tag-3-text: #92400E;        /* amber-800 */
+    
+    /* 色卡 4 - 蓝色系 */
+    --color-tag-4: #DBEAFE;             /* blue-100 */
+    --color-tag-4-text: #1E40AF;        /* blue-800 */
+}
+
+/* 深色模式 */
+.dark {
+    color-scheme: dark;
+
+    /* 主要颜色 */
+    --color-main: #E5E5E5;
+    --color-secondary: #374151;
+    --color-text-secondary: #9CA3AF;
+
+    /* 背景颜色 */
+    --color-bg: #1a1a1a;
+    --color-card: #2a2a2a;
+
+    /* 边框和阴影 */
+    --color-border: #374151;
+    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+    /* ==================== Neo-Brutalism 设计令牌 ==================== */
+    /* 颜色 */
+    --nb-bg: #1a1a1a;
+    --nb-card: #2a2a2a;
+    --nb-border: #4a4a4a;
+    --nb-text: #e5e5e5;
+    --nb-text-secondary: #9CA3AF;
+    
+    /* 强调色 */
+    --nb-accent-pink: #f771a7;
+    --nb-accent-yellow: #f8d773;
+    --nb-accent-blue: #71b4ea;
+    --nb-accent-green: #5fe0a8;
+    
+    /* 边框 */
+    --nb-border-width: 2px;
+    --nb-border-width-thick: 3px;
+    --nb-border-radius-lg: 12px;
+    --nb-border-radius-md: 8px;
+    --nb-border-radius-full: 9999px;
+    
+    /* 阴影 */
+    --nb-shadow: 4px 4px 0px 0px #000000;
+    --nb-shadow-hover: 2px 2px 0px 0px #000000;
+    --nb-shadow-none: 0px 0px 0px 0px #000000;
+
+    /* 骨架屏 */
+    --color-skeleton: rgba(255, 255, 255, 0.18);
+    --color-skeleton-sub: rgba(255, 255, 255, 0.12);
+
+    /* 悬停和交互状态 */
+    --color-hover: #374151;
+    --color-active: #4B5563;
+
+    /* 链接颜色 */
+    --color-link: #60A5FA;
+    --color-link-hover: #93C5FD;
+
+    /* 语义化颜色 - 成功 */
+    --color-success: #10B981;           /* green-500 */
+    --color-success-light: rgba(16, 185, 129, 0.2);
+    --color-success-dark: #059669;      /* green-600 */
+    --color-success-text: #6EE7B7;      /* green-300 */
+
+    /* 语义化颜色 - 错误 */
+    --color-error: #EF4444;             /* red-500 */
+    --color-error-light: rgba(239, 68, 68, 0.2);
+    --color-error-dark: #DC2626;        /* red-600 */
+    --color-error-text: #FCA5A5;        /* red-300 */
+
+    /* 语义化颜色 - 警告 */
+    --color-warning: #F59E0B;           /* amber-500 */
+    --color-warning-light: rgba(245, 158, 11, 0.2);
+    --color-warning-dark: #D97706;      /* amber-600 */
+    --color-warning-text: #FCD34D;      /* amber-300 */
+
+    /* 语义化颜色 - 信息 */
+    --color-info: #3B82F6;              /* blue-500 */
+    --color-info-light: rgba(59, 130, 246, 0.2);
+    --color-info-dark: #2563EB;         /* blue-600 */
+    --color-info-text: #93C5FD;         /* blue-300 */
+
+    /* 交互状态颜色 */
+    --color-primary: #FFFFFF;
+    --color-primary-hover: #E5E5E5;
+    --color-accent: #60A5FA;            /* blue-400 */
+    --color-accent-hover: #3B82F6;      /* blue-500 */
+    --color-accent-light: rgba(59, 130, 246, 0.3);
+
+    /* 危险操作颜色 */
+    --color-danger: #EF4444;            /* red-500 */
+    --color-danger-hover: #DC2626;      /* red-600 */
+    --color-danger-light: rgba(239, 68, 68, 0.2);
+
+    /* 标签色卡系统 - 深色模式 */
+    /* 色卡 1 - 红色系 */
+    --color-tag-1: rgba(239, 68, 68, 0.2);
+    --color-tag-1-text: #FCA5A5;        /* red-300 */
+    
+    /* 色卡 2 - 绿色系 */
+    --color-tag-2: rgba(16, 185, 129, 0.2);
+    --color-tag-2-text: #6EE7B7;        /* green-300 */
+    
+    /* 色卡 3 - 黄色系 */
+    --color-tag-3: rgba(245, 158, 11, 0.2);
+    --color-tag-3-text: #FCD34D;        /* amber-300 */
+    
+    /* 色卡 4 - 蓝色系 */
+    --color-tag-4: rgba(59, 130, 246, 0.2);
+    --color-tag-4-text: #93C5FD;        /* blue-300 */
+}
+
+/* 护眼模式 */
+.eye-care {
+    color-scheme: light;
+    
+    /* 主要颜色 - 暖色调 */
+    --color-main: #3E2723;
+    --color-secondary: #FFF3E0;
+    --color-text-secondary: #6D4C41;
+    
+    /* 背景颜色 - 温暖的米黄色 */
+    --color-bg: #faf5e8;
+    --color-card: #fffbf0;
+    
+    /* 边框和阴影 */
+    --color-border: #FFE0B2;
+    --shadow-card: 0 4px 20px rgba(109, 76, 65, 0.08);
+
+    /* ==================== Neo-Brutalism 设计令牌 ==================== */
+    /* 颜色 */
+    --nb-bg: #faf5e8;
+    --nb-card: #fffbf0;
+    --nb-border: #5d4037;
+    --nb-text: #3e2723;
+    --nb-text-secondary: #6D4C41;
+    
+    /* 强调色 */
+    --nb-accent-pink: #d4648a;
+    --nb-accent-yellow: #e6c566;
+    --nb-accent-blue: #5a9bd4;
+    --nb-accent-green: #4cc98f;
+    
+    /* 边框 */
+    --nb-border-width: 2px;
+    --nb-border-width-thick: 3px;
+    --nb-border-radius-lg: 12px;
+    --nb-border-radius-md: 8px;
+    --nb-border-radius-full: 9999px;
+    
+    /* 阴影 */
+    --nb-shadow: 4px 4px 0px 0px #5d4037;
+    --nb-shadow-hover: 2px 2px 0px 0px #5d4037;
+    --nb-shadow-none: 0px 0px 0px 0px #5d4037;
+    
+    /* 骨架屏 */
+    --color-skeleton: #FFE0B2;
+    --color-skeleton-sub: #FFCC80;
+    
+    /* 悬停和交互状态 */
+    --color-hover: #FFF3E0;
+    --color-active: #FFE0B2;
+    
+    /* 链接颜色 - 深褐色 */
+    --color-link: #5D4037;
+    --color-link-hover: #4E342E;
+
+    /* 语义化颜色 - 成功（低饱和度暖色调） */
+    --color-success: #059669;           /* green-600 降低饱和度 */
+    --color-success-light: #D1FAE5;     /* green-100 */
+    --color-success-dark: #047857;      /* green-700 */
+    --color-success-text: #065F46;      /* green-800 */
+
+    /* 语义化颜色 - 错误（低饱和度暖色调） */
+    --color-error: #DC2626;             /* red-600 降低饱和度 */
+    --color-error-light: #FEE2E2;       /* red-100 */
+    --color-error-dark: #B91C1C;        /* red-700 */
+    --color-error-text: #991B1B;        /* red-800 */
+
+    /* 语义化颜色 - 警告（暖色调） */
+    --color-warning: #D97706;           /* amber-600 */
+    --color-warning-light: #FEF3C7;     /* amber-100 */
+    --color-warning-dark: #B45309;      /* amber-700 */
+    --color-warning-text: #92400E;      /* amber-800 */
+
+    /* 语义化颜色 - 信息（暖色调） */
+    --color-info: #2563EB;              /* blue-600 降低饱和度 */
+    --color-info-light: #DBEAFE;        /* blue-100 */
+    --color-info-dark: #1E40AF;         /* blue-700 */
+    --color-info-text: #1E3A8A;         /* blue-900 */
+
+    /* 交互状态颜色 */
+    --color-primary: #78350F;           /* amber-900 */
+    --color-primary-hover: #92400E;     /* amber-800 */
+    --color-accent: #5D4037;            /* 深褐色 */
+    --color-accent-hover: #4E342E;      /* 更深褐色 */
+    --color-accent-light: #FFE0B2;      /* 浅橙色 */
+
+    /* 危险操作颜色 */
+    --color-danger: #B91C1C;            /* red-700 */
+    --color-danger-hover: #991B1B;      /* red-800 */
+    --color-danger-light: #FEE2E2;      /* red-100 */
+
+    /* 标签色卡系统 - 护眼模式 */
+    /* 色卡 1 - 红色系（低饱和度） */
+    --color-tag-1: #FEE2E2;             /* red-100 */
+    --color-tag-1-text: #991B1B;        /* red-800 */
+    
+    /* 色卡 2 - 绿色系（低饱和度） */
+    --color-tag-2: #D1FAE5;             /* green-100 */
+    --color-tag-2-text: #065F46;        /* green-800 */
+    
+    /* 色卡 3 - 黄色系（暖色调） */
+    --color-tag-3: #FEF3C7;             /* amber-100 */
+    --color-tag-3-text: #92400E;        /* amber-800 */
+    
+    /* 色卡 4 - 蓝色系（低饱和度） */
+    --color-tag-4: #DBEAFE;             /* blue-100 */
+    --color-tag-4-text: #1E3A8A;        /* blue-900 - 更深以提高对比度 */
+}
+
+/* ==================== 全局样式 ==================== */
+
+/* 防止首次加载时的过渡动画 */
+.preload * {
+    transition: none !important;
+}
+
+body {
+    background-color: var(--color-bg);
+    color: var(--color-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ==================== 主题相关的工具类 ==================== */
+
+/* 文本颜色 */
+.text-main {
+    color: var(--color-main);
+    transition: color 0.3s ease;
+}
+
+.text-secondary {
+    color: var(--color-text-secondary);
+    transition: color 0.3s ease;
+}
+
+/* 背景颜色 */
+.bg-main {
+    background-color: var(--color-bg);
+    transition: background-color 0.3s ease;
+}
+
+.bg-secondary {
+    background-color: var(--color-secondary);
+    transition: background-color 0.3s ease;
+}
+
+.bg-surface {
+    background-color: var(--color-card);
+    transition: background-color 0.3s ease;
+}
+
+/* 卡片样式 */
+.card {
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    background-color: var(--color-card);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* 边框 */
+.border-default {
+    border-color: var(--color-border);
+    transition: border-color 0.3s ease;
+}
+
+/* 阴影 */
+.shadow-surface {
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.3s ease;
+}
+
+/* 骨架屏 */
+.bg-skeleton {
+    background-color: var(--color-skeleton);
+    transition: background-color 0.3s ease;
+}
+
+.bg-skeleton-sub {
+    background-color: var(--color-skeleton-sub);
+    transition: background-color 0.3s ease;
+}
+
+/* 悬停状态 */
+.hover-bg {
+    transition: background-color 0.2s ease;
+}
+
+.hover-bg:hover {
+    background-color: var(--color-hover);
+}
+
+/* 链接样式 */
+a,
+.link {
+    color: var(--color-link);
+    transition: color 0.2s ease;
+}
+
+a:hover,
+.link:hover {
+    color: var(--color-link-hover);
+}
+
+/* ==================== 语义化颜色工具类 ==================== */
+
+/* 语义化背景色 */
+.bg-success {
+    background-color: var(--color-success);
+    transition: background-color 0.3s ease;
+}
+
+.bg-success-light {
+    background-color: var(--color-success-light);
+    transition: background-color 0.3s ease;
+}
+
+.bg-error {
+    background-color: var(--color-error);
+    transition: background-color 0.3s ease;
+}
+
+.bg-error-light {
+    background-color: var(--color-error-light);
+    transition: background-color 0.3s ease;
+}
+
+.bg-warning {
+    background-color: var(--color-warning);
+    transition: background-color 0.3s ease;
+}
+
+.bg-warning-light {
+    background-color: var(--color-warning-light);
+    transition: background-color 0.3s ease;
+}
+
+.bg-info {
+    background-color: var(--color-info);
+    transition: background-color 0.3s ease;
+}
+
+.bg-info-light {
+    background-color: var(--color-info-light);
+    transition: background-color 0.3s ease;
+}
+
+/* 语义化文本色 */
+.text-success {
+    color: var(--color-success-text);
+    transition: color 0.3s ease;
+}
+
+.text-error {
+    color: var(--color-error-text);
+    transition: color 0.3s ease;
+}
+
+.text-warning {
+    color: var(--color-warning-text);
+    transition: color 0.3s ease;
+}
+
+.text-info {
+    color: var(--color-info-text);
+    transition: color 0.3s ease;
+}
+
+/* 交互状态 */
+.bg-accent {
+    background-color: var(--color-accent);
+    transition: background-color 0.3s ease;
+}
+
+.bg-accent-light {
+    background-color: var(--color-accent-light);
+    transition: background-color 0.3s ease;
+}
+
+.text-accent {
+    color: var(--color-accent);
+    transition: color 0.3s ease;
+}
+
+.border-accent {
+    border-color: var(--color-accent);
+    transition: border-color 0.3s ease;
+}
+
+/* 危险操作 */
+.bg-danger {
+    background-color: var(--color-danger);
+    transition: background-color 0.3s ease;
+}
+
+.bg-danger-light {
+    background-color: var(--color-danger-light);
+    transition: background-color 0.3s ease;
+}
+
+.text-danger {
+    color: var(--color-danger);
+    transition: color 0.3s ease;
+}
+
+.hover\:bg-danger:hover {
+    background-color: var(--color-danger-hover);
+}
+
+.hover\:text-danger:hover {
+    color: var(--color-danger);
+}
+
+/* 过渡效果 */
+.transition-theme {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 动效 */
+@keyframes modal-pop {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-modal-appear {
+    animation: modal-pop 0.24s ease;
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.18s ease-out;
+}
+
+/* ==================== 工具提示和浮层样式 ==================== */
+
+.tooltip {
+    background-color: var(--color-card);
+    color: var(--color-main);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.tooltip-dark {
+    background-color: var(--color-main);
+    color: var(--color-bg);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 模态框遮罩 */
+.modal-overlay {
+    background-color: rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+.dark .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.eye-care .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== 按钮样式增强 ==================== */
+
+button {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* 主要按钮样式 */
+.btn-primary {
+    background-color: #000000;
+    color: #FFFFFF;
+    transition: all 0.2s ease;
+    border: 1px solid #000000;
+}
+
+.dark .btn-primary {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #FFFFFF;
+}
+
+.eye-care .btn-primary {
+    background-color: #78350F; /* amber-900 */
+    color: #FFFBEB; /* amber-50 */
+    border: 1px solid #78350F;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 次要按钮样式 */
+.btn-secondary {
+    background-color: var(--color-secondary);
+    color: var(--color-main);
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-hover);
+}
+
+/* ==================== 输入框样式增强 ==================== */
+
+input,
+textarea,
+select {
+    background-color: var(--color-card);
+    color: var(--color-main);
+    border-color: var(--color-border);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--color-link);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ==================== 滚动条样式 ==================== */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+}
+
+/* ==================== 护眼模式特殊处理 ==================== */
+
+.eye-care {
+    /* 减少蓝光 */
+    filter: sepia(0.05);
+}
+
+/* ==================== 标签徽章样式 (Neo-Brutalism) ==================== */
+
+/* 标签基础样式 */
+.tag-badge {
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--nb-border, #242425);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 色卡 1 - 粉色系 (Neo-Brutalism) */
+.tag-color-1 {
+    background-color: var(--nb-accent-pink, #f771a7);
+    color: var(--nb-border, #242425);
+}
+
+/* 色卡 2 - 绿色系 (Neo-Brutalism) */
+.tag-color-2 {
+    background-color: var(--nb-accent-green, #5fe0a8);
+    color: var(--nb-border, #242425);
+}
+
+/* 色卡 3 - 黄色系 (Neo-Brutalism) */
+.tag-color-3 {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    color: var(--nb-border, #242425);
+}
+
+/* 色卡 4 - 蓝色系 (Neo-Brutalism) */
+.tag-color-4 {
+    background-color: var(--nb-accent-blue, #71b4ea);
+    color: var(--nb-border, #242425);
+}
+
+/* ==================== 可访问性增强 ==================== */
+
+/* 聚焦指示器 */
+*:focus-visible {
+    outline: 2px solid var(--color-link);
+    outline-offset: 2px;
+}
+
+/* 减少动画（尊重用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* ==================== Neo-Brutalism 工具类 ==================== */
+
+/* ==================== Neo-Brutalism 主题过渡动画 ==================== */
+
+/* 主题过渡基础类 - 用于所有需要主题过渡的元素 */
+.nb-theme-transition {
+    transition: 
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+/* Neo-Brutalism 卡片样式 */
+.nb-card {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-lg, 12px);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    transition: 
+        transform 0.15s ease, 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease, 
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.nb-card:hover {
+    transform: translate(2px, 2px);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+}
+
+.nb-card-static {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-lg, 12px);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    transition: 
+        background-color 0.3s ease, 
+        border-color 0.3s ease,
+        box-shadow 0.3s ease,
+        color 0.3s ease;
+}
+
+/* Neo-Brutalism 按钮基础样式 */
+.nb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    font-weight: 600;
+    cursor: pointer;
+    transition: 
+        transform 0.1s ease, 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.nb-btn:hover {
+    transform: translate(2px, 2px);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+}
+
+.nb-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: var(--nb-shadow-none, 0px 0px 0px 0px #242425);
+}
+
+.nb-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+}
+
+/* 按钮变体 - Primary (黄色) */
+.nb-btn-primary {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    color: var(--nb-border, #242425);
+    transition: 
+        transform 0.1s ease, 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        filter 0.15s ease;
+}
+
+.nb-btn-primary:hover {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    filter: brightness(0.95);
+}
+
+/* 按钮变体 - Secondary (白色/卡片色) */
+.nb-btn-secondary {
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-border, #242425);
+    transition: 
+        transform 0.1s ease, 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.nb-btn-secondary:hover {
+    background-color: var(--nb-bg, #f6f3f1);
+}
+
+/* 按钮变体 - Danger (粉色) */
+.nb-btn-danger {
+    background-color: var(--nb-accent-pink, #f771a7);
+    color: var(--nb-border, #242425);
+    transition: 
+        transform 0.1s ease, 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        filter 0.15s ease;
+}
+
+.nb-btn-danger:hover {
+    background-color: var(--nb-accent-pink, #f771a7);
+    filter: brightness(0.95);
+}
+
+/* 按钮变体 - Ghost (透明) */
+.nb-btn-ghost {
+    background-color: transparent;
+    color: var(--nb-border, #242425);
+    box-shadow: none;
+    transition: 
+        transform 0.1s ease, 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.nb-btn-ghost:hover {
+    background-color: var(--nb-card, #ffffff);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(1px, 1px);
+}
+
+.nb-btn-ghost:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
+
+/* Neo-Brutalism 输入框样式 */
+.nb-input {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    padding: 0.5rem 0.75rem;
+    color: var(--nb-text, #242425);
+    transition: 
+        box-shadow 0.15s ease, 
+        background-color 0.3s ease, 
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.nb-input:focus {
+    outline: none;
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+}
+
+.nb-input::placeholder {
+    color: var(--nb-text-secondary, #6B7280);
+}
+
+/* Neo-Brutalism 徽章样式 */
+.nb-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-full, 9999px);
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: 
+        background-color 0.3s ease, 
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+/* 徽章颜色变体 */
+.nb-badge-pink {
+    background-color: var(--nb-accent-pink, #f771a7);
+    color: var(--nb-border, #242425);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nb-badge-yellow {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    color: var(--nb-border, #242425);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nb-badge-blue {
+    background-color: var(--nb-accent-blue, #71b4ea);
+    color: var(--nb-border, #242425);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nb-badge-green {
+    background-color: var(--nb-accent-green, #5fe0a8);
+    color: var(--nb-border, #242425);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Neo-Brutalism 开关样式 */
+.nb-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.nb-toggle-track {
+    position: absolute;
+    inset: 0;
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-full, 9999px);
+    transition: 
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.nb-toggle-track.active {
+    background-color: var(--nb-accent-green, #5fe0a8);
+}
+
+.nb-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background-color: var(--nb-border, #242425);
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+
+.nb-toggle-track.active .nb-toggle-thumb {
+    transform: translateX(20px);
+}
+
+/* Neo-Brutalism 选中状态 */
+.nb-selected {
+    background-color: var(--nb-accent-yellow, #f8d773) !important;
+    border-color: var(--nb-border, #242425) !important;
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425) !important;
+}
+
+/* Neo-Brutalism 导航项样式 */
+.nb-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--nb-border-radius-full, 9999px);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    font-weight: 600;
+    transition: 
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.3s ease, 
+        color 0.3s ease;
+}
+
+.nb-nav-item:hover {
+    background-color: var(--nb-bg, #f6f3f1);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(2px, 2px);
+}
+
+.nb-nav-item.active {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    color: var(--nb-border, #242425);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(2px, 2px);
+}
+
+/* Neo-Brutalism 设置导航项 */
+.nb-settings-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: var(--nb-border-radius-full, 9999px);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    font-size: 0.875rem;
+    transition: 
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.3s ease, 
+        color 0.3s ease;
+}
+
+.nb-settings-nav-item:hover {
+    background-color: var(--nb-bg, #f6f3f1);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(2px, 2px);
+}
+
+.nb-settings-nav-item.active {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    color: var(--nb-border, #242425);
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(2px, 2px);
+    font-weight: 600;
+}
+
+/* Neo-Brutalism 下拉菜单 */
+.nb-dropdown {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    transition: 
+        background-color 0.3s ease, 
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+.nb-dropdown-item {
+    padding: 0.5rem 1rem;
+    color: var(--nb-text, #242425);
+    transition: 
+        background-color 0.15s ease,
+        color 0.3s ease;
+}
+
+.nb-dropdown-item:hover {
+    background-color: var(--nb-bg, #f6f3f1);
+}
+
+/* Neo-Brutalism 表格样式 */
+.nb-table-header {
+    background-color: #f0f0ee;
+    border-bottom: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    transition: 
+        background-color 0.3s ease, 
+        border-color 0.3s ease;
+}
+
+.dark .nb-table-header {
+    background-color: #333333;
+}
+
+.eye-care .nb-table-header {
+    background-color: #f5edd8;
+}
+
+.nb-table-row {
+    background-color: var(--nb-card, #ffffff);
+    border-bottom: 1px solid #e0e0e0;
+    transition: 
+        background-color 0.3s ease, 
+        border-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.nb-table-row:hover {
+    background-color: var(--nb-bg, #f6f3f1);
+}
+
+/* Neo-Brutalism 文本样式 */
+.nb-text {
+    color: var(--nb-text, #242425);
+    transition: color 0.3s ease;
+}
+
+.nb-text-secondary {
+    color: var(--nb-text-secondary, #6B7280);
+    transition: color 0.3s ease;
+}
+
+/* Neo-Brutalism 背景样式 */
+.nb-bg {
+    background-color: var(--nb-bg, #f6f3f1);
+    transition: background-color 0.3s ease;
+}
+
+.nb-bg-card {
+    background-color: var(--nb-card, #ffffff);
+    transition: background-color 0.3s ease;
+}
+
+/* Neo-Brutalism 边框样式 */
+.nb-border {
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    transition: border-color 0.3s ease;
+}
+
+.nb-border-r {
+    border-right: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    transition: border-color 0.3s ease;
+}
+
+.nb-border-b {
+    border-bottom: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    transition: border-color 0.3s ease;
+}
+
+/* Neo-Brutalism 阴影样式 */
+.nb-shadow {
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    transition: box-shadow 0.3s ease;
+}
+
+.nb-shadow-hover {
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transition: box-shadow 0.3s ease;
+}
