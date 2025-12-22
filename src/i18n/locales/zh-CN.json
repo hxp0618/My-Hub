@@ -602,6 +602,99 @@
         "saveSuccess": "密钥配置已保存",
         "testSuccess": "测试成功",
         "testFailed": "测试失败"
+      },
+      "scheduled": {
+        "title": "定时任务",
+        "add": "定时发送",
+        "manage": "管理任务",
+        "noTasks": "暂无定时任务",
+        "noTasksHint": "点击\"定时发送\"按钮创建第一个定时任务",
+        "taskCount": "定时任务 ({{count}})",
+        "createTask": "创建定时任务",
+        "editTask": "编辑定时任务",
+        "taskType": "任务类型",
+        "scheduledTime": "执行时间",
+        "cronExpression": "Cron 表达式",
+        "completed": "已完成",
+        "viewHistory": "查看执行历史",
+        "historyTitle": "{{title}} - 执行历史",
+        "noHistory": "暂无执行记录",
+        "successCount": "成功 {{count}} 个",
+        "failedCount": "失败 {{count}} 个",
+        "errorMessage": "错误信息",
+        "minIntervalWarning": "注意：Chrome 扩展的最小执行间隔为 1 分钟",
+        "pause": "暂停",
+        "resume": "恢复",
+        "create": "创建",
+        "type": {
+          "one-time": "一次性",
+          "recurring": "周期性"
+        },
+        "status": {
+          "active": "已启用",
+          "paused": "已暂停",
+          "completed": "已完成",
+          "failed": "失败"
+        },
+        "validation": {
+          "titleRequired": "请输入通知标题",
+          "bodyRequired": "请输入通知内容",
+          "targetRequired": "请至少选择一个目标设备",
+          "scheduledTimeRequired": "请选择执行时间",
+          "scheduledTimeInvalid": "执行时间必须在当前时间之后",
+          "cronRequired": "请配置 Cron 表达式",
+          "cronInvalid": "无效的 Cron 表达式"
+        },
+        "form": {
+          "title": "创建定时任务",
+          "editTitle": "编辑定时任务",
+          "taskType": "任务类型",
+          "notificationTitle": "通知标题",
+          "notificationBody": "通知内容",
+          "targetDevices": "目标设备",
+          "scheduleTime": "执行时间",
+          "cronExpression": "Cron 表达式",
+          "selectDateTime": "选择日期和时间",
+          "pastTimeError": "执行时间不能早于当前时间",
+          "invalidCron": "无效的 Cron 表达式",
+          "requiredField": "此字段为必填项",
+          "noDeviceSelected": "请至少选择一个目标设备"
+        },
+        "list": {
+          "nextExecution": "下次执行",
+          "lastExecution": "上次执行",
+          "neverExecuted": "从未执行",
+          "edit": "编辑",
+          "delete": "删除",
+          "enable": "启用",
+          "disable": "暂停",
+          "deleteConfirm": "确定要删除定时任务\"{{title}}\"吗？"
+        },
+        "execution": {
+          "history": "执行历史",
+          "time": "执行时间",
+          "status": "状态",
+          "result": "结果",
+          "success": "成功",
+          "failed": "失败",
+          "successCount": "{{success}} 成功",
+          "failedCount": "{{failed}} 失败",
+          "noHistory": "暂无执行记录"
+        },
+        "cron": {
+          "title": "Cron 配置",
+          "preview": "未来 5 次执行时间",
+          "templates": "快速模板"
+        },
+        "messages": {
+          "createSuccess": "定时任务创建成功",
+          "updateSuccess": "定时任务更新成功",
+          "deleteSuccess": "定时任务删除成功",
+          "enableSuccess": "定时任务已启用",
+          "disableSuccess": "定时任务已暂停",
+          "executionSuccess": "定时任务执行成功",
+          "executionFailed": "定时任务执行失败"
+        }
       }
     },
     "timestampConverter": {

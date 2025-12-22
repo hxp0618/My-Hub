@@ -14,6 +14,25 @@ import {
   validateDeviceKey,
 } from '../utils/barkKeyManager';
 
+/** 存储键常量 - 与 background script 保持一致 */
+const BARK_KEYS_STORAGE_KEY = 'bark_keys';
+
+/**
+ * 同步密钥数据到 chrome.storage.local（供 background script 使用）
+ */
+function syncKeysToBackground(keys: BarkKeyConfig[]): void {
+  if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
+    return;
+  }
+
+  chrome.runtime.sendMessage({
+    type: 'SYNC_KEYS_TO_STORAGE',
+    keys,
+  }).catch(() => {
+    // 忽略错误，background script 可能还没准备好
+  });
+}
+
 /**
  * Bark 密钥管理器类
  * 实现 IKeyManager 接口，提供完整的密钥管理功能
@@ -26,12 +45,15 @@ export class BarkKeyManager implements IKeyManager {
     // 加载现有配置
     this.keys = loadKeys();
     this.selectedKeyId = loadSelectedKeyId();
-    
+
     // 如果有密钥但没有选中任何密钥，自动选中第一个
     if (this.keys.length > 0 && !this.selectedKeyId) {
       this.selectedKeyId = this.keys[0].id;
       saveSelectedKeyId(this.selectedKeyId);
     }
+
+    // 初始化时同步到 background
+    syncKeysToBackground(this.keys);
   }
 
   /**
@@ -43,7 +65,7 @@ export class BarkKeyManager implements IKeyManager {
 
   /**
    * 添加新密钥配置
-   * 
+   *
    * @param config 密钥配置（不含 id、createdAt、updatedAt）
    * @returns 添加后的完整配置
    * @throws 如果设备密钥为空或重复
@@ -78,6 +100,9 @@ export class BarkKeyManager implements IKeyManager {
     this.keys.unshift(newKey); // 添加到开头（最新的在前）
     saveKeys(this.keys);
 
+    // 同步到 background
+    syncKeysToBackground(this.keys);
+
     // 如果这是第一个密钥，自动选中
     if (this.keys.length === 1) {
       this.selectedKeyId = newKey.id;
@@ -90,7 +115,7 @@ export class BarkKeyManager implements IKeyManager {
 
   /**
    * 更新密钥配置
-   * 
+   *
    * @param id 密钥 ID
    * @param updates 要更新的字段
    * @returns 更新后的配置
@@ -129,12 +154,15 @@ export class BarkKeyManager implements IKeyManager {
     this.keys[index] = updatedKey;
     saveKeys(this.keys);
 
+    // 同步到 background
+    syncKeysToBackground(this.keys);
+
     return updatedKey;
   }
 
   /**
    * 删除密钥配置
-   * 
+   *
    * @param id 密钥 ID
    * @throws 如果密钥不存在
    */
@@ -147,6 +175,9 @@ export class BarkKeyManager implements IKeyManager {
     // 删除配置
     this.keys.splice(index, 1);
     saveKeys(this.keys);
+
+    // 同步到 background
+    syncKeysToBackground(this.keys);
 
     // 如果删除的是当前选中的密钥
     if (this.selectedKeyId === id) {
@@ -164,7 +195,7 @@ export class BarkKeyManager implements IKeyManager {
 
   /**
    * 获取选中的密钥配置
-   * 
+   *
    * @returns 选中的密钥配置，如果没有则返回 null
    */
   getSelectedKey(): BarkKeyConfig | null {
@@ -176,7 +207,7 @@ export class BarkKeyManager implements IKeyManager {
 
   /**
    * 设置选中的密钥
-   * 
+   *
    * @param id 密钥 ID
    * @throws 如果密钥不存在
    */
@@ -192,7 +223,7 @@ export class BarkKeyManager implements IKeyManager {
 
   /**
    * 测试密钥配置
-   * 
+   *
    * @param id 密钥 ID
    * @returns 测试是否成功
    * @throws 如果密钥不存在
@@ -216,13 +247,13 @@ export class BarkKeyManager implements IKeyManager {
 
   /**
    * 验证密钥是否重复
-   * 
+   *
    * @param deviceKey 设备密钥
    * @param excludeId 要排除的密钥 ID（用于编辑时）
    * @returns 是否重复
    */
   isDuplicateKey(deviceKey: string, excludeId?: string): boolean {
-    return this.keys.some(k => 
+    return this.keys.some(k =>
       k.deviceKey === deviceKey.trim() && k.id !== excludeId
     );
   }

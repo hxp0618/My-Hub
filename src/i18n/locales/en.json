@@ -602,6 +602,99 @@
         "saveSuccess": "Key configuration saved",
         "testSuccess": "Test successful",
         "testFailed": "Test failed"
+      },
+      "scheduled": {
+        "title": "Scheduled Tasks",
+        "add": "Schedule",
+        "manage": "Manage Tasks",
+        "noTasks": "No scheduled tasks",
+        "noTasksHint": "Click \"Schedule\" button to create your first scheduled task",
+        "taskCount": "Scheduled Tasks ({{count}})",
+        "createTask": "Create Scheduled Task",
+        "editTask": "Edit Scheduled Task",
+        "taskType": "Task Type",
+        "scheduledTime": "Schedule Time",
+        "cronExpression": "Cron Expression",
+        "completed": "Completed",
+        "viewHistory": "View Execution History",
+        "historyTitle": "{{title}} - Execution History",
+        "noHistory": "No execution records",
+        "successCount": "{{count}} succeeded",
+        "failedCount": "{{count}} failed",
+        "errorMessage": "Error message",
+        "minIntervalWarning": "Note: Chrome extension minimum execution interval is 1 minute",
+        "pause": "Pause",
+        "resume": "Resume",
+        "create": "Create",
+        "type": {
+          "one-time": "One-time",
+          "recurring": "Recurring"
+        },
+        "status": {
+          "active": "Active",
+          "paused": "Paused",
+          "completed": "Completed",
+          "failed": "Failed"
+        },
+        "validation": {
+          "titleRequired": "Please enter notification title",
+          "bodyRequired": "Please enter notification content",
+          "targetRequired": "Please select at least one target device",
+          "scheduledTimeRequired": "Please select schedule time",
+          "scheduledTimeInvalid": "Schedule time must be in the future",
+          "cronRequired": "Please configure Cron expression",
+          "cronInvalid": "Invalid Cron expression"
+        },
+        "form": {
+          "title": "Create Scheduled Task",
+          "editTitle": "Edit Scheduled Task",
+          "taskType": "Task Type",
+          "notificationTitle": "Notification Title",
+          "notificationBody": "Notification Body",
+          "targetDevices": "Target Devices",
+          "scheduleTime": "Schedule Time",
+          "cronExpression": "Cron Expression",
+          "selectDateTime": "Select date and time",
+          "pastTimeError": "Schedule time cannot be in the past",
+          "invalidCron": "Invalid Cron expression",
+          "requiredField": "This field is required",
+          "noDeviceSelected": "Please select at least one target device"
+        },
+        "list": {
+          "nextExecution": "Next Execution",
+          "lastExecution": "Last Execution",
+          "neverExecuted": "Never executed",
+          "edit": "Edit",
+          "delete": "Delete",
+          "enable": "Enable",
+          "disable": "Pause",
+          "deleteConfirm": "Are you sure you want to delete scheduled task \"{{title}}\"?"
+        },
+        "execution": {
+          "history": "Execution History",
+          "time": "Execution Time",
+          "status": "Status",
+          "result": "Result",
+          "success": "Success",
+          "failed": "Failed",
+          "successCount": "{{success}} succeeded",
+          "failedCount": "{{failed}} failed",
+          "noHistory": "No execution history"
+        },
+        "cron": {
+          "title": "Cron Configuration",
+          "preview": "Next 5 Executions",
+          "templates": "Quick Templates"
+        },
+        "messages": {
+          "createSuccess": "Scheduled task created successfully",
+          "updateSuccess": "Scheduled task updated successfully",
+          "deleteSuccess": "Scheduled task deleted successfully",
+          "enableSuccess": "Scheduled task enabled",
+          "disableSuccess": "Scheduled task paused",
+          "executionSuccess": "Scheduled task executed successfully",
+          "executionFailed": "Scheduled task execution failed"
+        }
       }
     },
     "common": {

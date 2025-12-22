@@ -363,7 +363,7 @@ export const importData = async (file: File): Promise<void> => {
       }
 
       // Import Tags
-      if (data.tags) {
+      if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
         await clearAllBookmarkTags();
         for (const tag of data.tags) {
           await addBookmarkTag(tag);
@@ -473,6 +473,8 @@ export const importData = async (file: File): Promise<void> => {
       }
 
       alert(i18n.t('dataSync.importSuccess'));
+      // 刷新页面以加载导入的数据
+      window.location.reload();
     } catch (error) {
       console.error('Error importing data:', error);
       alert(i18n.t('dataSync.importError'));

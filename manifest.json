@@ -24,7 +24,8 @@
     "storage",
     "sessions",
     "bookmarks",
-    "tabs"
+    "tabs",
+    "alarms"
   ],
   "content_scripts": [
     {

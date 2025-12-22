@@ -40,13 +40,39 @@ export function getLLMSettings(): LLMSettings {
       const parsed = JSON.parse(data);
       // 合并默认设置和用户设置，确保新增的配置项存在
       const defaultSettings = getDefaultSettings();
+      
+      // 深度合并 providers，保留用户已保存的 apiKey、selectedModel 等配置
+      const mergedProviders: Record<string, ProviderConfig> = {};
+      
+      // 先添加所有默认 providers
+      Object.entries(defaultSettings.providers).forEach(([key, defaultProvider]) => {
+        const userProvider = parsed.providers?.[key];
+        if (userProvider) {
+          // 用户有此 provider 的配置，合并时优先使用用户的值
+          mergedProviders[key] = {
+            ...defaultProvider,
+            ...userProvider,
+            // 确保 models 列表使用最新的默认值（可能有更新）
+            models: defaultProvider.models,
+          };
+        } else {
+          mergedProviders[key] = defaultProvider;
+        }
+      });
+      
+      // 添加用户自定义的 providers（如 custom provider）
+      if (parsed.providers) {
+        Object.entries(parsed.providers).forEach(([key, userProvider]) => {
+          if (!mergedProviders[key]) {
+            mergedProviders[key] = userProvider as ProviderConfig;
+          }
+        });
+      }
+      
       return {
         ...defaultSettings,
         ...parsed,
-        providers: {
-          ...defaultSettings.providers,
-          ...parsed.providers,
-        },
+        providers: mergedProviders,
       };
     } catch (error) {
       console.error('Failed to parse LLM settings:', error);
