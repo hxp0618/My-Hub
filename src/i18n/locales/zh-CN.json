@@ -634,7 +634,8 @@
           "active": "已启用",
           "paused": "已暂停",
           "completed": "已完成",
-          "failed": "失败"
+          "failed": "失败",
+          "success": "成功"
         },
         "validation": {
           "titleRequired": "请输入通知标题",

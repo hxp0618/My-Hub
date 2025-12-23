@@ -9,7 +9,7 @@ import {
   TaskValidationResult,
   ValidationError,
 } from '../types/scheduledTask';
-import { validateCronExpression as validateCron, getNextExecutions } from './cronUtils';
+import { validateSimpleCron, getNextExecutionTime, getNextExecutionTimes } from './simpleCronParser';
 
 /** 最小提前时间（毫秒）- 任务至少需要提前 1 分钟创建 */
 const MIN_ADVANCE_TIME = 60 * 1000;
@@ -100,8 +100,7 @@ export function validateCronExpression(expression: string): boolean {
     return false;
   }
   
-  const result = validateCron(expression);
-  return result.isValid;
+  return validateSimpleCron(expression);
 }
 
 /**
@@ -119,11 +118,8 @@ export function calculateNextExecutionTime(task: ScheduledTask): number | null {
   }
 
   if (task.type === 'recurring' && task.cronExpression) {
-    // 周期性任务使用 Cron 表达式计算
-    const nextExecutions = getNextExecutions(task.cronExpression, 1);
-    if (nextExecutions.length > 0) {
-      return nextExecutions[0].getTime();
-    }
+    // 周期性任务使用简单 Cron 解析器计算
+    return getNextExecutionTime(task.cronExpression);
   }
 
   return null;
@@ -201,5 +197,5 @@ export function getExecutionPreview(cronExpression: string, count: number = 5): 
   if (!validateCronExpression(cronExpression)) {
     return [];
   }
-  return getNextExecutions(cronExpression, count);
+  return getNextExecutionTimes(cronExpression, count);
 }
