@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
@@ -12,12 +12,20 @@ export interface PasswordOptions {
   symbols: boolean;
 }
 
+interface HistoryItem {
+  password: string;
+  timestamp: number;
+}
+
 const CHAR_SETS = {
   uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
   lowercase: 'abcdefghijklmnopqrstuvwxyz',
   numbers: '0123456789',
   symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?',
 };
+
+const HISTORY_KEY = 'password-generator-history';
+const MAX_HISTORY = 20;
 
 /**
  * 生成密码
@@ -62,6 +70,46 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
     length: 16, uppercase: true, lowercase: true, numbers: true, symbols: false,
   });
   const [password, setPassword] = useState('');
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // 加载历史记录
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      if (saved) {
+        setHistory(JSON.parse(saved));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // 保存历史记录
+  const saveHistory = useCallback((newHistory: HistoryItem[]) => {
+    setHistory(newHistory);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+  }, []);
+
+  // 添加到历史记录
+  const addToHistory = useCallback((pwd: string) => {
+    const newItem: HistoryItem = {
+      password: pwd,
+      timestamp: Date.now(),
+    };
+    const newHistory = [newItem, ...history.filter(h => h.password !== pwd)].slice(0, MAX_HISTORY);
+    saveHistory(newHistory);
+  }, [history, saveHistory]);
+
+  // 删除历史记录项
+  const removeFromHistory = useCallback((timestamp: number) => {
+    const newHistory = history.filter(h => h.timestamp !== timestamp);
+    saveHistory(newHistory);
+  }, [history, saveHistory]);
+
+  // 清空历史记录
+  const clearHistory = useCallback(() => {
+    saveHistory([]);
+  }, [saveHistory]);
 
   const canGenerate = options.uppercase || options.lowercase || options.numbers || options.symbols;
   const strength = calculateStrength(password, options);
@@ -69,12 +117,19 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
   const strengthColors = ['bg-red-500', 'bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-green-600'];
 
   const handleGenerate = useCallback(() => {
-    setPassword(generatePassword(options));
-  }, [options]);
+    const newPassword = generatePassword(options);
+    setPassword(newPassword);
+    addToHistory(newPassword);
+  }, [options, addToHistory]);
 
   const updateOption = <K extends keyof PasswordOptions>(key: K, value: PasswordOptions[K]) => {
     setOptions(prev => ({ ...prev, [key]: value }));
   };
+
+  // 从历史记录中选择
+  const selectFromHistory = useCallback((item: HistoryItem) => {
+    setPassword(item.password);
+  }, []);
 
   return (
     <ToolCard tool={TOOL_METADATA[ToolId.PASSWORD_GENERATOR]} isExpanded={isExpanded} onToggleExpand={onToggleExpand}>
@@ -131,25 +186,77 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
         </div>
 
         {/* 结果 */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">{t('tools.passwordGenerator.result')}</label>
-          <div className="flex-1 p-4 nb-card-static flex items-center justify-center">
-            {password ? (
-              <div className="text-center w-full">
-                <p className="font-mono text-lg break-all mb-4 nb-text">{password}</p>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-sm nb-text-secondary">{t('tools.passwordGenerator.strength')}:</span>
-                  <div className="flex gap-1">
-                    {[0, 1, 2, 3].map(i => (
-                      <div key={i} className={`w-6 h-2 rounded ${i < strength ? strengthColors[strength] : 'bg-gray-300'}`} />
-                    ))}
+        <div className="flex-1 flex flex-col min-h-0 gap-4">
+          <div>
+            <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">{t('tools.passwordGenerator.result')}</label>
+            <div className="p-4 nb-card-static">
+              {password ? (
+                <div className="text-center w-full">
+                  <p className="font-mono text-lg break-all mb-4 nb-text">{password}</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm nb-text-secondary">{t('tools.passwordGenerator.strength')}:</span>
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3].map(i => (
+                        <div key={i} className={`w-6 h-2 rounded ${i < strength ? strengthColors[strength] : 'bg-gray-300'}`} />
+                      ))}
+                    </div>
+                    <span className="text-sm nb-text">{t(`tools.passwordGenerator.${strengthLabels[strength]}`)}</span>
                   </div>
-                  <span className="text-sm nb-text">{t(`tools.passwordGenerator.${strengthLabels[strength]}`)}</span>
                 </div>
-              </div>
-            ) : (
-              <span className="nb-text-secondary">{t('tools.passwordGenerator.emptyResult')}</span>
-            )}
+              ) : (
+                <span className="nb-text-secondary block text-center">{t('tools.passwordGenerator.emptyResult')}</span>
+              )}
+            </div>
+          </div>
+
+          {/* 历史记录 */}
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium nb-text">
+                {t('tools.passwordGenerator.history')} ({history.length}/{MAX_HISTORY})
+              </label>
+              {history.length > 0 && (
+                <button
+                  onClick={clearHistory}
+                  className="nb-btn nb-btn-ghost text-xs py-1 px-2"
+                >
+                  {t('tools.passwordGenerator.clearHistory')}
+                </button>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto nb-card-subtle p-2 space-y-2">
+              {history.length === 0 ? (
+                <p className="text-sm nb-text-secondary text-center py-4">{t('tools.passwordGenerator.noHistory')}</p>
+              ) : (
+                history.map(item => (
+                  <div
+                    key={item.timestamp}
+                    className="p-2 nb-bg rounded-lg nb-border cursor-pointer hover:opacity-80 transition-opacity group"
+                    onClick={() => selectFromHistory(item)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-mono text-sm truncate nb-text flex-1 min-w-0">{item.password}</p>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); copy(item.password); }}
+                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                          title={t('tools.passwordGenerator.copy')}
+                        >
+                          <span className="material-symbols-outlined text-base nb-text-secondary">content_copy</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeFromHistory(item.timestamp); }}
+                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title={t('tools.passwordGenerator.delete')}
+                        >
+                          <span className="material-symbols-outlined text-base" style={{ color: 'var(--nb-accent-pink)' }}>delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -13,10 +13,10 @@ export interface DiffChange {
 }
 
 /**
- * 计算文本差异
+ * 计算文本差异（字符级别）
  */
 export const computeDiff = (textA: string, textB: string): DiffChange[] => {
-  return Diff.diffLines(textA, textB);
+  return Diff.diffChars(textA, textB);
 };
 
 /**
@@ -36,7 +36,7 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
   const { t } = useTranslation();
   const [textA, setTextA] = useState('');
   const [textB, setTextB] = useState('');
-  const [mode, setMode] = useState<DiffMode>('inline');
+  const [mode, setMode] = useState<DiffMode>('side-by-side');
 
   // 计算差异
   const diff = useMemo(() => computeDiff(textA, textB), [textA, textB]);
@@ -47,12 +47,26 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
     setTextB('');
   };
 
+  // 差异高亮样式 - 只高亮有差异的字符，使用更浅的背景色
+  const addedStyle = {
+    backgroundColor: 'rgba(94, 224, 168, 0.3)', // 浅绿色背景
+    color: 'inherit',
+    borderRadius: '2px',
+  };
+  
+  const removedStyle = {
+    backgroundColor: 'rgba(247, 113, 167, 0.3)', // 浅粉色背景
+    color: 'inherit',
+    textDecoration: 'line-through',
+    borderRadius: '2px',
+  };
+
   // 渲染行内差异
   const renderInlineDiff = () => {
     if (!textA && !textB) return null;
     if (isIdentical && textA) {
       return (
-        <div className="p-4 text-center text-success">
+        <div className="p-4 text-center" style={{ color: 'var(--nb-accent-green)' }}>
           <span className="material-symbols-outlined text-2xl mb-2">check_circle</span>
           <p>{t('tools.diffViewer.noDifference')}</p>
         </div>
@@ -60,17 +74,11 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
     }
 
     return (
-      <div className="p-3 font-mono text-sm whitespace-pre-wrap">
+      <div className="p-3 font-mono text-sm whitespace-pre-wrap nb-text">
         {diff.map((part, index) => (
           <span
             key={index}
-            className={
-              part.added
-                ? 'bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200'
-                : part.removed
-                  ? 'bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200 line-through'
-                  : ''
-            }
+            style={part.added ? addedStyle : part.removed ? removedStyle : undefined}
           >
             {part.value}
           </span>
@@ -79,52 +87,56 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
     );
   };
 
-  // 渲染并排差异
+  // 渲染并排差异 - 左边显示删除，右边显示新增
   const renderSideBySideDiff = () => {
     if (!textA && !textB) return null;
     if (isIdentical && textA) {
       return (
-        <div className="p-4 text-center text-success col-span-2">
+        <div className="p-4 text-center col-span-2" style={{ color: 'var(--nb-accent-green)' }}>
           <span className="material-symbols-outlined text-2xl mb-2">check_circle</span>
           <p>{t('tools.diffViewer.noDifference')}</p>
         </div>
       );
     }
 
-    const leftLines: React.ReactNode[] = [];
-    const rightLines: React.ReactNode[] = [];
+    // 构建左右两边的内容
+    const leftContent: React.ReactNode[] = [];
+    const rightContent: React.ReactNode[] = [];
 
     diff.forEach((part, index) => {
       if (part.removed) {
-        leftLines.push(
-          <div key={`l-${index}`} className="bg-red-200 dark:bg-red-900 px-2">
+        // 删除的内容只显示在左边，带高亮
+        leftContent.push(
+          <span key={`l-${index}`} style={removedStyle}>
             {part.value}
-          </div>
+          </span>
         );
       } else if (part.added) {
-        rightLines.push(
-          <div key={`r-${index}`} className="bg-green-200 dark:bg-green-900 px-2">
+        // 新增的内容只显示在右边，带高亮
+        rightContent.push(
+          <span key={`r-${index}`} style={addedStyle}>
             {part.value}
-          </div>
+          </span>
         );
       } else {
-        leftLines.push(
-          <div key={`l-${index}`} className="px-2">
-            {part.value}
-          </div>
+        // 相同的内容两边都显示
+        leftContent.push(
+          <span key={`l-${index}`}>{part.value}</span>
         );
-        rightLines.push(
-          <div key={`r-${index}`} className="px-2">
-            {part.value}
-          </div>
+        rightContent.push(
+          <span key={`r-${index}`}>{part.value}</span>
         );
       }
     });
 
     return (
       <>
-        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto">{leftLines}</div>
-        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto">{rightLines}</div>
+        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto p-3 nb-text">
+          {leftContent}
+        </div>
+        <div className="font-mono text-sm whitespace-pre-wrap overflow-auto p-3 nb-text nb-border-l">
+          {rightContent}
+        </div>
       </>
     );
   };
@@ -145,8 +157,8 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
               onChange={e => setMode(e.target.value as DiffMode)}
               className="nb-input text-sm"
             >
-              <option value="inline">{t('tools.diffViewer.inline')}</option>
               <option value="side-by-side">{t('tools.diffViewer.sideBySide')}</option>
+              <option value="inline">{t('tools.diffViewer.inline')}</option>
             </select>
           </div>
 
@@ -198,7 +210,7 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
         {/* 差异显示区 */}
         <div
           className={`flex-1 nb-card-static overflow-auto min-h-[200px] ${
-            mode === 'side-by-side' ? 'grid grid-cols-2 divide-x nb-border-r' : ''
+            mode === 'side-by-side' ? 'grid grid-cols-2' : ''
           }`}
         >
           {mode === 'inline' ? renderInlineDiff() : renderSideBySideDiff()}

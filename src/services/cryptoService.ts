@@ -152,27 +152,25 @@ export class CryptoService {
       throw new Error(`Encryption failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    // 构建输出格式：algorithm:mode:ciphertext 或 algorithm:ciphertext
-    if (this.isAESAlgorithm(algorithm)) {
-      return `${algorithm}${SEPARATOR}${mode}${SEPARATOR}${ciphertext}`;
-    }
-    return `${algorithm}${SEPARATOR}${ciphertext}`;
+    // 只返回纯密文，不包含算法标识
+    return ciphertext;
   }
 
   /**
    * 解密文本
    * 
-   * @param encryptedText 加密的字符串（包含算法标识）
+   * @param encryptedText 加密的字符串
    * @param password 密码
+   * @param options 解密选项（算法和模式）
    * @returns 解密后的明文
    * 
    * @example
    * ```ts
-   * const decrypted = CryptoService.decrypt('AES-256:CBC:U2FsdGVkX1...', 'secret');
+   * const decrypted = CryptoService.decrypt('U2FsdGVkX1...', 'secret', { algorithm: 'AES-256', mode: 'CBC' });
    * // 输出: "Hello"
    * ```
    */
-  static decrypt(encryptedText: string, password: string): string {
+  static decrypt(encryptedText: string, password: string, options?: { algorithm?: Algorithm; mode?: AESMode }): string {
     if (!encryptedText) {
       throw new Error('Encrypted text cannot be empty');
     }
@@ -181,23 +179,13 @@ export class CryptoService {
       throw new Error('Password cannot be empty');
     }
 
+    // 先尝试解析旧格式（带算法前缀）
     const parsed = this.parseEncryptedData(encryptedText);
     
-    if (!parsed) {
-      // 尝试作为旧格式（纯 AES）解密
-      try {
-        const bytes = CryptoJS.AES.decrypt(encryptedText, password);
-        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-        if (!decrypted) {
-          throw new Error('Decryption failed: Invalid password or corrupted data');
-        }
-        return decrypted;
-      } catch (e) {
-        throw new Error('Decryption failed: Invalid format or password');
-      }
-    }
-
-    const { algorithm, mode = 'CBC', ciphertext } = parsed;
+    // 确定使用的算法和模式
+    const algorithm = parsed?.algorithm ?? options?.algorithm ?? 'AES-256';
+    const mode = parsed?.mode ?? options?.mode ?? 'CBC';
+    const ciphertext = parsed?.ciphertext ?? encryptedText;
 
     try {
       let decrypted: string;

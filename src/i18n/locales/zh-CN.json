@@ -1042,7 +1042,11 @@
       "weak": "弱",
       "medium": "中",
       "strong": "强",
-      "veryStrong": "非常强"
+      "veryStrong": "非常强",
+      "history": "历史记录",
+      "clearHistory": "清空",
+      "noHistory": "暂无历史记录",
+      "delete": "删除"
     },
     "htmlToMarkdown": {
       "name": "HTML 转 Markdown",
@@ -1080,14 +1084,18 @@
       "description": "使用多种算法加密和解密文本",
       "encrypt": "加密",
       "decrypt": "解密",
+      "calculate": "计算",
       "inputPlaintext": "明文",
       "inputCiphertext": "密文",
+      "inputText": "输入文本",
       "plaintextPlaceholder": "输入要加密的文本...",
       "ciphertextPlaceholder": "输入要解密的密文...",
+      "md5Placeholder": "输入要计算 MD5 的文本...",
       "password": "密码",
       "passwordPlaceholder": "输入加密/解密密码",
       "outputCiphertext": "加密结果",
       "outputPlaintext": "解密结果",
+      "md5Result": "MD5 哈希结果",
       "copy": "复制",
       "clear": "清空",
       "emptyInput": "请输入文本",
@@ -1095,8 +1103,10 @@
       "encryptError": "加密失败",
       "decryptError": "解密失败，请检查密码是否正确",
       "securityNote": "所有加密解密操作在本地执行，数据不会发送到服务器",
+      "md5Note": "MD5 是单向哈希算法，无法解密。所有操作在本地执行。",
       "algorithm": "加密算法",
       "mode": "加密模式",
+      "uppercase": "大写输出",
       "algorithmDetected": "已自动检测算法: {{algorithm}}"
     },
     "svgTool": {

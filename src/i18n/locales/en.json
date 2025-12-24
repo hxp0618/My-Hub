@@ -714,14 +714,18 @@
       "description": "Encrypt and decrypt text using multiple algorithms",
       "encrypt": "Encrypt",
       "decrypt": "Decrypt",
+      "calculate": "Calculate",
       "inputPlaintext": "Plaintext",
       "inputCiphertext": "Ciphertext",
+      "inputText": "Input Text",
       "plaintextPlaceholder": "Enter text to encrypt...",
       "ciphertextPlaceholder": "Enter ciphertext to decrypt...",
+      "md5Placeholder": "Enter text to calculate MD5...",
       "password": "Password",
       "passwordPlaceholder": "Enter encryption/decryption password",
       "outputCiphertext": "Encrypted Result",
       "outputPlaintext": "Decrypted Result",
+      "md5Result": "MD5 Hash Result",
       "copy": "Copy",
       "clear": "Clear",
       "emptyInput": "Please enter text",
@@ -729,8 +733,10 @@
       "encryptError": "Encryption failed",
       "decryptError": "Decryption failed, please check password",
       "securityNote": "All encryption/decryption operations are performed locally, data is not sent to server",
+      "md5Note": "MD5 is a one-way hash algorithm and cannot be decrypted. All operations are performed locally.",
       "algorithm": "Algorithm",
       "mode": "Mode",
+      "uppercase": "Uppercase output",
       "algorithmDetected": "Algorithm detected: {{algorithm}}"
     },
     "timestampConverter": {
@@ -1077,7 +1083,11 @@
       "weak": "Weak",
       "medium": "Medium",
       "strong": "Strong",
-      "veryStrong": "Very Strong"
+      "veryStrong": "Very Strong",
+      "history": "History",
+      "clearHistory": "Clear",
+      "noHistory": "No history yet",
+      "delete": "Delete"
     },
     "htmlToMarkdown": {
       "name": "HTML to Markdown",
