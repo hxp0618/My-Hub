@@ -19,11 +19,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onClose }) => {
           <li>
             <button
               onClick={() => setActiveMenu('General')}
-              className={`nb-settings-nav-item w-full flex items-center py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 border-[length:var(--nb-border-width)] ${
-                activeMenu === 'General'
-                  ? 'bg-[color:var(--nb-border)] text-[color:var(--nb-card)] border-[color:var(--nb-border)]'
-                  : 'text-[color:var(--nb-text)] bg-transparent border-transparent hover:bg-[color:var(--nb-card)] hover:border-[color:var(--nb-border)]'
-              }`}
+              className={`nb-settings-nav-item w-full ${activeMenu === 'General' ? 'active' : ''}`}
             >
               {t('settings.general')}
             </button>
@@ -31,11 +27,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onClose }) => {
           <li>
             <button
               onClick={() => setActiveMenu('LLM')}
-              className={`nb-settings-nav-item w-full flex items-center py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 border-[length:var(--nb-border-width)] ${
-                activeMenu === 'LLM'
-                  ? 'bg-[color:var(--nb-border)] text-[color:var(--nb-card)] border-[color:var(--nb-border)]'
-                  : 'text-[color:var(--nb-text)] bg-transparent border-transparent hover:bg-[color:var(--nb-card)] hover:border-[color:var(--nb-border)]'
-              }`}
+              className={`nb-settings-nav-item w-full ${activeMenu === 'LLM' ? 'active' : ''}`}
             >
               {t('settings.llm')}
             </button>

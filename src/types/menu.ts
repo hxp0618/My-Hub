@@ -4,7 +4,7 @@
  */
 
 // 菜单项类型
-export type MenuItemId = 'home' | 'bookmarks' | 'tags' | 'history' | 'tools';
+export type MenuItemId = 'home' | 'bookmarks' | 'tags' | 'history' | 'tools' | 'subscriptions';
 
 // 菜单项配置
 export interface MenuItem {
@@ -14,7 +14,7 @@ export interface MenuItem {
 }
 
 // 默认菜单顺序
-export const DEFAULT_MENU_ORDER: MenuItemId[] = ['home', 'bookmarks', 'tags', 'history', 'tools'];
+export const DEFAULT_MENU_ORDER: MenuItemId[] = ['home', 'bookmarks', 'tags', 'history', 'subscriptions', 'tools'];
 
 // 菜单项配置映射
 export const MENU_ITEMS: Record<MenuItemId, MenuItem> = {
@@ -22,6 +22,7 @@ export const MENU_ITEMS: Record<MenuItemId, MenuItem> = {
   bookmarks: { id: 'bookmarks', icon: 'bookmark', labelKey: 'sidebar.bookmarks' },
   tags: { id: 'tags', icon: 'label', labelKey: 'sidebar.tags' },
   history: { id: 'history', icon: 'history', labelKey: 'sidebar.history' },
+  subscriptions: { id: 'subscriptions', icon: 'subscriptions', labelKey: 'sidebar.subscriptions' },
   tools: { id: 'tools', icon: 'construction', labelKey: 'sidebar.tools' },
 };
 

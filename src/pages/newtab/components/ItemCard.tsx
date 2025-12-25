@@ -143,7 +143,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         isMultiSelectMode ? 'cursor-pointer' : 'cursor-pointer'
       } ${isSelected ? 'nb-selected' : ''} ${
         isDragging ? 'opacity-50 scale-105' : ''
-      }`}
+      } ${showActions ? 'z-30' : ''}`}
     >
       {isMultiSelectMode && (
         <div className="absolute top-4 left-4 z-10" onClick={e => e.stopPropagation()}>

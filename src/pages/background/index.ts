@@ -1,7 +1,8 @@
-console.log('background script loaded - v3');
+console.log('background script loaded - v4');
 
-import { deleteBookmarkTag, deleteMultipleBookmarkTags, getBookmarkTag, addBookmarkTag } from '../../db/indexedDB';
+import { deleteBookmarkTag, deleteMultipleBookmarkTags, getBookmarkTag, addBookmarkTag, getAllSubscriptions, getSubscriptionNotificationConfig, getSubscriptionSettings } from '../../db/indexedDB';
 import { parseAlarmName, ALARM_NAME_PREFIX, getAlarmName } from '../../types/scheduledTask';
+import { Subscription, SubscriptionNotificationConfig, SubscriptionSettings } from '../../types/subscription';
 
 // 内存映射表：id -> url
 const bookmarkIdToUrlMap = new Map<string, string>();
@@ -699,3 +700,323 @@ chrome.runtime.onInstalled.addListener((details) => {
 // 立即恢复任务（用于开发模式和 service worker 重新加载）
 console.log('Background script loaded, restoring scheduled tasks immediately');
 restoreScheduledTasks();
+
+// ============================================
+// 订阅到期通知检查
+// ============================================
+
+const SUBSCRIPTION_CHECK_ALARM = 'subscription_expiry_check';
+const SUBSCRIPTION_NOTIFIED_KEY = 'subscription_notified_dates';
+
+/**
+ * 计算剩余天数（按日期计算，不考虑时间）
+ */
+function getRemainingDays(expiryDate: number, currentDate: number = Date.now()): number {
+  const expiryDay = new Date(expiryDate);
+  expiryDay.setHours(0, 0, 0, 0);
+  
+  const currentDay = new Date(currentDate);
+  currentDay.setHours(0, 0, 0, 0);
+  
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffMs = expiryDay.getTime() - currentDay.getTime();
+  return Math.round(diffMs / msPerDay);
+}
+
+/**
+ * 判断订阅是否需要提醒
+ */
+function shouldRemindSubscription(subscription: Subscription, currentDate: number = Date.now()): boolean {
+  if (!subscription.isEnabled) {
+    return false;
+  }
+  const remainingDays = getRemainingDays(subscription.expiryDate, currentDate);
+  return remainingDays >= 0 && remainingDays <= subscription.reminderDays;
+}
+
+/**
+ * 格式化日期
+ */
+function formatDateForNotification(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+/**
+ * 获取今天的日期字符串（用于去重）
+ */
+function getTodayDateString(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * 获取已通知记录
+ */
+async function getNotifiedRecords(): Promise<Record<string, string>> {
+  try {
+    const result = await chrome.storage.local.get(SUBSCRIPTION_NOTIFIED_KEY);
+    return result[SUBSCRIPTION_NOTIFIED_KEY] || {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * 保存已通知记录
+ */
+async function saveNotifiedRecord(subscriptionId: string, dateString: string): Promise<void> {
+  const records = await getNotifiedRecords();
+  const notifiedKey = `${subscriptionId}_${dateString}`;
+  records[notifiedKey] = dateString;
+  
+  // 清理过期记录（超过 30 天的）
+  const now = new Date();
+  const cleanedRecords: Record<string, string> = {};
+  for (const [key, date] of Object.entries(records)) {
+    const recordDate = new Date(date);
+    const daysDiff = Math.floor((now.getTime() - recordDate.getTime()) / (24 * 60 * 60 * 1000));
+    if (daysDiff <= 30) {
+      cleanedRecords[key] = date;
+    }
+  }
+  
+  await chrome.storage.local.set({ [SUBSCRIPTION_NOTIFIED_KEY]: cleanedRecords });
+}
+
+/**
+ * 发送订阅通知到指定渠道
+ */
+async function sendSubscriptionNotification(
+  subscription: Subscription,
+  config: SubscriptionNotificationConfig
+): Promise<{ success: boolean; channels: string[] }> {
+  const remainingDays = getRemainingDays(subscription.expiryDate);
+  const expiryDateStr = formatDateForNotification(subscription.expiryDate);
+  
+  let title: string;
+  let body: string;
+  
+  if (remainingDays < 0) {
+    title = `⚠️ 订阅已过期: ${subscription.name}`;
+    body = `您的订阅「${subscription.name}」已于 ${expiryDateStr} 过期，已过期 ${Math.abs(remainingDays)} 天。`;
+  } else if (remainingDays === 0) {
+    title = `🔔 订阅今日到期: ${subscription.name}`;
+    body = `您的订阅「${subscription.name}」将于今日（${expiryDateStr}）到期，请及时续费。`;
+  } else {
+    title = `📅 订阅即将到期: ${subscription.name}`;
+    body = `您的订阅「${subscription.name}」将于 ${expiryDateStr} 到期，还剩 ${remainingDays} 天。`;
+  }
+  
+  // 如果有订阅地址，添加到通知内容
+  if (subscription.url) {
+    body += `\n\n🔗 ${subscription.url}`;
+  }
+  
+  const successChannels: string[] = [];
+  const channelsToNotify = subscription.notificationChannels;
+  
+  // Telegram
+  if (channelsToNotify.includes('telegram') && config.telegram.enabled) {
+    try {
+      const message = `${title}\n\n${body}`;
+      const url = `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: config.telegram.chatId,
+          text: message,
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        successChannels.push('telegram');
+      }
+    } catch (e) {
+      console.error('Telegram notification failed:', e);
+    }
+  }
+  
+  // Email (Resend)
+  if (channelsToNotify.includes('email') && config.email.enabled) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.email.resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: config.email.senderEmail || 'onboarding@resend.dev',
+          to: config.email.recipientEmail,
+          subject: title,
+          text: body,
+        }),
+      });
+      if (response.ok) {
+        successChannels.push('email');
+      }
+    } catch (e) {
+      console.error('Email notification failed:', e);
+    }
+  }
+  
+  // Webhook
+  if (channelsToNotify.includes('webhook') && config.webhook.enabled) {
+    try {
+      const response = await fetch(config.webhook.url, {
+        method: config.webhook.method || 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...config.webhook.headers,
+        },
+        body: JSON.stringify({
+          title,
+          body,
+          subscriptionName: subscription.name,
+          expiryDate: expiryDateStr,
+          remainingDays,
+          url: subscription.url,
+          timestamp: Date.now(),
+        }),
+      });
+      if (response.ok) {
+        successChannels.push('webhook');
+      }
+    } catch (e) {
+      console.error('Webhook notification failed:', e);
+    }
+  }
+  
+  // Bark
+  if (channelsToNotify.includes('bark') && config.bark.enabled) {
+    try {
+      let server: string | undefined;
+      let deviceKey: string | undefined;
+      
+      if (config.bark.useExistingKey && config.bark.existingKeyId) {
+        const keys = await loadKeysFromStorage();
+        const existingKey = keys.find(k => k.id === config.bark.existingKeyId);
+        if (existingKey) {
+          server = existingKey.server;
+          deviceKey = existingKey.deviceKey;
+        }
+      } else {
+        server = config.bark.server;
+        deviceKey = config.bark.deviceKey;
+      }
+      
+      if (server && deviceKey) {
+        const encodedTitle = encodeURIComponent(title);
+        const encodedBody = encodeURIComponent(body);
+        const barkUrl = `${server}/${deviceKey}/${encodedTitle}/${encodedBody}`;
+        const response = await fetch(barkUrl);
+        const data = await response.json();
+        if (data.code === 200) {
+          successChannels.push('bark');
+        }
+      }
+    } catch (e) {
+      console.error('Bark notification failed:', e);
+    }
+  }
+  
+  return {
+    success: successChannels.length > 0,
+    channels: successChannels,
+  };
+}
+
+/**
+ * 检查并发送订阅到期通知
+ */
+async function checkSubscriptionExpiry(): Promise<void> {
+  try {
+    const subscriptions = await getAllSubscriptions();
+    const config = await getSubscriptionNotificationConfig();
+    const settings = await getSubscriptionSettings();
+    const notifiedRecords = await getNotifiedRecords();
+    const today = getTodayDateString();
+    const now = Date.now();
+    
+    for (const subscription of subscriptions) {
+      // 检查是否需要提醒
+      if (!shouldRemindSubscription(subscription, now)) {
+        continue;
+      }
+      
+      // 检查订阅是否配置了通知渠道
+      if (!subscription.notificationChannels || subscription.notificationChannels.length === 0) {
+        continue;
+      }
+      
+      // 检查今天是否已经通知过
+      const notifiedKey = `${subscription.id}_${today}`;
+      if (notifiedRecords[notifiedKey]) {
+        continue;
+      }
+      
+      // 如果不是每日提醒模式，检查是否已经通知过（任何一天）
+      if (!settings.dailyReminder) {
+        const hasNotified = Object.keys(notifiedRecords).some(key => key.startsWith(subscription.id + '_'));
+        if (hasNotified) {
+          continue;
+        }
+      }
+      
+      // 发送通知
+      const result = await sendSubscriptionNotification(subscription, config);
+      
+      if (result.success) {
+        await saveNotifiedRecord(subscription.id, today);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check subscription expiry:', error);
+  }
+}
+
+/**
+ * 注册订阅检查定时任务
+ */
+function registerSubscriptionCheckAlarm(): void {
+  // 每 30 秒检查一次（Chrome Alarm 最小间隔是 1 分钟，所以用 0.5 分钟）
+  chrome.alarms.create(SUBSCRIPTION_CHECK_ALARM, {
+    delayInMinutes: 0.5, // 首次延迟 30 秒执行
+    periodInMinutes: 0.5, // 之后每 30 秒执行一次
+  });
+  console.log('Subscription check alarm registered (every 30 seconds)');
+}
+
+// 在 Alarm 监听器中添加订阅检查
+const originalAlarmListener = chrome.alarms.onAlarm.hasListeners();
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === SUBSCRIPTION_CHECK_ALARM) {
+    console.log('Subscription check alarm triggered');
+    await checkSubscriptionExpiry();
+  }
+});
+
+// 添加手动触发检查的消息处理
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'CHECK_SUBSCRIPTION_EXPIRY') {
+    checkSubscriptionExpiry().then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+  return false;
+});
+
+// 注册订阅检查定时任务
+registerSubscriptionCheckAlarm();
+
+// 启动时立即检查一次
+setTimeout(() => {
+  console.log('Initial subscription expiry check');
+  checkSubscriptionExpiry();
+}, 5000); // 延迟 5 秒，等待其他初始化完成

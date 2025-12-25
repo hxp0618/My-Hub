@@ -93,9 +93,10 @@ const SortableCard: React.FC<SortableCardProps> = ({ id, item, actions }) => {
 interface HomePageProps {
   recommendations: RecommendationItem[];
   timeRange: string;
+  onRefresh?: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange }) => {
+export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, onRefresh }) => {
   const { t } = useTranslation();
   const toast = useToastContext();
   const [noMoreDisplayed, setNoMoreDisplayed] = useState<string[]>(() => {
@@ -351,6 +352,8 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange }
 
                     setGenerationStatusMessage(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
                     toast.success(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
+                    // 刷新推荐列表以显示新标签
+                    onRefresh?.();
                   } catch (error) {
                     console.error('创建书签失败:', error);
                     toast.error(t('bookmarks.addError'));
@@ -363,6 +366,8 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange }
                   });
                   setGenerationStatusMessage(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
                   toast.success(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
+                  // 刷新推荐列表以显示新标签
+                  onRefresh?.();
                 }
               } else {
                 setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));

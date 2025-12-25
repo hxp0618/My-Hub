@@ -39,6 +39,7 @@
     "history": "History",
     "bookmarks": "Bookmarks",
     "tags": "Tags",
+    "subscriptions": "Subscriptions",
     "tools": "Tools",
     "settings": "Settings"
   },
@@ -272,6 +273,47 @@
     "generalTitle": "General Settings",
     "autoSuggestTitle": "Auto-suggest Tags and Folders",
     "autoSuggestDesc": "When adding bookmarks, use AI to automatically suggest tags and the most suitable folder.",
+    "notificationTitle": "Notification Settings",
+    "notificationDesc": "Configure notification channels for subscription expiry reminders. Supports Telegram, Email, Webhook, and Bark.",
+    "notification": {
+      "test": "Test",
+      "testing": "Testing...",
+      "testSuccess": "Test notification sent successfully",
+      "testFailed": "Failed to send test notification",
+      "telegram": {
+        "title": "Telegram",
+        "botToken": "Bot Token",
+        "botTokenPlaceholder": "Enter Telegram Bot Token",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "Enter Chat ID",
+        "hint": "Create a Bot via @BotFather to get Token, use @userinfobot to get Chat ID"
+      },
+      "email": {
+        "title": "Email (Resend)",
+        "apiKey": "Resend API Key",
+        "apiKeyPlaceholder": "Enter Resend API Key",
+        "recipient": "Recipient Email",
+        "recipientPlaceholder": "Enter recipient email address",
+        "sender": "Sender Email (Optional)",
+        "senderPlaceholder": "Default uses Resend provided address",
+        "hint": "Register at resend.com to get an API Key"
+      },
+      "webhook": {
+        "title": "Webhook",
+        "url": "Webhook URL",
+        "urlPlaceholder": "Enter Webhook URL",
+        "method": "Request Method"
+      },
+      "bark": {
+        "title": "Bark",
+        "useExisting": "Use existing Bark Key",
+        "selectKey": "Select Bark Key",
+        "server": "Server URL",
+        "serverPlaceholder": "https://api.day.app",
+        "deviceKey": "Device Key",
+        "deviceKeyPlaceholder": "Enter device key"
+      }
+    },
     "dataManagement": "Data Management",
     "exportDataTitle": "Export Data",
     "exportDataDesc": "Export your bookmarks, tags, and web combos to a JSON file.",
@@ -1221,6 +1263,127 @@
       "emptyInput": "Please enter content to convert",
       "unknownError": "An unknown error occurred",
       "line": "Line"
+    },
+    "subscriptionManager": {
+      "name": "Subscription Manager",
+      "description": "Manage subscriptions and set expiry reminders",
+      "tabs": {
+        "subscriptions": "Subscriptions",
+        "notifications": "Notifications",
+        "settings": "Settings"
+      },
+      "subscription": {
+        "add": "Add Subscription",
+        "edit": "Edit Subscription",
+        "delete": "Delete Subscription",
+        "deleteConfirm": "Are you sure you want to delete subscription \"{{name}}\"?",
+        "name": "Subscription Name",
+        "namePlaceholder": "Enter subscription name",
+        "nameRequired": "Please enter subscription name",
+        "type": "Subscription Type",
+        "customType": "Custom Type",
+        "customTypePlaceholder": "Enter custom type",
+        "cycle": "Billing Cycle",
+        "expiryDate": "Expiry Date",
+        "reminderDays": "Reminder Days Before",
+        "notes": "Notes",
+        "notesPlaceholder": "Enter notes (optional)",
+        "status": "Status",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "expired": "Expired",
+        "expiringSoon": "Expiring Soon",
+        "active": "Active",
+        "renew": "Renew",
+        "renewSuccess": "Renewed successfully",
+        "daysRemaining": "{{days}} days remaining",
+        "daysOverdue": "{{days}} days overdue",
+        "expiresIn": "Expires in {{days}} days",
+        "expiredDays": "Expired {{days}} days ago",
+        "lunarDate": "Lunar: {{date}}",
+        "empty": "No subscriptions",
+        "emptyHint": "Click \"Add Subscription\" to create your first subscription"
+      },
+      "types": {
+        "video": "Video Streaming",
+        "music": "Music Streaming",
+        "cloud": "Cloud Storage",
+        "software": "Software",
+        "domain": "Domain",
+        "server": "Server",
+        "other": "Other"
+      },
+      "cycles": {
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "semi-annual": "Semi-Annual",
+        "annual": "Annual",
+        "one-time": "One-time"
+      },
+      "notification": {
+        "title": "Notification Settings",
+        "channels": "Notification Channels",
+        "telegram": {
+          "title": "Telegram",
+          "botToken": "Bot Token",
+          "botTokenPlaceholder": "Enter Telegram Bot Token",
+          "chatId": "Chat ID",
+          "chatIdPlaceholder": "Enter Chat ID",
+          "hint": "Get Bot Token from @BotFather, Chat ID from @userinfobot"
+        },
+        "email": {
+          "title": "Email",
+          "apiKey": "Resend API Key",
+          "apiKeyPlaceholder": "Enter Resend API Key",
+          "recipient": "Recipient Email",
+          "recipientPlaceholder": "Enter recipient email address",
+          "sender": "Sender Email (optional)",
+          "senderPlaceholder": "Enter sender email address",
+          "hint": "Get API Key from resend.com"
+        },
+        "webhook": {
+          "title": "Webhook",
+          "url": "Webhook URL",
+          "urlPlaceholder": "Enter Webhook URL",
+          "method": "Method",
+          "headers": "Custom Headers",
+          "addHeader": "Add Header",
+          "headerKey": "Key",
+          "headerValue": "Value"
+        },
+        "bark": {
+          "title": "Bark",
+          "useExisting": "Use existing Bark Key",
+          "selectKey": "Select Bark Key",
+          "customServer": "Custom Server",
+          "server": "Server URL",
+          "serverPlaceholder": "https://api.day.app",
+          "deviceKey": "Device Key",
+          "deviceKeyPlaceholder": "Enter device key"
+        },
+        "test": "Test",
+        "testing": "Testing...",
+        "testSuccess": "Test notification sent successfully",
+        "testFailed": "Test notification failed",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "settings": {
+        "title": "Settings",
+        "showLunarDate": "Show Lunar Date",
+        "showLunarDateDesc": "Display lunar calendar date next to expiry date",
+        "defaultReminderDays": "Default Reminder Days",
+        "defaultReminderDaysDesc": "Default days before expiry to send reminder",
+        "importExportTip": "Data Import/Export",
+        "importExportTipDesc": "Subscription data is now integrated into the global import/export feature. Go to \"Settings → Data Management\" to import or export"
+      },
+      "errors": {
+        "invalidName": "Subscription name cannot be empty",
+        "invalidDate": "Please select a valid expiry date",
+        "notFound": "Subscription not found",
+        "storageError": "Storage operation failed",
+        "networkError": "Network request failed"
+      }
     }
   },
   "options": {
@@ -1230,6 +1393,54 @@
   "panel": {
     "title": "Side Panel",
     "description": "Extend side panel features here, following the Neo-Brutalism style with thick borders and hard shadows."
+  },
+  "subscriptions": {
+    "title": "Subscriptions",
+    "tabs": {
+      "list": "Subscriptions",
+      "settings": "Settings"
+    },
+    "add": "Add Subscription",
+    "edit": "Edit Subscription",
+    "delete": "Delete Subscription",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"?",
+    "renew": "Renew",
+    "empty": "No subscriptions",
+    "emptyHint": "Click \"Add Subscription\" to create your first subscription",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "settings": "Subscription Settings",
+    "dailyReminder": "Daily Reminder",
+    "dailyReminderHint": "When enabled, reminders will be sent daily from the advance notice date until expiry",
+    "defaultReminderDays": "Default Reminder Days",
+    "daysOption": "{{days}} days",
+    "url": "Subscription URL",
+    "urlPlaceholder": "https://example.com (optional)",
+    "notificationChannels": "Notification Channels",
+    "notificationChannelsHint": "Select notification channels for expiry reminders. Configure channels in Settings first.",
+    "channels": {
+      "telegram": "Telegram",
+      "email": "Email",
+      "webhook": "Webhook",
+      "bark": "Bark"
+    },
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "cycle": "Cycle",
+      "expiryDate": "Expiry Date",
+      "reminderDays": "Reminder",
+      "notificationChannels": "Notifications",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "pagination": {
+      "total": "{{count}} items",
+      "pageSize": "Per page",
+      "prev": "Previous",
+      "next": "Next",
+      "page": "Page {{current}} / {{total}}"
+    }
   },
   "dataSync": {
     "exportError": "An error occurred while exporting your data. Please try again.",

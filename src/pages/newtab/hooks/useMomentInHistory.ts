@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RecommendationItem } from '../types';
 import { getAllBookmarkTags } from '../../../db/indexedDB';
@@ -11,14 +11,13 @@ export function useMomentInHistory() {
   const normalWebsiteThreshold = 2;
   const bookmarkedWebsiteThreshold = 1;
 
-  useEffect(() => {
+  const getRecommendations = useCallback(async () => {
     if (!chrome || !chrome.history) {
       console.error(
         'Chrome History API is not available. Please ensure the extension is loaded correctly and has the "history" permission.',
       );
       return;
     }
-    const getRecommendations = async () => {
       const TIME_WINDOW_HOURS = 1;
       const DAYS_TO_SEARCH = 14;
 
@@ -179,10 +178,11 @@ export function useMomentInHistory() {
 
       const finalRecommendations = processRecommendations(allItems, bookmarkUrls, bookmarkMap);
       setRecommendations(finalRecommendations);
-    };
-
-    getRecommendations();
   }, [t]);
 
-  return { recommendations, timeRange };
+  useEffect(() => {
+    getRecommendations();
+  }, [getRecommendations]);
+
+  return { recommendations, timeRange, refreshRecommendations: getRecommendations };
 }

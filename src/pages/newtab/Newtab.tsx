@@ -7,6 +7,7 @@ import { HistoryPage } from './components/HistoryPage';
 import { BookmarkPage } from './components/BookmarkPage';
 import { TagsPage } from './components/TagsPage';
 import { ToolsPage } from './components/ToolsPage';
+import { SubscriptionsPage } from './components/SubscriptionsPage';
 import { Modal } from '../../components/Modal';
 import SettingsPage from './components/SettingsPage';
 import { ToastProvider } from '../../contexts/ToastContext';
@@ -22,7 +23,7 @@ import { MENU_ITEMS } from '../../types/menu';
 // =================================================================================
 
 // 定义页面类型的联合类型
-type Page = 'home' | 'history' | 'bookmarks' | 'tags' | 'tools';
+type Page = 'home' | 'history' | 'bookmarks' | 'tags' | 'tools' | 'subscriptions';
 
 /**
  * Newtab 组件是新标签页面的主组件。
@@ -34,7 +35,7 @@ export default function Newtab() {
   const [page, setPage] = useState<Page>('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   // 自定义 hook，用于获取"历史上的今天"的推荐内容
-  const { recommendations, timeRange } = useMomentInHistory();
+  const { recommendations, timeRange, refreshRecommendations } = useMomentInHistory();
   // 自定义 hook，用于获取、筛选和分页加载增强的历史记录
   const { historyItems, devices, isLoading, filters, setFilters, hasMore, loadMore } = useEnhancedHistory();
   // 自定义 hook，用于获取菜单顺序和自定义配置
@@ -96,7 +97,7 @@ export default function Newtab() {
       case 'home':
         return (
           <ErrorBoundary>
-            <HomePage recommendations={recommendations} timeRange={timeRange} />
+            <HomePage recommendations={recommendations} timeRange={timeRange} onRefresh={refreshRecommendations} />
           </ErrorBoundary>
         );
       case 'history':
@@ -121,6 +122,12 @@ export default function Newtab() {
         return (
           <ErrorBoundary>
             <ToolsPage />
+          </ErrorBoundary>
+        );
+      case 'subscriptions':
+        return (
+          <ErrorBoundary>
+            <SubscriptionsPage />
           </ErrorBoundary>
         );
       default:

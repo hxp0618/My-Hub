@@ -39,6 +39,7 @@
     "history": "历史",
     "bookmarks": "书签",
     "tags": "标签",
+    "subscriptions": "订阅",
     "tools": "工具",
     "settings": "设置"
   },
@@ -272,6 +273,47 @@
     "generalTitle": "通用设置",
     "autoSuggestTitle": "自动建议标签和文件夹",
     "autoSuggestDesc": "添加书签时，使用 AI 自动建议标签和最合适的文件夹。",
+    "notificationTitle": "通知设置",
+    "notificationDesc": "配置订阅到期提醒的通知渠道，支持 Telegram、邮件、Webhook 和 Bark。",
+    "notification": {
+      "test": "测试",
+      "testing": "测试中...",
+      "testSuccess": "测试通知发送成功",
+      "testFailed": "测试通知发送失败",
+      "telegram": {
+        "title": "Telegram",
+        "botToken": "Bot Token",
+        "botTokenPlaceholder": "输入 Telegram Bot Token",
+        "chatId": "Chat ID",
+        "chatIdPlaceholder": "输入 Chat ID",
+        "hint": "通过 @BotFather 创建 Bot 获取 Token，通过 @userinfobot 获取 Chat ID"
+      },
+      "email": {
+        "title": "邮件 (Resend)",
+        "apiKey": "Resend API Key",
+        "apiKeyPlaceholder": "输入 Resend API Key",
+        "recipient": "收件人邮箱",
+        "recipientPlaceholder": "输入收件人邮箱地址",
+        "sender": "发件人邮箱（可选）",
+        "senderPlaceholder": "默认使用 Resend 提供的地址",
+        "hint": "需要在 resend.com 注册并获取 API Key"
+      },
+      "webhook": {
+        "title": "Webhook",
+        "url": "Webhook URL",
+        "urlPlaceholder": "输入 Webhook URL",
+        "method": "请求方法"
+      },
+      "bark": {
+        "title": "Bark",
+        "useExisting": "使用已配置的 Bark Key",
+        "selectKey": "选择 Bark Key",
+        "server": "服务器地址",
+        "serverPlaceholder": "https://api.day.app",
+        "deviceKey": "设备密钥",
+        "deviceKeyPlaceholder": "输入设备密钥"
+      }
+    },
     "dataManagement": "数据管理",
     "exportDataTitle": "导出数据",
     "exportDataDesc": "将您的书签、标签和网页组合导出为 JSON 文件。",
@@ -1222,6 +1264,127 @@
       "emptyInput": "请输入要转换的内容",
       "unknownError": "发生未知错误",
       "line": "行"
+    },
+    "subscriptionManager": {
+      "name": "订阅管理",
+      "description": "管理各类订阅服务，设置到期提醒",
+      "tabs": {
+        "subscriptions": "订阅列表",
+        "notifications": "通知设置",
+        "settings": "设置"
+      },
+      "subscription": {
+        "add": "添加订阅",
+        "edit": "编辑订阅",
+        "delete": "删除订阅",
+        "deleteConfirm": "确定要删除订阅 \"{{name}}\" 吗？",
+        "name": "订阅名称",
+        "namePlaceholder": "输入订阅名称",
+        "nameRequired": "请输入订阅名称",
+        "type": "订阅类型",
+        "customType": "自定义类型",
+        "customTypePlaceholder": "输入自定义类型",
+        "cycle": "订阅周期",
+        "expiryDate": "到期日期",
+        "reminderDays": "提前提醒天数",
+        "notes": "备注",
+        "notesPlaceholder": "输入备注（可选）",
+        "status": "状态",
+        "enabled": "已启用",
+        "disabled": "已停用",
+        "expired": "已过期",
+        "expiringSoon": "即将到期",
+        "active": "正常",
+        "renew": "续订",
+        "renewSuccess": "续订成功",
+        "daysRemaining": "剩余 {{days}} 天",
+        "daysOverdue": "已过期 {{days}} 天",
+        "expiresIn": "{{days}} 天后到期",
+        "expiredDays": "已过期 {{days}} 天",
+        "lunarDate": "农历：{{date}}",
+        "empty": "暂无订阅",
+        "emptyHint": "点击\"添加订阅\"按钮创建第一个订阅"
+      },
+      "types": {
+        "video": "视频会员",
+        "music": "音乐会员",
+        "cloud": "云存储",
+        "software": "软件订阅",
+        "domain": "域名",
+        "server": "服务器",
+        "other": "其他"
+      },
+      "cycles": {
+        "monthly": "月付",
+        "quarterly": "季付",
+        "semi-annual": "半年付",
+        "annual": "年付",
+        "one-time": "一次性"
+      },
+      "notification": {
+        "title": "通知设置",
+        "channels": "通知渠道",
+        "telegram": {
+          "title": "Telegram",
+          "botToken": "Bot Token",
+          "botTokenPlaceholder": "输入 Telegram Bot Token",
+          "chatId": "Chat ID",
+          "chatIdPlaceholder": "输入 Chat ID",
+          "hint": "从 @BotFather 获取 Bot Token，从 @userinfobot 获取 Chat ID"
+        },
+        "email": {
+          "title": "邮件",
+          "apiKey": "Resend API Key",
+          "apiKeyPlaceholder": "输入 Resend API Key",
+          "recipient": "收件人邮箱",
+          "recipientPlaceholder": "输入收件人邮箱地址",
+          "sender": "发件人邮箱（可选）",
+          "senderPlaceholder": "输入发件人邮箱地址",
+          "hint": "从 resend.com 获取 API Key"
+        },
+        "webhook": {
+          "title": "Webhook",
+          "url": "Webhook URL",
+          "urlPlaceholder": "输入 Webhook URL",
+          "method": "请求方法",
+          "headers": "自定义请求头",
+          "addHeader": "添加请求头",
+          "headerKey": "键",
+          "headerValue": "值"
+        },
+        "bark": {
+          "title": "Bark",
+          "useExisting": "使用已配置的 Bark Key",
+          "selectKey": "选择 Bark Key",
+          "customServer": "自定义服务器",
+          "server": "服务器地址",
+          "serverPlaceholder": "https://api.day.app",
+          "deviceKey": "设备密钥",
+          "deviceKeyPlaceholder": "输入设备密钥"
+        },
+        "test": "测试",
+        "testing": "测试中...",
+        "testSuccess": "测试通知发送成功",
+        "testFailed": "测试通知发送失败",
+        "enabled": "已启用",
+        "disabled": "已禁用"
+      },
+      "settings": {
+        "title": "设置",
+        "showLunarDate": "显示农历日期",
+        "showLunarDateDesc": "在到期日期旁显示对应的农历日期",
+        "defaultReminderDays": "默认提醒天数",
+        "defaultReminderDaysDesc": "新建订阅时的默认提前提醒天数",
+        "importExportTip": "数据导入/导出",
+        "importExportTipDesc": "订阅数据已集成到全局导入导出功能中，请前往「设置 → 数据管理」进行导入导出操作"
+      },
+      "errors": {
+        "invalidName": "订阅名称不能为空",
+        "invalidDate": "请选择有效的到期日期",
+        "notFound": "订阅不存在",
+        "storageError": "存储操作失败",
+        "networkError": "网络请求失败"
+      }
     }
   },
   "options": {
@@ -1231,6 +1394,54 @@
   "panel": {
     "title": "侧边面板",
     "description": "在这里扩展侧边栏功能，遵循 Neo-Brutalism 风格的厚重边框与硬阴影。"
+  },
+  "subscriptions": {
+    "title": "订阅管理",
+    "tabs": {
+      "list": "订阅列表",
+      "settings": "设置"
+    },
+    "add": "添加订阅",
+    "edit": "编辑订阅",
+    "delete": "删除订阅",
+    "deleteConfirm": "确定要删除订阅 \"{{name}}\" 吗？",
+    "renew": "续订",
+    "empty": "暂无订阅",
+    "emptyHint": "点击\"添加订阅\"按钮创建第一个订阅",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "settings": "订阅设置",
+    "dailyReminder": "每日重复提醒",
+    "dailyReminderHint": "开启后，从提前通知日到到期日每天都会发送提醒",
+    "defaultReminderDays": "默认提前通知天数",
+    "daysOption": "{{days}} 天",
+    "url": "订阅地址",
+    "urlPlaceholder": "https://example.com（可选）",
+    "notificationChannels": "通知方式",
+    "notificationChannelsHint": "选择到期提醒的通知渠道，需要先在设置中配置对应渠道",
+    "channels": {
+      "telegram": "Telegram",
+      "email": "邮件",
+      "webhook": "Webhook",
+      "bark": "Bark"
+    },
+    "table": {
+      "name": "名称",
+      "type": "类型",
+      "cycle": "周期",
+      "expiryDate": "到期时间",
+      "reminderDays": "提前通知",
+      "notificationChannels": "通知方式",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "pagination": {
+      "total": "共 {{count}} 条",
+      "pageSize": "每页显示",
+      "prev": "上一页",
+      "next": "下一页",
+      "page": "第 {{current}} / {{total}} 页"
+    }
   },
   "dataSync": {
     "exportError": "导出数据时出错，请重试。",

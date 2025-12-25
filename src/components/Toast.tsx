@@ -50,22 +50,22 @@ export const Toast: React.FC<ToastProps> = ({
   return (
     <div
       className={`
-        fixed bottom-4 right-4 nb-card-static ${nbColors[type]} px-4 py-3 
-        flex items-center gap-3 max-w-md z-50 transition-all duration-300
+        nb-card-static ${nbColors[type]} px-4 py-3 
+        flex items-center gap-3 min-w-[200px] max-w-sm transition-all duration-300
         ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}
       `}
       role="alert"
       aria-live="polite"
     >
-      <span className="text-xl nb-text" aria-hidden="true">{icons[type]}</span>
-      <span className="flex-1 nb-text">{message}</span>
+      <span className="text-xl nb-text flex-shrink-0" aria-hidden="true">{icons[type]}</span>
+      <span className="flex-1 nb-text whitespace-nowrap">{message}</span>
       {actionText && onAction && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             onAction();
           }}
-          className="underline font-semibold hover:opacity-80 nb-text"
+          className="underline font-semibold hover:opacity-80 nb-text flex-shrink-0"
         >
           {actionText}
         </button>
@@ -75,7 +75,7 @@ export const Toast: React.FC<ToastProps> = ({
           setIsVisible(false);
           setTimeout(onClose, 300);
         }}
-        className="text-xl hover:opacity-80 nb-text"
+        className="text-xl hover:opacity-80 nb-text flex-shrink-0"
         aria-label={t('common.closeNotification')}
       >
         ×

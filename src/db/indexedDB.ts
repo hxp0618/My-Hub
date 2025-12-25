@@ -2,13 +2,24 @@ import { BookmarkTag } from '../types/bookmarks';
 import { TagGenerationFailure } from '../types/tags';
 import { ToolConfig, ToolId, getValidToolOrder, DEFAULT_TOOL_ORDER } from '../types/tools';
 import { HistoryEntry } from '../types/http';
+import {
+  Subscription,
+  SubscriptionSettings,
+  SubscriptionNotificationConfig,
+  DEFAULT_SUBSCRIPTION_SETTINGS,
+  DEFAULT_NOTIFICATION_CONFIG,
+  generateSubscriptionId,
+} from '../types/subscription';
 
 const DB_NAME = 'ChromeHistoryDB';
-const DB_VERSION = 6; // v6: add http request history store
+const DB_VERSION = 7; // v7: add subscription management stores
 const STORE_NAME = 'bookmark_tags';
 const FAILURES_STORE_NAME = 'tag_generation_failures';
 const TOOL_SETTINGS_STORE_NAME = 'tool_settings';
 const HTTP_HISTORY_STORE_NAME = 'http_request_history';
+const SUBSCRIPTIONS_STORE_NAME = 'subscriptions';
+const SUBSCRIPTION_SETTINGS_STORE_NAME = 'subscription_settings';
+const SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME = 'subscription_notification_config';
 
 let db: IDBDatabase;
 
@@ -72,6 +83,21 @@ export const initDB = (): Promise<IDBDatabase> => {
       if (oldVersion < 6) {
         if (!db.objectStoreNames.contains(HTTP_HISTORY_STORE_NAME)) {
           db.createObjectStore(HTTP_HISTORY_STORE_NAME, { keyPath: 'id' });
+        }
+      }
+
+      // 版本 7: 添加订阅管理相关存储
+      if (oldVersion < 7) {
+        if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE_NAME)) {
+          const subscriptionsStore = db.createObjectStore(SUBSCRIPTIONS_STORE_NAME, { keyPath: 'id' });
+          subscriptionsStore.createIndex('expiryDate', 'expiryDate', { unique: false });
+          subscriptionsStore.createIndex('status', 'status', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(SUBSCRIPTION_SETTINGS_STORE_NAME)) {
+          db.createObjectStore(SUBSCRIPTION_SETTINGS_STORE_NAME, { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME)) {
+          db.createObjectStore(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME, { keyPath: 'key' });
         }
       }
     };
@@ -527,5 +553,243 @@ const trimHttpHistory = async (maxEntries: number): Promise<void> => {
     transaction.onerror = () => {
       reject(transaction.error);
     };
+  });
+};
+
+
+// ==================== Subscription Management ====================
+
+/**
+ * 获取所有订阅
+ */
+export const getAllSubscriptions = async (): Promise<Subscription[]> => {
+  const db = await initDB();
+  if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE_NAME)) {
+    return [];
+  }
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readonly');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  const request = store.getAll();
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
+};
+
+/**
+ * 根据 ID 获取订阅
+ */
+export const getSubscriptionById = async (id: string): Promise<Subscription | null> => {
+  const db = await initDB();
+  if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE_NAME)) {
+    return null;
+  }
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readonly');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  const request = store.get(id);
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
+};
+
+/**
+ * 添加订阅
+ */
+export const addSubscription = async (subscription: Subscription): Promise<Subscription> => {
+  const db = await initDB();
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  store.put(subscription);
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve(subscription);
+    };
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+  });
+};
+
+/**
+ * 更新订阅
+ */
+export const updateSubscription = async (subscription: Subscription): Promise<Subscription> => {
+  const db = await initDB();
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  store.put(subscription);
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve(subscription);
+    };
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+  });
+};
+
+/**
+ * 删除订阅
+ */
+export const deleteSubscription = async (id: string): Promise<void> => {
+  const db = await initDB();
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  store.delete(id);
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve();
+    };
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+  });
+};
+
+/**
+ * 清空所有订阅
+ */
+export const clearAllSubscriptions = async (): Promise<void> => {
+  const db = await initDB();
+  if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE_NAME)) {
+    return;
+  }
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  store.clear();
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve();
+    };
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+  });
+};
+
+/**
+ * 批量添加订阅
+ */
+export const batchAddSubscriptions = async (subscriptions: Subscription[]): Promise<void> => {
+  const db = await initDB();
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTIONS_STORE_NAME);
+  
+  subscriptions.forEach(subscription => {
+    store.put(subscription);
+  });
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => {
+      resolve();
+    };
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+  });
+};
+
+// ==================== Subscription Settings ====================
+
+type SubscriptionSettingKey = 'settings';
+
+type SubscriptionSettingRecord<T> = {
+  key: SubscriptionSettingKey;
+  value: T;
+};
+
+/**
+ * 获取订阅设置
+ */
+export const getSubscriptionSettings = async (): Promise<SubscriptionSettings> => {
+  const db = await initDB();
+  if (!db.objectStoreNames.contains(SUBSCRIPTION_SETTINGS_STORE_NAME)) {
+    return DEFAULT_SUBSCRIPTION_SETTINGS;
+  }
+  const transaction = db.transaction([SUBSCRIPTION_SETTINGS_STORE_NAME], 'readonly');
+  const store = transaction.objectStore(SUBSCRIPTION_SETTINGS_STORE_NAME);
+  const request = store.get('settings');
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      const record = request.result as SubscriptionSettingRecord<SubscriptionSettings> | undefined;
+      resolve(record?.value ?? DEFAULT_SUBSCRIPTION_SETTINGS);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
+ * 保存订阅设置
+ */
+export const setSubscriptionSettings = async (settings: SubscriptionSettings): Promise<void> => {
+  const db = await initDB();
+  const transaction = db.transaction([SUBSCRIPTION_SETTINGS_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTION_SETTINGS_STORE_NAME);
+  store.put({ key: 'settings', value: settings });
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+};
+
+// ==================== Subscription Notification Config ====================
+
+type NotificationConfigKey = 'config';
+
+type NotificationConfigRecord<T> = {
+  key: NotificationConfigKey;
+  value: T;
+};
+
+/**
+ * 获取订阅通知配置
+ */
+export const getSubscriptionNotificationConfig = async (): Promise<SubscriptionNotificationConfig> => {
+  const db = await initDB();
+  if (!db.objectStoreNames.contains(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME)) {
+    return DEFAULT_NOTIFICATION_CONFIG;
+  }
+  const transaction = db.transaction([SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME], 'readonly');
+  const store = transaction.objectStore(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME);
+  const request = store.get('config');
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      const record = request.result as NotificationConfigRecord<SubscriptionNotificationConfig> | undefined;
+      resolve(record?.value ?? DEFAULT_NOTIFICATION_CONFIG);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+/**
+ * 保存订阅通知配置
+ */
+export const setSubscriptionNotificationConfig = async (config: SubscriptionNotificationConfig): Promise<void> => {
+  const db = await initDB();
+  const transaction = db.transaction([SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME], 'readwrite');
+  const store = transaction.objectStore(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME);
+  store.put({ key: 'config', value: config });
+
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
   });
 };

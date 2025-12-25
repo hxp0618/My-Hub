@@ -4,6 +4,7 @@ import { exportData, importData } from '../../../lib/dataSync';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { ThemeSwitcher } from '../../../components/ThemeSwitcher';
 import { MenuOrderConfig } from '../../../components/MenuOrderConfig';
+import { NotificationSettings } from '../../../components/NotificationSettings';
 
 const GeneralSettings: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -135,6 +136,10 @@ const GeneralSettings: React.FC = () => {
           <MenuOrderConfig />
         </div>
       </div>
+
+      <h2 className="text-xl font-bold mt-8 mb-4 text-[color:var(--nb-text)]">{t('settings.notificationTitle')}</h2>
+      <p className="text-sm text-secondary mb-4">{t('settings.notificationDesc')}</p>
+      <NotificationSettings />
 
       <h2 className="text-xl font-bold mt-8 mb-4 text-[color:var(--nb-text)]">{t('settings.dataManagement')}</h2>
       <div className="space-y-4">

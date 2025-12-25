@@ -9,6 +9,13 @@ import {
   setLastSelectedTool,
   setToolUsageCounts,
   migrateLegacyToolSettings,
+  getAllSubscriptions,
+  clearAllSubscriptions,
+  batchAddSubscriptions,
+  getSubscriptionSettings,
+  setSubscriptionSettings,
+  getSubscriptionNotificationConfig,
+  setSubscriptionNotificationConfig,
 } from '../db/indexedDB';
 import { SortOrder, WebCombo } from '../pages/newtab/types';
 import { BookmarkTag } from '../types/bookmarks';
@@ -16,6 +23,14 @@ import { LLMSettings } from '../types/llm';
 import { BarkKeyConfig, BarkNotificationRecord } from '../types/bark';
 import { ToolConfig, ToolId } from '../types/tools';
 import { MenuItemId, MenuCustomization, isValidMenuOrder, isValidMenuCustomization, MENU_ORDER_STORAGE_KEY, MENU_CUSTOMIZATION_STORAGE_KEY } from '../types/menu';
+import {
+  Subscription,
+  SubscriptionNotificationConfig,
+  SubscriptionSettings,
+  DEFAULT_NOTIFICATION_CONFIG,
+  DEFAULT_SUBSCRIPTION_SETTINGS,
+  generateSubscriptionId,
+} from '../types/subscription';
 import i18n from '../i18n';
 
 interface ExportedBookmarkNode {
@@ -50,6 +65,12 @@ interface BarkData {
   history?: BarkNotificationRecord[];
 }
 
+interface SubscriptionData {
+  subscriptions?: Subscription[];
+  notificationConfig?: SubscriptionNotificationConfig;
+  settings?: SubscriptionSettings;
+}
+
 interface ExportData {
   bookmarks: ExportedBookmarkNode[];
   tags: BookmarkTag[];
@@ -59,6 +80,7 @@ interface ExportData {
   tools?: ToolsData;
   llmSettings?: LLMSettings;
   bark?: BarkData;
+  subscription?: SubscriptionData;
 }
 
 const BOOKMARK_FOLDER_STATE_PREFIX = 'bookmark-folder-state-';
@@ -261,6 +283,16 @@ export const exportData = async (): Promise<void> => {
       keys: safeParseJSON<BarkKeyConfig[]>(localStorage.getItem(STORAGE_KEYS.barkKeys), []),
       selectedKeyId: localStorage.getItem(STORAGE_KEYS.barkSelectedKeyId),
       history: safeParseJSON<BarkNotificationRecord[]>(localStorage.getItem(STORAGE_KEYS.barkHistory), []),
+    };
+
+    // Subscription manager
+    const subscriptions = await getAllSubscriptions();
+    const subscriptionNotificationConfig = await getSubscriptionNotificationConfig();
+    const subscriptionSettings = await getSubscriptionSettings();
+    data.subscription = {
+      subscriptions,
+      notificationConfig: subscriptionNotificationConfig,
+      settings: subscriptionSettings,
     };
 
     const json = JSON.stringify(data, null, 2);
@@ -469,6 +501,38 @@ export const importData = async (file: File): Promise<void> => {
         }
         if (data.bark.history) {
           localStorage.setItem(STORAGE_KEYS.barkHistory, JSON.stringify(data.bark.history));
+        }
+      }
+
+      // Import Subscription manager data
+      if (data.subscription) {
+        // Import subscriptions
+        if (data.subscription.subscriptions && Array.isArray(data.subscription.subscriptions)) {
+          await clearAllSubscriptions();
+          const now = Date.now();
+          const subscriptionsToImport = data.subscription.subscriptions.map((sub: Subscription) => ({
+            ...sub,
+            id: generateSubscriptionId(),
+            createdAt: sub.createdAt || now,
+            updatedAt: now,
+          }));
+          if (subscriptionsToImport.length > 0) {
+            await batchAddSubscriptions(subscriptionsToImport);
+          }
+        }
+        // Import notification config
+        if (data.subscription.notificationConfig) {
+          await setSubscriptionNotificationConfig({
+            ...DEFAULT_NOTIFICATION_CONFIG,
+            ...data.subscription.notificationConfig,
+          });
+        }
+        // Import settings
+        if (data.subscription.settings) {
+          await setSubscriptionSettings({
+            ...DEFAULT_SUBSCRIPTION_SETTINGS,
+            ...data.subscription.settings,
+          });
         }
       }
 

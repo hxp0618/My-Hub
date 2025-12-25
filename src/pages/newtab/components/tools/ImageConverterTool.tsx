@@ -448,7 +448,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                   return (
                     <div
                       key={image.id}
-                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-default last:border-b-0 ${selectedIndex === index ? 'bg-secondary' : 'hover-bg'}`}
+                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-default last:border-b-0 ${selectedIndex === index ? 'nb-selected' : 'hover-bg'}`}
                       onClick={() => setSelectedIndex(index)}
                     >
                       <img src={image.dataUrl} alt={image.name} className="w-10 h-10 object-cover rounded" />
