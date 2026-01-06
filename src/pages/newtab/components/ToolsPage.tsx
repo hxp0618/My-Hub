@@ -101,6 +101,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
   const { t } = useTranslation();
   const [config, setConfig] = useState<ToolConfig>({ enabledTools: Object.values(ToolId) });
   const [selectedTool, setSelectedTool] = useState<ToolId | null>(null);
+  const [recentToolId, setRecentToolId] = useState<ToolId | null>(null);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { toolOrder, setToolOrder, moveItem } = useToolOrder();
@@ -128,6 +129,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
           null;
 
         setSelectedTool(initialTool);
+        setRecentToolId(lastSelected || initialTool);
 
         if (!lastSelected && initialTool) {
           await setLastSelectedTool(initialTool);
@@ -167,6 +169,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
   // 选择工具
   const handleSelectTool = (toolId: ToolId) => {
     setSelectedTool(toolId);
+    setRecentToolId(toolId);
     setLastSelectedTool(toolId).catch(error => console.error('Failed to save last selected tool:', error));
     incrementToolUsageCount(toolId).catch(error => console.error('Failed to record tool usage:', error));
   };
@@ -306,7 +309,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
           {filteredTools.map((toolId, index) => {
             const metadata = getToolMetadata(toolId);
             const isSelected = selectedTool === toolId;
-            const isRecent = index === 0 && !searchQuery; // 第一个工具标记为最近使用
+            const isRecent = toolId === recentToolId && !searchQuery; // 标记最近使用的工具
             const isDragging = draggedIndex === index;
             const isDragOver = dragOverIndex === index;
             const canDrag = !searchQuery; // 搜索时禁用拖拽
@@ -338,7 +341,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
                     {t(metadata.nameKey)}
                   </div>
                 </div>
-                {isRecent && !isSelected && (
+                {isRecent && (
                   <span className="nb-badge nb-badge-blue text-xs px-2 py-0.5">
                     {t('tools.recent')}
                   </span>
