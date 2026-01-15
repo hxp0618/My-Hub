@@ -86,6 +86,9 @@ const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType
   [ToolId.YAML_TOML_CONVERTER]: lazy(() =>
     import('./tools/YamlTomlConverterTool').then(mod => ({ default: mod.YamlTomlConverterTool })),
   ),
+  [ToolId.UNIT_CONVERTER]: lazy(() =>
+    import('./tools/UnitConverterTool').then(mod => ({ default: mod.UnitConverterTool })),
+  ),
 };
 
 interface ToolsPageProps {}

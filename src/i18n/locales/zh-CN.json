@@ -1385,6 +1385,47 @@
         "storageError": "存储操作失败",
         "networkError": "网络请求失败"
       }
+    },
+    "unitConverter": {
+      "name": "单位转换器",
+      "description": "时间、长度、数据存储、重量单位互转",
+      "categories": {
+        "time": "时间",
+        "length": "长度",
+        "data": "数据存储",
+        "weight": "重量"
+      },
+      "units": {
+        "ms": "毫秒 (ms)",
+        "s": "秒 (s)",
+        "min": "分钟 (min)",
+        "h": "小时 (h)",
+        "d": "天 (d)",
+        "mm": "毫米 (mm)",
+        "cm": "厘米 (cm)",
+        "m": "米 (m)",
+        "km": "千米 (km)",
+        "in": "英寸 (in)",
+        "ft": "英尺 (ft)",
+        "B": "字节 (B)",
+        "KB": "千字节 (KB)",
+        "MB": "兆字节 (MB)",
+        "GB": "吉字节 (GB)",
+        "TB": "太字节 (TB)",
+        "g": "克 (g)",
+        "kg": "千克 (kg)",
+        "lb": "磅 (lb)",
+        "oz": "盎司 (oz)"
+      },
+      "inputValue": "输入数值",
+      "inputPlaceholder": "输入要转换的数值...",
+      "sourceUnit": "源单位",
+      "results": "转换结果",
+      "source": "源",
+      "clear": "清空",
+      "clickToCopy": "点击复制",
+      "invalidInput": "请输入有效的数字",
+      "hint": "提示：点击任意结果可复制到剪贴板，按 Enter 键聚焦输入框"
     }
   },
   "options": {

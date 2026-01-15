@@ -32,6 +32,7 @@ export enum ToolId {
   SVG_TOOL = 'svg-tool',
   HTTP_URL_TESTER = 'http-url-tester',
   YAML_TOML_CONVERTER = 'yaml-toml-converter',
+  UNIT_CONVERTER = 'unit-converter',
 }
 
 /**
@@ -274,6 +275,13 @@ export const TOOL_METADATA: Record<ToolId, ToolMetadata> = {
     descriptionKey: 'tools.yamlTomlConverter.description',
     icon: 'swap_vert',
     category: 'developer',
+  },
+  [ToolId.UNIT_CONVERTER]: {
+    id: ToolId.UNIT_CONVERTER,
+    nameKey: 'tools.unitConverter.name',
+    descriptionKey: 'tools.unitConverter.description',
+    icon: 'straighten',
+    category: 'utility',
   },
 };
 

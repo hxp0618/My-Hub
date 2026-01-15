@@ -1384,6 +1384,47 @@
         "storageError": "Storage operation failed",
         "networkError": "Network request failed"
       }
+    },
+    "unitConverter": {
+      "name": "Unit Converter",
+      "description": "Convert between time, length, data storage, and weight units",
+      "categories": {
+        "time": "Time",
+        "length": "Length",
+        "data": "Data Storage",
+        "weight": "Weight"
+      },
+      "units": {
+        "ms": "Milliseconds (ms)",
+        "s": "Seconds (s)",
+        "min": "Minutes (min)",
+        "h": "Hours (h)",
+        "d": "Days (d)",
+        "mm": "Millimeters (mm)",
+        "cm": "Centimeters (cm)",
+        "m": "Meters (m)",
+        "km": "Kilometers (km)",
+        "in": "Inches (in)",
+        "ft": "Feet (ft)",
+        "B": "Bytes (B)",
+        "KB": "Kilobytes (KB)",
+        "MB": "Megabytes (MB)",
+        "GB": "Gigabytes (GB)",
+        "TB": "Terabytes (TB)",
+        "g": "Grams (g)",
+        "kg": "Kilograms (kg)",
+        "lb": "Pounds (lb)",
+        "oz": "Ounces (oz)"
+      },
+      "inputValue": "Input Value",
+      "inputPlaceholder": "Enter value to convert...",
+      "sourceUnit": "Source Unit",
+      "results": "Conversion Results",
+      "source": "Source",
+      "clear": "Clear",
+      "clickToCopy": "Click to copy",
+      "invalidInput": "Please enter a valid number",
+      "hint": "Tip: Click any result to copy to clipboard, press Enter to focus input"
     }
   },
   "options": {
