@@ -219,8 +219,8 @@ export const UnitConverterTool: React.FC<ToolComponentProps> = ({
                   } ${isSource ? 'ring-2 ring-offset-1' : ''}`}
                   style={{
                     borderColor: isSource ? 'var(--nb-accent-yellow)' : undefined,
-                    ringColor: isSource ? 'var(--nb-accent-yellow)' : undefined,
-                  }}
+                    '--tw-ring-color': isSource ? 'var(--nb-accent-yellow)' : undefined,
+                  } as React.CSSProperties}
                   title={hasValue ? t('tools.unitConverter.clickToCopy') : undefined}
                 >
                   <div className="text-xs nb-text-secondary mb-1 flex items-center justify-between">
