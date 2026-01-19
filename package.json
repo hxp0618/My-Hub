@@ -67,7 +67,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "fake-indexeddb": "^6.2.5",
     "fast-check": "^4.4.0",
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.3.3",
     "jsdom": "^27.2.0",
     "nodemon": "^3.1.10",
     "tailwindcss": "^4.1.17",
