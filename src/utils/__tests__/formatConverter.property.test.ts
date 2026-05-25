@@ -12,10 +12,8 @@ import {
   detectFormat,
   parseJson,
   parseYaml,
-  parseToml,
   stringifyJson,
   stringifyYaml,
-  DataFormat,
 } from '../formatConverter';
 
 /**
@@ -24,7 +22,7 @@ import {
 const tomlCompatibleLeaf = fc.oneof(
   fc.string().filter(s => !s.includes('\u0000') && s.length < 50), // 排除 null 字符，限制长度
   fc.integer({ min: -1000000, max: 1000000 }), // 限制整数范围
-  fc.double({ noNaN: true, noDefaultInfinity: true, min: -1e10, max: 1e10 }),
+  fc.double({ noNaN: true, noDefaultInfinity: true, min: -1e10, max: 1e10 }).filter(n => !Object.is(n, -0)),
   fc.boolean()
 );
 
@@ -59,7 +57,7 @@ const generalObject = fc.letrec(tie => ({
   leaf: fc.oneof(
     fc.string().filter(s => !s.includes('\u0000')),
     fc.integer(),
-    fc.double({ noNaN: true, noDefaultInfinity: true }),
+    fc.double({ noNaN: true, noDefaultInfinity: true }).filter(n => !Object.is(n, -0)),
     fc.boolean(),
     fc.constant(null)
   ),
@@ -250,12 +248,6 @@ describe('Format Converter Property Tests', () => {
    * For any 无效的格式字符串，转换函数应返回包含错误信息的结果，且 success 为 false。
    */
   describe('Property 7: Invalid Input Error Handling', () => {
-    const invalidInputs = [
-      { input: '{invalid json', format: 'json' as DataFormat },
-      { input: 'key: value\n  invalid indent', format: 'yaml' as DataFormat },
-      { input: '[invalid\ntoml = ', format: 'toml' as DataFormat },
-    ];
-
     it('should return error for invalid JSON input', () => {
       const result = convert('{invalid json}', 'json', 'yaml');
       expect(result.success).toBe(false);

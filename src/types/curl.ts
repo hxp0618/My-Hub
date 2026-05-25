@@ -5,6 +5,13 @@
 
 import { HttpMethod, HeaderEntry } from './http';
 
+export type CurlParseErrorCode =
+  | 'emptyCommand'
+  | 'missingCurlPrefix'
+  | 'unsupportedMethod'
+  | 'missingUrl'
+  | 'invalidUrl';
+
 /**
  * curl 解析成功结果
  */
@@ -23,7 +30,8 @@ export interface CurlParseSuccess {
  */
 export interface CurlParseError {
   success: false;
-  error: string;
+  error: CurlParseErrorCode;
+  values?: Record<string, string>;
 }
 
 /**

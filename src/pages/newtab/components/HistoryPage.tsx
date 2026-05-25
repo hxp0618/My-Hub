@@ -4,7 +4,7 @@ import { HistoryItem } from '../types';
 import { ItemCard } from './ItemCard';
 import { DateNavigator } from '../../../components/DateNavigator';
 import { SelectionActionBar, ActionItem } from '../../../components/SelectionActionBar';
-import { format, startOfDay, endOfDay, setHours } from 'date-fns';
+import { format } from 'date-fns';
 import { Modal } from '../../../components/Modal';
 import AddBookmarkForm from './AddBookmarkForm';
 import UnifiedSearchBar from '../../../components/UnifiedSearchBar';
@@ -15,19 +15,17 @@ import { useTranslation } from 'react-i18next';
 import { getAllBookmarkTags, addBookmarkTag } from '../../../db/indexedDB';
 import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
 import { sendMessage } from '../../../services/llmService';
-
-const getFaviconUrl = (url: string) => `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`;
+import type { ChatMessage } from '../../../types/llm';
+import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
 
 export const HistoryPage: React.FC = () => {
   const { t } = useTranslation();
   const {
     historyItems,
-    devices,
     isLoading,
     filters,
     setFilters,
     deleteHistoryByUrl,
-    deleteHistoryByDateRange,
     hasMore,
     loadMore,
     availableDates,
@@ -108,13 +106,6 @@ export const HistoryPage: React.FC = () => {
     setFilters(prev => ({ ...prev, startTime, endTime }));
   }, [setFilters]);
   
-  const handleHourChange = useCallback((hour: number) => {
-    const currentStartDate = new Date(filters.startTime);
-    const newStart = setHours(currentStartDate, hour);
-    const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000 - 1);
-    setFilters(prev => ({ ...prev, startTime: newStart.getTime(), endTime: newEnd.getTime() }));
-  }, [filters.startTime, setFilters]);
-
   const toggleSelection = (url: string) => {
     setSelectedItems(prev =>
       prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
@@ -190,7 +181,7 @@ export const HistoryPage: React.FC = () => {
       const systemPrompt = buildTagGenerationPrompt(allExistingTags);
       const userMessage = `标题: "${item.title}"\nURL: "${item.url}"`;
 
-      const messages = [
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ];
@@ -216,7 +207,7 @@ export const HistoryPage: React.FC = () => {
               if (generatedTags.length > 0) {
                 // History items are not bookmarks, so create a bookmark first
                 try {
-                  const newBookmark = await chrome.bookmarks.create({
+                  await chrome.bookmarks.create({
                     title: item.title,
                     url: item.url,
                   });
@@ -317,11 +308,23 @@ export const HistoryPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <header className="nb-bg nb-border nb-shadow sticky top-0 z-20 -mx-6 -mt-6 px-6 pt-6 pb-4 rounded-b-xl">
+    <div className="p-8 h-full flex flex-col relative nb-bg">
+      {/* 装饰性背景元素 */}
+      <div className="absolute top-20 right-16 w-20 h-20 bg-[color:var(--nb-accent-blue)]/15 border-3 border-[color:var(--nb-border)] nb-sticker-2 nb-float pointer-events-none shadow-[4px_4px_0px_0px_var(--nb-border)]" style={{ borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%' }}></div>
+      <div className="absolute bottom-32 left-8 w-16 h-16 bg-[color:var(--nb-accent-pink)]/15 border-2 border-[color:var(--nb-border)] rounded-full nb-float pointer-events-none shadow-[3px_3px_0px_0px_var(--nb-border)]"></div>
+
+      <header className="nb-card-static sticky top-0 z-20 -mx-8 -mt-8 px-8 pt-8 pb-5 shadow-[0_6px_0px_0px_var(--nb-border)] relative overflow-hidden">
+        {/* 顶部装饰条 */}
+        <div className="absolute top-0 left-0 right-0 flex h-1">
+          <div className="flex-1 bg-[color:var(--nb-accent-pink)]"></div>
+          <div className="flex-1 bg-[color:var(--nb-accent-yellow)]"></div>
+          <div className="flex-1 bg-[color:var(--nb-accent-blue)]"></div>
+          <div className="flex-1 bg-[color:var(--nb-accent-green)]"></div>
+        </div>
+
         <div className="flex items-center justify-between">
           <DateNavigator onDateChange={handleDateChange} availableDates={availableDates} />
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <div className="w-64">
               <UnifiedSearchBar
                 mode="history"
@@ -332,8 +335,10 @@ export const HistoryPage: React.FC = () => {
               />
             </div>
             {/* Neo-Brutalism 风格网格选择器 */}
-            <div className="nb-card-static flex items-center space-x-2 px-3 py-2">
-              <span className="material-symbols-outlined icon-linear text-sm text-[color:var(--nb-text)]">grid_view</span>
+            <div className="nb-card-static flex items-center space-x-2 px-3 py-2.5 shadow-[3px_3px_0px_0px_var(--nb-border)]">
+              <div className="w-7 h-7 flex items-center justify-center bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)]">
+                <span className="material-symbols-outlined icon-linear text-sm nb-text">grid_view</span>
+              </div>
               <select
                 value={cardsPerRow}
                 onChange={(e) => {
@@ -342,7 +347,7 @@ export const HistoryPage: React.FC = () => {
                   localStorage.setItem('cardsPerRow', newValue.toString());
                   window.dispatchEvent(new CustomEvent('cardsPerRowChanged', { detail: newValue }));
                 }}
-                className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer text-[color:var(--nb-text)]"
+                className="text-sm font-bold border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer nb-text uppercase tracking-wide"
               >
                 <option value="2">{t('settings.cardsPerRowOption', { count: 2 })}</option>
                 <option value="3">{t('settings.cardsPerRowOption', { count: 3 })}</option>
@@ -354,12 +359,13 @@ export const HistoryPage: React.FC = () => {
             {/* Neo-Brutalism 风格选择按钮 */}
             <button
               onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
-              className={`nb-btn px-4 py-2 text-sm font-semibold transition ${
+              className={`nb-btn px-5 py-2.5 text-sm transition ${
                 isMultiSelectMode
                   ? 'nb-btn-primary'
                   : 'nb-btn-secondary'
               }`}
             >
+              <span className="material-symbols-outlined text-base mr-1.5">checklist</span>
               {isMultiSelectMode ? t('common.cancel') : t('common.select')}
             </button>
           </div>
@@ -399,14 +405,24 @@ export const HistoryPage: React.FC = () => {
               
               return (
                 <div key={timeKey}>
-                  <h3 className="font-bold text-main mb-4 text-lg">{displayTitle}</h3>
+                  {/* Neo-Brutalism 风格时间组标题 */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]">
+                      <span className="material-symbols-outlined text-lg nb-text">schedule</span>
+                    </div>
+                    <h3 className="font-black nb-text text-xl uppercase tracking-tight">{displayTitle}</h3>
+                    <div className="flex-1 h-0.5 bg-[color:var(--nb-border)]/30"></div>
+                    <span className="px-3 py-1 bg-[color:var(--nb-accent-blue)]/30 border-2 border-[color:var(--nb-border)] text-xs font-bold nb-text uppercase">
+                      {items.length} {t('common.items')}
+                    </span>
+                  </div>
                   <div className={getGridClass()}>
                     {items.map(item => (
                       <ItemCard
                         key={item.url}
                         href={item.url}
                         title={item.title}
-                        hostname={new URL(item.url).hostname}
+                        hostname={getUrlHostname(item.url)}
                         faviconUrl={getFaviconUrl(item.url)}
                         actions={itemActions(item)}
                         visitCount={item.visitCount}
@@ -421,11 +437,11 @@ export const HistoryPage: React.FC = () => {
               );
             })}
              {isLoading && historyItems.length > 0 && (
-                <p className="text-center text-secondary py-4">{t('common.loading')}</p>
+                <p className="text-center nb-text-secondary py-4">{t('common.loading')}</p>
             )}
           </div>
         ) : (
-          <p className="text-center text-secondary pt-16">{t('history.empty')}</p>
+          <p className="text-center nb-text-secondary pt-16">{t('history.empty')}</p>
         )}
       </main>
 
@@ -463,7 +479,7 @@ export const HistoryPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 transition-colors">
           <div className="nb-card-static w-full max-w-md p-8">
             <h3 className="text-lg font-bold mb-4 text-[color:var(--nb-text)]">{t('bookmarks.generatingTags')}</h3>
-            <p className="text-secondary mb-4">{tagGenerationItem.title}</p>
+            <p className="nb-text-secondary mb-4">{tagGenerationItem.title}</p>
             <div className="flex items-center justify-center py-6">
               {isGeneratingTags ? (
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>

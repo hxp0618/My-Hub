@@ -32,53 +32,68 @@ export const Toast: React.FC<ToastProps> = ({
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
-  // Neo-Brutalism 强调色
-  const nbColors = {
-    success: 'nb-badge-green',
-    error: 'nb-badge-pink',
-    warning: 'nb-badge-yellow',
-    info: 'nb-badge-blue'
+  // Neo-Brutalism 强调色背景
+  const bgColors = {
+    success: 'bg-[color:var(--nb-accent-green)]',
+    error: 'bg-[color:var(--nb-accent-pink)]',
+    warning: 'bg-[color:var(--nb-accent-yellow)]',
+    info: 'bg-[color:var(--nb-accent-blue)]'
   };
 
   const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ'
+    success: 'check_circle',
+    error: 'cancel',
+    warning: 'warning',
+    info: 'info'
   };
 
   return (
     <div
       className={`
-        nb-card-static ${nbColors[type]} px-4 py-3 
-        flex items-center gap-3 min-w-[200px] max-w-sm transition-all duration-300
-        ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}
+        ${bgColors[type]} px-5 py-4
+        border-3 border-[color:var(--nb-border)]
+        shadow-[6px_6px_0px_0px_var(--nb-border)]
+        flex items-center gap-4 min-w-[280px] max-w-md
+        transition-all duration-300 ease-out
+        ${isVisible 
+          ? 'translate-y-0 opacity-100' 
+          : 'translate-y-4 opacity-0 pointer-events-none'
+        }
       `}
       role="alert"
       aria-live="polite"
     >
-      <span className="text-xl nb-text flex-shrink-0" aria-hidden="true">{icons[type]}</span>
-      <span className="flex-1 nb-text whitespace-nowrap">{message}</span>
+      {/* 图标容器 - Neo-Brutalism 风格 */}
+      <div className="w-8 h-8 flex items-center justify-center bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] flex-shrink-0">
+        <span className="material-symbols-outlined text-lg nb-text" aria-hidden="true">{icons[type]}</span>
+      </div>
+      
+      {/* 消息内容 */}
+      <span className="flex-1 font-bold text-sm nb-text uppercase tracking-wide">{message}</span>
+      
+      {/* 操作按钮 */}
       {actionText && onAction && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             onAction();
           }}
-          className="underline font-semibold hover:opacity-80 nb-text flex-shrink-0"
+          className="px-3 py-1.5 bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold text-xs nb-text uppercase tracking-wide transition-all duration-100 flex-shrink-0"
         >
           {actionText}
         </button>
       )}
+      
+      {/* 关闭按钮 - Neo-Brutalism 风格 */}
       <button
         onClick={() => {
           setIsVisible(false);
           setTimeout(onClose, 300);
         }}
-        className="text-xl hover:opacity-80 nb-text flex-shrink-0"
+        className="w-7 h-7 flex items-center justify-center bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100 flex-shrink-0"
         aria-label={t('common.closeNotification')}
       >
-        ×
+        <span className="material-symbols-outlined text-base nb-text">close</span>
       </button>
     </div>
   );

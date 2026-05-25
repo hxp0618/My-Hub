@@ -1,6 +1,6 @@
 import { BookmarkTag } from '../types/bookmarks';
 import { TagGenerationFailure } from '../types/tags';
-import { ToolConfig, ToolId, getValidToolOrder, DEFAULT_TOOL_ORDER } from '../types/tools';
+import { ToolConfig, ToolId, getValidToolOrder } from '../types/tools';
 import { HistoryEntry } from '../types/http';
 import {
   Subscription,
@@ -8,7 +8,6 @@ import {
   SubscriptionNotificationConfig,
   DEFAULT_SUBSCRIPTION_SETTINGS,
   DEFAULT_NOTIFICATION_CONFIG,
-  generateSubscriptionId,
 } from '../types/subscription';
 
 const DB_NAME = 'ChromeHistoryDB';
@@ -31,12 +30,12 @@ export const initDB = (): Promise<IDBDatabase> => {
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = (event) => {
+    request.onerror = () => {
       console.error('Database error:', request.error);
       reject('Database error');
     };
 
-    request.onsuccess = (event) => {
+    request.onsuccess = () => {
       db = request.result;
       resolve(db);
     };

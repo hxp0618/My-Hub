@@ -197,7 +197,7 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
                     <span className="text-sm nb-text-secondary">{t('tools.passwordGenerator.strength')}:</span>
                     <div className="flex gap-1">
                       {[0, 1, 2, 3].map(i => (
-                        <div key={i} className={`w-6 h-2 rounded ${i < strength ? strengthColors[strength] : 'bg-gray-300'}`} />
+                        <div key={i} className={`w-6 h-2 rounded ${i < strength ? strengthColors[strength] : 'bg-[color:var(--nb-bg)]'}`} />
                       ))}
                     </div>
                     <span className="text-sm nb-text">{t(`tools.passwordGenerator.${strengthLabels[strength]}`)}</span>
@@ -239,14 +239,14 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           onClick={(e) => { e.stopPropagation(); copy(item.password); }}
-                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                          className="p-1 rounded hover:bg-[color:var(--nb-bg)]"
                           title={t('tools.passwordGenerator.copy')}
                         >
                           <span className="material-symbols-outlined text-base nb-text-secondary">content_copy</span>
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); removeFromHistory(item.timestamp); }}
-                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-1 rounded hover:bg-[color:var(--nb-bg)] opacity-0 group-hover:opacity-100 transition-opacity"
                           title={t('tools.passwordGenerator.delete')}
                         >
                           <span className="material-symbols-outlined text-base" style={{ color: 'var(--nb-accent-pink)' }}>delete</span>

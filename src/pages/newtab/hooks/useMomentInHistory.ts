@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RecommendationItem } from '../types';
 import { getAllBookmarkTags } from '../../../db/indexedDB';
+import { getFaviconUrl } from '../../../utils/favicon';
 
 export function useMomentInHistory() {
   const { t } = useTranslation();
@@ -23,40 +24,38 @@ export function useMomentInHistory() {
 
       // --- Get Bookmark Data ---
       const getBookmarkData = async (): Promise<{ urls: Set<string>; bookmarkMap: Map<string, { id: string; tags: string[] }> }> => {
-        return new Promise(async resolve => {
-          try {
-            const [bookmarkTreeNodes, allTags] = await Promise.all([
-              new Promise<chrome.bookmarks.BookmarkTreeNode[]>(resolve => 
-                chrome.bookmarks.getTree(resolve)
-              ),
-              getAllBookmarkTags()
-            ]);
-            
-            const urls = new Set<string>();
-            const bookmarkMap = new Map<string, { id: string; tags: string[] }>();
-            const tagsMap = new Map(allTags.map(bt => [bt.url, bt.tags]));
-            
-            const flatten = (nodes: chrome.bookmarks.BookmarkTreeNode[]) => {
-              for (const node of nodes) {
-                if (node.url) {
-                  urls.add(node.url);
-                  bookmarkMap.set(node.url, {
-                    id: node.id,
-                    tags: tagsMap.get(node.url) || []
-                  });
-                }
-                if (node.children) {
-                  flatten(node.children);
-                }
+        try {
+          const [bookmarkTreeNodes, allTags] = await Promise.all([
+            new Promise<chrome.bookmarks.BookmarkTreeNode[]>(resolve =>
+              chrome.bookmarks.getTree(resolve)
+            ),
+            getAllBookmarkTags()
+          ]);
+
+          const urls = new Set<string>();
+          const bookmarkMap = new Map<string, { id: string; tags: string[] }>();
+          const tagsMap = new Map(allTags.map(bt => [bt.url, bt.tags]));
+
+          const flatten = (nodes: chrome.bookmarks.BookmarkTreeNode[]) => {
+            for (const node of nodes) {
+              if (node.url) {
+                urls.add(node.url);
+                bookmarkMap.set(node.url, {
+                  id: node.id,
+                  tags: tagsMap.get(node.url) || []
+                });
               }
-            };
-            flatten(bookmarkTreeNodes);
-            resolve({ urls, bookmarkMap });
-          } catch (error) {
-            console.error('Error getting bookmark data:', error);
-            resolve({ urls: new Set(), bookmarkMap: new Map() });
-          }
-        });
+              if (node.children) {
+                flatten(node.children);
+              }
+            }
+          };
+          flatten(bookmarkTreeNodes);
+          return { urls, bookmarkMap };
+        } catch (error) {
+          console.error('Error getting bookmark data:', error);
+          return { urls: new Set(), bookmarkMap: new Map() };
+        }
       };
 
       const { urls: bookmarkUrls, bookmarkMap } = await getBookmarkData();
@@ -123,15 +122,6 @@ export function useMomentInHistory() {
           if (!item.url || item.url.startsWith('chrome://') || item.url.startsWith('chrome-extension://')) {
             return;
           }
-
-          const getFaviconUrl = (url: string) => {
-            try {
-              const urlObj = new URL(url);
-              return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=32`;
-            } catch (error) {
-              return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
-            }
-          };
 
           const visitDate = new Date(item.lastVisitTime || 0).toDateString();
           const key = item.url;

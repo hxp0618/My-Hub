@@ -14,9 +14,6 @@ import {
   validateDeviceKey,
 } from '../utils/barkKeyManager';
 
-/** 存储键常量 - 与 background script 保持一致 */
-const BARK_KEYS_STORAGE_KEY = 'bark_keys';
-
 /**
  * 同步密钥数据到 chrome.storage.local（供 background script 使用）
  */

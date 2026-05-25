@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseCurl } from '../utils/curlUtils';
-import { CurlParseSuccess } from '../types/curl';
+import { CurlParseError, CurlParseSuccess } from '../types/curl';
 
 interface CurlImportModalProps {
   isOpen: boolean;
@@ -22,6 +22,13 @@ export const CurlImportModal: React.FC<CurlImportModalProps> = ({
   const [curlCommand, setCurlCommand] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const getParseErrorMessage = useCallback(
+    (result: CurlParseError) => {
+      return t(`tools.httpTester.curlErrors.${result.error}`, result.values);
+    },
+    [t]
+  );
+
   const handleImport = useCallback(() => {
     const result = parseCurl(curlCommand);
     
@@ -31,9 +38,9 @@ export const CurlImportModal: React.FC<CurlImportModalProps> = ({
       setError(null);
       onClose();
     } else {
-      setError(result.error);
+      setError(getParseErrorMessage(result));
     }
-  }, [curlCommand, onImport, onClose]);
+  }, [curlCommand, getParseErrorMessage, onImport, onClose]);
 
   const handleClose = useCallback(() => {
     setCurlCommand('');

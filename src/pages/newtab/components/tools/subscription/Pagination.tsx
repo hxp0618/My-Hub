@@ -88,7 +88,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage === 1}
           className={`p-1.5 rounded border-2 border-[var(--nb-border)] transition-all ${
             currentPage === 1
-              ? 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-700'
+              ? 'opacity-40 cursor-not-allowed bg-[var(--nb-card)]'
               : 'nb-card hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_var(--nb-border)]'
           }`}
           title={t('subscriptions.pagination.prev')}
@@ -123,7 +123,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage === totalPages}
           className={`p-1.5 rounded border-2 border-[var(--nb-border)] transition-all ${
             currentPage === totalPages
-              ? 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-700'
+              ? 'opacity-40 cursor-not-allowed bg-[var(--nb-card)]'
               : 'nb-card hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_var(--nb-border)]'
           }`}
           title={t('subscriptions.pagination.next')}

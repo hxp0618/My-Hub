@@ -103,12 +103,15 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
     batchMode.clearResults();
   }, [clear, batchMode]);
 
+  const isBatchModeEnabled = batchMode.enabled;
+  const processBatchInput = batchMode.process;
+
   // 批量模式下处理输入变化
   useEffect(() => {
-    if (batchMode.enabled && input) {
-      batchMode.process(input);
+    if (isBatchModeEnabled && input) {
+      processBatchInput(input);
     }
-  }, [batchMode.enabled, input, batchMode.process]);
+  }, [isBatchModeEnabled, input, processBatchInput]);
 
   // 获取当前输出内容
   const currentOutput = batchMode.enabled 

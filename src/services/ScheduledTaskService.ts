@@ -20,10 +20,9 @@ import {
   calculateNextExecutionTime,
 } from '../utils/scheduledTaskValidator';
 import { BarkKeyManager } from './BarkKeyManager';
+import { createLogger } from '../utils/logger';
 
-/** 存储键常量 - 与 background script 保持一致 */
-const STORAGE_KEY = 'bark_scheduled_tasks';
-const BARK_KEYS_STORAGE_KEY = 'bark_keys';
+const scheduledTaskLogger = createLogger('[ScheduledTaskService]');
 
 /**
  * 定时任务调度服务类
@@ -336,7 +335,7 @@ export class ScheduledTaskService {
    */
   registerAlarm(task: ScheduledTask): void {
     if (!task.nextExecutionTime) {
-      console.warn('registerAlarm: No nextExecutionTime for task', task.id);
+      scheduledTaskLogger.warn('Cannot register alarm without next execution time');
       return;
     }
 
@@ -344,14 +343,14 @@ export class ScheduledTaskService {
     if (typeof chrome === 'undefined' || !chrome.alarms) {
       // 在非 background 环境中，通过消息通知 background script 注册 alarm
       if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
-        console.log(`Sending message to background to register alarm for task ${task.id}`);
+        scheduledTaskLogger.debug('Requesting background alarm registration');
         chrome.runtime.sendMessage({
           type: 'REGISTER_TASK_ALARM',
           taskId: task.id,
           nextExecutionTime: task.nextExecutionTime,
         }).catch((error) => {
           // 忽略连接错误，background script 会在启动时恢复所有任务
-          console.warn('Failed to send message to background (will be restored on extension restart):', error.message);
+          scheduledTaskLogger.warn('Failed to request background alarm registration', error.message);
         });
       }
       return;
@@ -365,7 +364,7 @@ export class ScheduledTaskService {
     const now = Date.now();
     const delay = Math.max(when - now, minDelay);
 
-    console.log(`Registering alarm: ${alarmName}, scheduled for ${new Date(now + delay).toISOString()}`);
+    scheduledTaskLogger.debug('Registering Chrome alarm');
     
     chrome.alarms.create(alarmName, {
       when: now + delay,
@@ -381,19 +380,19 @@ export class ScheduledTaskService {
     if (typeof chrome === 'undefined' || !chrome.alarms) {
       // 在非 background 环境中，通过消息通知 background script 取消 alarm
       if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
-        console.log(`Sending message to background to cancel alarm for task ${taskId}`);
+        scheduledTaskLogger.debug('Requesting background alarm cancellation');
         chrome.runtime.sendMessage({
           type: 'CANCEL_TASK_ALARM',
           taskId: taskId,
         }).catch((error) => {
-          console.warn('Failed to send message to background:', error.message);
+          scheduledTaskLogger.warn('Failed to request background alarm cancellation', error.message);
         });
       }
       return;
     }
 
     const alarmName = getAlarmName(taskId);
-    console.log(`Canceling alarm: ${alarmName}`);
+    scheduledTaskLogger.debug('Canceling Chrome alarm');
     chrome.alarms.clear(alarmName);
   }
 
@@ -534,7 +533,7 @@ export class ScheduledTaskService {
   /**
    * 标记任务为失败状态
    */
-  private markTaskFailed(taskId: string, errorMessage: string): void {
+  private markTaskFailed(taskId: string, _errorMessage: string): void {
     this.storage.updateTask(taskId, {
       status: 'failed',
     });

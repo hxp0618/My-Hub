@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnhancedBookmark, BookmarkOrganization } from '../../../types/bookmarks';
-import { getAllBookmarkTags, addBookmarkTag, deleteBookmarkTag, batchUpdateTags, getBookmarkTag } from '../../../db/indexedDB';
+import { getAllBookmarkTags, addBookmarkTag, deleteBookmarkTag, batchUpdateTags } from '../../../db/indexedDB';
 import { SortOrder } from '../types';
 import { applyNewBookmarkTree, GeneratedNode } from '../utils';
 

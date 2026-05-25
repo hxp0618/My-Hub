@@ -7,6 +7,7 @@ import { sendMessage } from '@src/services/llmService';
 import { buildTagGenerationPrompt } from '@src/lib/tagGenerationPrompts';
 import { getBookmarkSuggestionSystemPrompt } from '@src/lib/bookmarkSuggestionPrompts';
 import { findFolderIdByTitle, simplifyBookmarkTree } from '@src/utils/bookmarkUtils';
+import type { ChatMessage } from '@src/types/llm';
 
 interface AddBookmarkFormProps {
   initialUrl?: string;
@@ -48,6 +49,8 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
     } else if (initialUrl && initialTitle) {
         handleAutoSuggest(initialTitle, initialUrl);
     }
+    // 初始化时只根据传入 URL/标题触发一次自动建议，避免输入过程反复发起 AI 请求。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialUrl, initialTitle]);
 
   const handleAutoSuggest = (currentTitle: string, currentUrl: string) => {
@@ -106,7 +109,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
       const systemPrompt = getBookmarkSuggestionSystemPrompt(allExistingTags, foldersJson);
       const userMessage = `标题: "${currentTitle}"\nURL: "${currentUrl}"`;
 
-      const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }];
+      const messages: ChatMessage[] = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }];
 
       let generatedContent = '';
       await sendMessage(
@@ -131,7 +134,9 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
                 if (folderId) {
                   setSelectedFolder(folderId);
                 } else {
-                  console.warn(`Suggested folder "${suggestedFolder}" not found. Using default.`);
+                  if (import.meta.env.DEV) {
+                    console.warn('Suggested folder not found. Using default.');
+                  }
                   setSelectedFolder(defaultFolderId);
                 }
               } else {
@@ -190,7 +195,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
       // 构建用户消息
       const userMessage = `标题: "${title}"\nURL: "${url}"`;
 
-      const messages = [
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ];
@@ -204,7 +209,6 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
             generatedContent += chunk;
           },
           onFinish: () => {
-            console.log('AddBookmarkForm: onFinish triggered. Final generated content:', generatedContent);
             const finalContent = unwrapCodeFence(generatedContent);
             if (finalContent) {
               // 解析生成的标签
@@ -255,7 +259,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
     }
 
     try {
-      const newBookmark = await chrome.bookmarks.create({
+      await chrome.bookmarks.create({
         parentId: selectedFolder,
         title,
         url,
@@ -280,9 +284,9 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
   };
 
   return (
-    <div className="nb-bg nb-text min-h-full flex flex-col gap-4 font-sans">
+    <div className="nb-bg nb-text min-h-full flex flex-col gap-4">
       <div className="nb-card-static p-6 space-y-5">
-        <h1 className="text-xl font-bold">{t('modal.addBookmark')}</h1>
+        <h1 className="text-2xl font-black uppercase tracking-tight">{t('modal.addBookmark')}</h1>
 
         <div className="space-y-4">
           <div>

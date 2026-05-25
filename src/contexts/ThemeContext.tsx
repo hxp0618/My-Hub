@@ -42,6 +42,8 @@ interface ThemeContextType {
   effectiveTheme: EffectiveTheme;
   setTheme: (theme: Theme) => void;
   getThemeMetadata: (theme: Theme) => ThemeMetadata;
+  brightness: number;
+  setBrightness: (brightness: number) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -50,6 +52,10 @@ const VALID_THEMES: Theme[] = ['light', 'dark', 'system', 'eye-care'];
 
 const isValidTheme = (value: string): value is Theme => {
   return VALID_THEMES.includes(value as Theme);
+};
+
+const isValidBrightness = (value: number): boolean => {
+  return typeof value === 'number' && value >= 0.5 && value <= 1.0;
 };
 
 export const useTheme = () => {
@@ -73,6 +79,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return 'system';
   });
 
+  const [brightness, setBrightnessState] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('brightness');
+      if (stored) {
+        const value = parseFloat(stored);
+        if (isValidBrightness(value)) {
+          return value;
+        }
+      }
+    } catch (error) {
+      console.error('Error reading brightness from localStorage:', error);
+    }
+    return 1.0;
+  });
+
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
@@ -84,7 +105,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const root = document.documentElement;
     // 添加 preload 类防止过渡动画
     root.classList.add('preload');
-    
+
     // 在下一帧移除 preload 类，允许后续的过渡动画
     const timer = setTimeout(() => {
       root.classList.remove('preload');
@@ -133,12 +154,32 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [effectiveTheme, isFirstLoad]);
 
+  // 应用亮度到 document
+  useEffect(() => {
+    const root = document.documentElement;
+    if (brightness < 1.0) {
+      root.style.filter = `brightness(${brightness})`;
+    } else {
+      root.style.filter = '';
+    }
+  }, [brightness]);
+
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     try {
       localStorage.setItem('theme', newTheme);
     } catch (error) {
       console.error('Error saving theme to localStorage:', error);
+    }
+  };
+
+  const setBrightness = (newBrightness: number) => {
+    const clampedValue = Math.max(0.5, Math.min(1.0, newBrightness));
+    setBrightnessState(clampedValue);
+    try {
+      localStorage.setItem('brightness', clampedValue.toString());
+    } catch (error) {
+      console.error('Error saving brightness to localStorage:', error);
     }
   };
 
@@ -151,6 +192,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     effectiveTheme,
     setTheme,
     getThemeMetadata,
+    brightness,
+    setBrightness,
   };
 
   return (
@@ -159,3 +202,4 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </ThemeContext.Provider>
   );
 };
+

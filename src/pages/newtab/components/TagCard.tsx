@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { TagInfo } from '../../../types/tags';
-import { timeAgo } from '../utils';
 
 interface TagCardProps {
   tag: TagInfo;
@@ -34,70 +33,53 @@ export const TagCard: React.FC<TagCardProps> = ({
 
   return (
     <div
-      className={`nb-card relative p-5 cursor-pointer ${isSelected ? 'nb-selected' : ''}`}
+      className={`nb-card-static p-4 cursor-pointer hover:shadow-[2px_2px_0px_0px_var(--nb-border)] transition-all ${isSelected ? 'bg-[color:var(--nb-accent-yellow)]/30' : ''}`}
       onClick={handleCardClick}
     >
-      {isMultiSelectMode && (
-        <div className="absolute top-4 left-4 z-10" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center gap-3">
+        {isMultiSelectMode && (
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelect(tag.name)}
-            className="h-5 w-5 nb-border rounded-md bg-[color:var(--nb-card)] text-[color:var(--nb-border)] accent-[color:var(--nb-border)] cursor-pointer focus:outline-none focus:ring-0"
+            onClick={e => e.stopPropagation()}
+            className="h-4 w-4 border-2 border-[color:var(--nb-border)] accent-[color:var(--nb-accent-yellow)] cursor-pointer"
           />
-        </div>
-      )}
+        )}
 
-      <div className={`${isMultiSelectMode ? 'pl-8' : ''}`}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-sm nb-text-secondary uppercase tracking-wide">{t('tags.itemCount', { count: tag.count })}</div>
-            <h3 className="text-xl font-semibold nb-text truncate">{tag.name}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold nb-text truncate">{tag.name}</h3>
+            <span className="px-2 py-0.5 text-xs bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] nb-text">
+              {tag.count}
+            </span>
           </div>
-          {!isMultiSelectMode && (
-            <div className="flex items-center gap-2">
-              <button
-                className="nb-btn-ghost p-2 rounded-full"
-                onClick={e => {
-                  e.stopPropagation();
-                  onRename(tag);
-                }}
-                aria-label={t('tags.rename')}
-              >
-                <span className="material-symbols-outlined icon-linear text-lg">edit</span>
-              </button>
-              <button
-                className="nb-btn-ghost p-2 rounded-full hover:text-danger"
-                onClick={e => {
-                  e.stopPropagation();
-                  onDelete(tag);
-                }}
-                aria-label={t('tags.delete')}
-              >
-                <span className="material-symbols-outlined icon-linear text-lg">delete</span>
-              </button>
-            </div>
-          )}
         </div>
-        {tag.lastUsed && (
-          <div className="text-sm nb-text-secondary mt-2">
-            {t('tags.lastUsed')}: {timeAgo(tag.lastUsed)}
+
+        {!isMultiSelectMode && (
+          <div className="flex items-center gap-1">
+            <button
+              className="p-1.5 hover:bg-[color:var(--nb-accent-yellow)] border border-transparent hover:border-[color:var(--nb-border)] transition-all"
+              onClick={e => {
+                e.stopPropagation();
+                onRename(tag);
+              }}
+              aria-label={t('tags.rename')}
+            >
+              <span className="material-symbols-outlined text-base nb-text">edit</span>
+            </button>
+            <button
+              className="p-1.5 hover:bg-[color:var(--nb-accent-pink)] border border-transparent hover:border-[color:var(--nb-border)] transition-all"
+              onClick={e => {
+                e.stopPropagation();
+                onDelete(tag);
+              }}
+              aria-label={t('tags.delete')}
+            >
+              <span className="material-symbols-outlined text-base nb-text">delete</span>
+            </button>
           </div>
         )}
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <button
-            className="nb-btn nb-btn-secondary px-4 py-2 text-sm"
-            onClick={e => {
-              e.stopPropagation();
-              onViewDetails(tag);
-            }}
-          >
-            {t('tags.viewDetails')}
-          </button>
-          {!isMultiSelectMode && (
-            <span className="nb-text-secondary text-xs">{t('tags.statistics')}</span>
-          )}
-        </div>
       </div>
     </div>
   );

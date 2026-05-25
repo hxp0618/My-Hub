@@ -7,7 +7,6 @@ import {
   convert,
   detectFormat,
   DataFormat,
-  ConversionResult,
 } from '../../../../utils/formatConverter';
 
 /**

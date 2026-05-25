@@ -55,7 +55,7 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
           ? t('settings.notification.testSuccess')
           : result.error || t('settings.notification.testFailed'),
       });
-    } catch (error) {
+    } catch {
       setTestResult({
         success: false,
         message: t('settings.notification.testFailed'),
@@ -84,25 +84,23 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
           )}
           <button
             onClick={onToggle}
-            className={`relative w-10 h-5 rounded-full border-2 border-[var(--nb-border)] transition-colors ${
-              enabled ? 'bg-[var(--nb-accent-green)]' : 'bg-gray-300 dark:bg-gray-600'
-            }`}
+            className="nb-toggle"
           >
-            <span
-              className={`absolute top-0 w-3.5 h-3.5 rounded-full bg-[var(--nb-border)] transition-transform ${
-                enabled ? 'left-5' : 'left-0.5'
-              }`}
-            />
+            <span className={`nb-toggle-track ${enabled ? 'active' : ''}`}>
+              <span className="nb-toggle-thumb" />
+            </span>
           </button>
         </div>
       </div>
       
       {testResult && (
-        <div className={`mb-3 p-2 rounded text-sm ${
-          testResult.success 
-            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' 
-            : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
-        }`}>
+        <div
+          className={`mb-3 p-2 text-sm nb-border ${
+            testResult.success
+              ? 'bg-[color:var(--nb-accent-green)]'
+              : 'bg-[color:var(--nb-accent-pink)]'
+          }`}
+        >
           {testResult.message}
         </div>
       )}

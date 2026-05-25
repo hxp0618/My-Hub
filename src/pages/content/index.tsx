@@ -4,7 +4,17 @@
 /**
  * 智能提取页面主要内容
  */
-function extractPageContent() {
+type ExtractContentResult =
+  | { success: true; html: string; title: string; text: string; url: string }
+  | { success: false; error: string };
+
+const debugLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.debug('[Reading List]', ...args);
+  }
+};
+
+function extractPageContent(): ExtractContentResult {
   try {
     // 尝试多个常见内容选择器
     const selectors = [
@@ -68,11 +78,11 @@ function extractPageContent() {
  * 监听来自扩展的消息
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('[Reading List] Received message:', request);
+  debugLog('Received message:', request.action);
 
   // 响应 ping 检查
   if (request.action === 'ping') {
-    console.log('[Reading List] Responding to ping');
+    debugLog('Responding to ping');
     sendResponse({ ready: true });
     return true;
   }
@@ -81,7 +91,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractContent') {
     try {
       const result = extractPageContent();
-      console.log('[Reading List] Extraction result:', result.success ? 'success' : 'failed',
+      debugLog('Extraction result:', result.success ? 'success' : 'failed',
                   result.success ? `(${result.html.length} chars)` : result.error);
       sendResponse(result);
     } catch (error) {
@@ -97,5 +107,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false; // 不是我们的消息
 });
 
-console.log('[Reading List] Content script loaded and ready');
-
+debugLog('Content script loaded and ready');

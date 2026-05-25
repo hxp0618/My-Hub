@@ -14,18 +14,58 @@ interface DateBoundary {
 }
 
 // 快速日期选项
-type QuickDateOption = 'today' | 'yesterday' | 'thisWeek' | 'thisMonth';
+type QuickDateOption = 'today' | 'tomorrow' | 'yesterday' | 'thisWeek' | 'thisMonth';
+
+// 解析多种日期格式
+const parseDateString = (input: string): Date | null => {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // 尝试直接解析 ISO 格式和 datetime-local 格式
+  let date = new Date(trimmed);
+  if (!isNaN(date.getTime())) return date;
+
+  // 替换 - 为 / 并尝试解析 (yyyy-mm-dd hh:mm:ss -> yyyy/mm/dd hh:mm:ss)
+  const normalizedSlash = trimmed.replace(/-/g, '/');
+  date = new Date(normalizedSlash);
+  if (!isNaN(date.getTime())) return date;
+
+  // 尝试解析 yyyy-mm-dd 或 yyyy/mm/dd 格式
+  const dateOnlyMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (!isNaN(date.getTime())) return date;
+  }
+
+  // 尝试解析 yyyy-mm-dd hh:mm:ss 或 yyyy/mm/dd hh:mm:ss 格式
+  const dateTimeMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (dateTimeMatch) {
+    const [, year, month, day, hour, minute, second = '0'] = dateTimeMatch;
+    date = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second)
+    );
+    if (!isNaN(date.getTime())) return date;
+  }
+
+  return null;
+};
 
 // 计算某一天的开始和结束时间戳
 const getDateBoundaries = (date: Date): DateBoundary => {
   // 开始时间：00:00:00.000
   const startDate = new Date(date);
   startDate.setHours(0, 0, 0, 0);
-  
+
   // 结束时间：23:59:59.999
   const endDate = new Date(date);
   endDate.setHours(23, 59, 59, 999);
-  
+
   return {
     startSeconds: Math.floor(startDate.getTime() / 1000),
     startMilliseconds: startDate.getTime(),
@@ -37,29 +77,38 @@ const getDateBoundaries = (date: Date): DateBoundary => {
 // 快速日期选择
 const getQuickDate = (option: QuickDateOption): Date => {
   const now = new Date();
-  
+
   switch (option) {
     case 'today':
       return now;
-      
-    case 'yesterday':
+
+    case 'yesterday': {
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       return yesterday;
-      
-    case 'thisWeek':
+    }
+
+    case 'tomorrow': {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow;
+    }
+
+    case 'thisWeek': {
       // 本周一
       const weekStart = new Date(now);
       const day = weekStart.getDay();
       const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
       weekStart.setDate(diff);
       return weekStart;
-      
-    case 'thisMonth':
+    }
+
+    case 'thisMonth': {
       // 本月1号
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       return monthStart;
-      
+    }
+
     default:
       return now;
   }
@@ -82,7 +131,7 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
   const [dateOutput, setDateOutput] = useState('');
   const [dateInput, setDateInput] = useState('');
   const [timestampOutput, setTimestampOutput] = useState('');
-  
+
   // 新增：日期边界相关状态
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateBoundary, setDateBoundary] = useState<DateBoundary | null>(null);
@@ -124,7 +173,7 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
       const timestamp = parseInt(timestampInput);
       // 判断是秒还是毫秒
       const date = new Date(timestamp > 10000000000 ? timestamp : timestamp * 1000);
-      
+
       if (isNaN(date.getTime())) {
         setDateOutput(t('tools.timestampConverter.invalidTimestamp'));
         return;
@@ -146,9 +195,9 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
     }
 
     try {
-      const date = new Date(dateInput);
-      
-      if (isNaN(date.getTime())) {
+      const date = parseDateString(dateInput);
+
+      if (!date) {
         setTimestampOutput(t('tools.timestampConverter.invalidDate'));
         return;
       }
@@ -223,11 +272,11 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
         </div>
 
         {/* 新增：日期边界时间戳 */}
-        <div className="nb-border-b pt-6 pb-6 flex-shrink-0">
+        <div className="nb-border-b pt-6 pb-3 flex-shrink-0">
           <h4 className="text-sm font-medium nb-text mb-3">
             {t('tools.timestampConverter.dateBoundary')}
           </h4>
-          
+
           {/* 快速选择 */}
           <div className="mb-4">
             <label className="text-xs nb-text-secondary mb-2 block">
@@ -235,32 +284,26 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
             </label>
             <div className="flex gap-2 flex-wrap">
               <button
-                onClick={() => handleQuickDateSelect('today')}
-                className="nb-btn nb-btn-secondary text-sm"
-              >
-                {t('tools.timestampConverter.today')}
-              </button>
-              <button
                 onClick={() => handleQuickDateSelect('yesterday')}
                 className="nb-btn nb-btn-secondary text-sm"
               >
                 {t('tools.timestampConverter.yesterday')}
               </button>
               <button
-                onClick={() => handleQuickDateSelect('thisWeek')}
+                onClick={() => handleQuickDateSelect('today')}
                 className="nb-btn nb-btn-secondary text-sm"
               >
-                {t('tools.timestampConverter.thisWeek')}
+                {t('tools.timestampConverter.today')}
               </button>
               <button
-                onClick={() => handleQuickDateSelect('thisMonth')}
+                onClick={() => handleQuickDateSelect('tomorrow')}
                 className="nb-btn nb-btn-secondary text-sm"
               >
-                {t('tools.timestampConverter.thisMonth')}
+                {t('tools.timestampConverter.tomorrow')}
               </button>
             </div>
           </div>
-          
+
           {/* 日期选择器 */}
           <div className="mb-4">
             <label className="text-xs nb-text-secondary mb-2 block">
@@ -273,7 +316,7 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
               className="nb-input w-full text-sm"
             />
           </div>
-          
+
           {/* 边界时间戳显示 */}
           {dateBoundary && (
             <div className="grid grid-cols-2 gap-4">
@@ -317,7 +360,7 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
                   </div>
                 </div>
               </div>
-              
+
               {/* 结束时间 */}
               <div className="p-3 nb-card-static">
                 <div className="text-xs nb-text-secondary mb-2">
@@ -363,63 +406,64 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
         </div>
 
         {/* 原有的转换功能 */}
-        <div className="pt-6 flex-1 min-h-0">
-          <h4 className="text-sm font-medium nb-text mb-3">转换工具</h4>
-          <div className="grid grid-cols-2 gap-6 h-full">
-          {/* 时间戳转日期 */}
-          <div className="flex flex-col min-h-0">
-            <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
-              {t('tools.timestampConverter.timestampToDate')}
-            </label>
-            <div className="flex gap-2 flex-shrink-0 mb-3">
-              <input
-                type="text"
-                value={timestampInput}
-                onChange={e => setTimestampInput(e.target.value)}
-                placeholder={t('tools.timestampConverter.timestampPlaceholder')}
-                className="nb-input flex-1 font-mono text-sm"
-              />
-              <button
-                onClick={handleTimestampToDate}
-                className="nb-btn nb-btn-primary text-sm whitespace-nowrap"
-              >
-                {t('tools.timestampConverter.convert')}
-              </button>
-            </div>
-            {dateOutput && (
-              <div className="flex-1 p-3 nb-card-static overflow-auto">
-                <pre className="text-sm nb-text whitespace-pre-wrap font-mono">{dateOutput}</pre>
+        <div className="pt-2 pb-4 flex-shrink-0">
+          <h4 className="text-sm font-medium nb-text mb-2">转换工具</h4>
+          <div className="grid grid-cols-2 gap-6">
+            {/* 时间戳转日期 */}
+            <div className="flex flex-col min-h-0">
+              <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
+                {t('tools.timestampConverter.timestampToDate')}
+              </label>
+              <div className="flex gap-2 flex-shrink-0 mb-3">
+                <input
+                  type="text"
+                  value={timestampInput}
+                  onChange={e => setTimestampInput(e.target.value)}
+                  placeholder={t('tools.timestampConverter.timestampPlaceholder')}
+                  className="nb-input flex-1 font-mono text-sm"
+                />
+                <button
+                  onClick={handleTimestampToDate}
+                  className="nb-btn nb-btn-primary text-sm whitespace-nowrap"
+                >
+                  {t('tools.timestampConverter.convert')}
+                </button>
               </div>
-            )}
-          </div>
+              {dateOutput && (
+                <div className="p-3 nb-card-static overflow-auto min-h-[100px]">
+                  <pre className="text-sm nb-text whitespace-pre-wrap font-mono leading-relaxed">{dateOutput}</pre>
+                </div>
+              )}
+            </div>
 
-          {/* 日期转时间戳 */}
-          <div className="flex flex-col min-h-0">
-            <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
-              {t('tools.timestampConverter.dateToTimestamp')}
-            </label>
-            <div className="flex gap-2 flex-shrink-0 mb-3">
-              <input
-                type="datetime-local"
-                value={dateInput}
-                onChange={e => setDateInput(e.target.value)}
-                className="nb-input flex-1 text-sm"
-              />
-              <button
-                onClick={handleDateToTimestamp}
-                className="nb-btn nb-btn-primary text-sm whitespace-nowrap"
-              >
-                {t('tools.timestampConverter.convert')}
-              </button>
-            </div>
-            {timestampOutput && (
-              <div className="flex-1 p-3 nb-card-static overflow-auto">
-                <pre className="text-sm nb-text whitespace-pre-wrap font-mono">
-                  {timestampOutput}
-                </pre>
+            {/* 日期转时间戳 */}
+            <div className="flex flex-col min-h-0">
+              <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
+                {t('tools.timestampConverter.dateToTimestamp')}
+              </label>
+              <div className="flex gap-2 flex-shrink-0 mb-3">
+                <input
+                  type="text"
+                  value={dateInput}
+                  onChange={e => setDateInput(e.target.value)}
+                  placeholder={t('tools.timestampConverter.datePlaceholder')}
+                  className="nb-input flex-1 text-sm font-mono"
+                />
+                <button
+                  onClick={handleDateToTimestamp}
+                  className="nb-btn nb-btn-primary text-sm whitespace-nowrap"
+                >
+                  {t('tools.timestampConverter.convert')}
+                </button>
               </div>
-            )}
-          </div>
+              {timestampOutput && (
+                <div className="p-3 nb-card-static overflow-auto min-h-[100px]">
+                  <pre className="text-sm nb-text whitespace-pre-wrap font-mono leading-relaxed">
+                    {timestampOutput}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

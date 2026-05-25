@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTheme, Theme, THEME_METADATA } from '../contexts/ThemeContext';
+import { useTheme, Theme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 interface ThemeSwitcherProps {
@@ -14,7 +14,6 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
   showDescriptions = false,
 }) => {
   const { theme, setTheme, getThemeMetadata } = useTheme();
-  const { t } = useTranslation();
   const [hoveredTheme, setHoveredTheme] = useState<Theme | null>(null);
 
   const themes: Theme[] = ['light', 'dark', 'system', 'eye-care'];
@@ -60,7 +59,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
         {themes.map((themeId) => {
           const metadata = getThemeMetadata(themeId);
           const isActive = theme === themeId;
-          
+
           return (
             <button
               key={themeId}
@@ -68,11 +67,11 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
               onMouseEnter={() => setHoveredTheme(themeId)}
               onMouseLeave={() => setHoveredTheme(null)}
               className={`
-                flex flex-col items-center justify-center p-4 rounded-xl
-                border-[length:var(--nb-border-width)] transition-all duration-200
+                flex flex-col items-center justify-center p-4
+                border-3 border-[color:var(--nb-border)] transition-all duration-200
                 ${isActive
-                  ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-accent-yellow)]/20 shadow-[var(--nb-shadow)]'
-                  : 'border-[color:var(--nb-border)] bg-[color:var(--nb-card)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[var(--nb-shadow-hover)]'
+                  ? 'bg-[color:var(--nb-accent-yellow)] shadow-[6px_6px_0px_0px_var(--nb-border)] translate-x-[2px] translate-y-[2px]'
+                  : 'bg-[color:var(--nb-card)] shadow-[4px_4px_0px_0px_var(--nb-border)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px]'
                 }
               `}
               aria-label={metadata.name}
@@ -81,7 +80,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
               <span
                 className={`
                   material-symbols-outlined text-4xl mb-2 transition-colors
-                  ${isActive ? 'text-[color:var(--nb-accent-yellow)]' : 'text-[color:var(--nb-text)]'}
+                  ${isActive ? 'nb-text' : 'text-[color:var(--nb-text)]'}
                 `}
               >
                 {metadata.icon}
@@ -110,7 +109,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
         const metadata = getThemeMetadata(themeId);
         const isActive = theme === themeId;
         const isHovered = hoveredTheme === themeId;
-        
+
         return (
           <button
             key={themeId}
@@ -118,11 +117,11 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
             onMouseEnter={() => setHoveredTheme(themeId)}
             onMouseLeave={() => setHoveredTheme(null)}
             className={`
-              w-full flex items-center gap-4 p-4 rounded-xl
-              border-[length:var(--nb-border-width)] transition-all duration-200 text-left
+              w-full flex items-center gap-4 p-4
+              border-3 border-[color:var(--nb-border)] transition-all duration-200 text-left
               ${isActive
-                ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-accent-yellow)]/20 shadow-[var(--nb-shadow)]'
-                : 'border-[color:var(--nb-border)] nb-bg-card hover:shadow-[var(--nb-shadow-hover)]'
+                ? 'bg-[color:var(--nb-accent-yellow)] shadow-[6px_6px_0px_0px_var(--nb-border)] translate-x-[2px] translate-y-[2px]'
+                : 'nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-border)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px]'
               }
             `}
             aria-label={metadata.name}
@@ -130,12 +129,13 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
           >
             <div
               className={`
-                flex items-center justify-center w-12 h-12 rounded-lg
+                flex items-center justify-center w-12 h-12
+                border-3 border-[color:var(--nb-border)]
                 transition-all duration-200
                 ${isActive
-                  ? 'bg-[color:var(--nb-accent-yellow)] nb-text'
+                  ? 'bg-[color:var(--nb-card)] shadow-[3px_3px_0px_0px_var(--nb-border)] nb-text'
                   : isHovered
-                    ? 'nb-bg scale-110 nb-text'
+                    ? 'nb-bg scale-110 shadow-[2px_2px_0px_0px_var(--nb-border)] nb-text'
                     : 'nb-bg nb-text'
                 }
               `}
@@ -146,7 +146,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
             </div>
 
             <div className="flex-1">
-              <div className={`font-semibold ${isActive ? 'text-[color:var(--nb-accent-yellow)]' : 'nb-text'}`}>
+              <div className={`font-bold text-sm uppercase tracking-wide ${isActive ? 'nb-text' : 'nb-text'}`}>
                 {metadata.name}
               </div>
               {showDescriptions && (
@@ -157,7 +157,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
             </div>
             
             {isActive && (
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
                 <span className="material-symbols-outlined text-sm">check</span>
               </div>
             )}

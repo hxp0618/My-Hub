@@ -25,11 +25,25 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '../../../components/Modal';
 import AddBookmarkForm from './AddBookmarkForm';
 import { findFolder, flattenBookmarks, getFaviconUrl } from '../../../utils/bookmarkUtils';
+import { getUrlHostname } from '../../../utils/favicon';
+import {
+  analyzeBookmarkHealth,
+  bookmarkMatchesHealthIssue,
+  BookmarkHealthIssue,
+  getDuplicateBookmarkUrls,
+} from '../../../utils/bookmarkHealth';
 import { BulkTagRegenerationModal } from '../../../components/BulkTagRegenerationModal';
 import { FailedBookmarksIndicator } from '../../../components/FailedBookmarksIndicator';
 import { BulkTagRegenerationService } from '../../../services/bulkTagRegenerationService';
 import { BulkRegenerationProgress, BulkRegenerationConfig } from '../../../types/tags';
 import { getAllTagGenerationFailures } from '../../../db/indexedDB';
+import type { ChatMessage } from '../../../types/llm';
+
+const debugLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.debug('[BookmarkPage]', ...args);
+  }
+};
 
 const ReorderConfirmModal: React.FC<{
     onClose: () => void;
@@ -76,7 +90,7 @@ const DeduplicateModal: React.FC<{
             });
             setSelectedToKeep(initialSelection);
         }
-    }, [duplicates]);
+    }, [duplicates, selectedToKeep.size]);
 
     const handleConfirm = () => {
         const bookmarksToDelete: string[] = [];
@@ -127,7 +141,7 @@ const DeduplicateModal: React.FC<{
                                 {bookmarks.map(bookmark => (
                                     <label
                                         key={bookmark.id}
-                                        className="flex items-center gap-3 p-3 nb-bg-card nb-border rounded-lg cursor-pointer hover:bg-[color:var(--nb-bg)]"
+                                        className="flex items-center gap-3 p-3 nb-bg-card border-2 border-[color:var(--nb-border)] cursor-pointer hover:bg-[color:var(--nb-bg)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] transition-all duration-150"
                                     >
                                         <input
                                             type="radio"
@@ -219,12 +233,100 @@ const MoveBookmarksModal: React.FC<{
     );
 };
 
+const BookmarkHealthOverview: React.FC<{
+  report: ReturnType<typeof analyzeBookmarkHealth>;
+  activeIssue: BookmarkHealthIssue | null;
+  onSelectIssue: (issue: BookmarkHealthIssue) => void;
+}> = ({ report, activeIssue, onSelectIssue }) => {
+  const { t } = useTranslation();
+  const scoreTone = report.score >= 85
+    ? 'bg-[color:var(--nb-accent-green)]'
+    : report.score >= 65
+      ? 'bg-[color:var(--nb-accent-yellow)]'
+      : 'bg-[color:var(--nb-accent-pink)]';
+  const cards = [
+    {
+      key: 'duplicates',
+      issue: 'duplicates' as const,
+      icon: 'content_copy',
+      value: report.duplicateItems,
+      label: t('bookmarks.health.duplicates'),
+      hint: t('bookmarks.health.duplicateGroups', { count: report.duplicateGroups }),
+      accent: 'bg-[color:var(--nb-accent-pink)]',
+    },
+    {
+      key: 'untagged',
+      issue: 'untagged' as const,
+      icon: 'label_off',
+      value: report.untagged,
+      label: t('bookmarks.health.untagged'),
+      hint: t('bookmarks.health.needTags'),
+      accent: 'bg-[color:var(--nb-accent-blue)]',
+    },
+    {
+      key: 'stale',
+      issue: 'stale' as const,
+      icon: 'schedule',
+      value: report.stale,
+      label: t('bookmarks.health.stale'),
+      hint: t('bookmarks.health.staleHint'),
+      accent: 'bg-[color:var(--nb-accent-yellow)]',
+    },
+    {
+      key: 'invalid',
+      issue: 'invalid' as const,
+      icon: 'link_off',
+      value: report.invalidUrls,
+      label: t('bookmarks.health.invalidUrls'),
+      hint: t('bookmarks.health.invalidHint'),
+      accent: 'bg-[color:var(--nb-accent-green)]',
+    },
+  ];
+
+  return (
+    <section className="px-8 mt-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+        <div className="nb-card-static p-4 min-w-[180px] flex items-center gap-4">
+          <div className={`w-12 h-12 flex items-center justify-center border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)] ${scoreTone}`}>
+            <span className="material-symbols-outlined nb-text">health_and_safety</span>
+          </div>
+          <div>
+            <div className="text-xs font-bold nb-text-secondary uppercase">{t('bookmarks.health.title')}</div>
+            <div className="text-2xl font-black nb-text">{report.score}</div>
+            <div className="text-xs nb-text-secondary">{t('bookmarks.health.total', { count: report.total })}</div>
+          </div>
+        </div>
+        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {cards.map(card => (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => onSelectIssue(card.issue)}
+              className={`nb-card-subtle p-4 flex items-start gap-3 text-left transition-all ${
+                activeIssue === card.issue ? 'shadow-[3px_3px_0px_0px_var(--nb-border)] translate-x-[-1px] translate-y-[-1px]' : ''
+              }`}
+            >
+              <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] ${card.accent}`}>
+                <span className="material-symbols-outlined nb-text text-lg">{card.icon}</span>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xl font-black nb-text leading-none">{card.value}</div>
+                <div className="text-sm font-bold nb-text mt-1">{card.label}</div>
+                <div className="text-xs nb-text-secondary mt-1 truncate" title={card.hint}>{card.hint}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const EditModal: React.FC<{
     item: EnhancedBookmark;
     onClose: () => void;
     onSave: (id: string, newTitle: string, newUrl: string, newTags: string[], newParentId: string) => void;
-    moveBookmark: (id: string, newParentId: string) => Promise<void>;
-}> = ({ item, onClose, onSave, moveBookmark }) => {
+}> = ({ item, onClose, onSave }) => {
     const { t } = useTranslation();
     const [title, setTitle] = useState(item.title);
     const [url, setUrl] = useState(item.url || '');
@@ -262,7 +364,7 @@ const EditModal: React.FC<{
             const systemPrompt = buildTagGenerationPrompt(allExistingTags);
             const userMessage = t('tagGeneration.promptTemplate', { title, url });
 
-            const messages = [
+            const messages: ChatMessage[] = [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userMessage }
             ];
@@ -410,7 +512,6 @@ export const BookmarkPage: React.FC = () => {
     moveBookmarks,
     addTagsToBookmarks,
     deleteBookmarks,
-    clearSelection,
     reorderBookmarksInChrome,
     isBulkUpdating,
     refreshBookmarks,
@@ -530,9 +631,11 @@ export const BookmarkPage: React.FC = () => {
   });
   const [bulkRegenerationService, setBulkRegenerationService] = useState<BulkTagRegenerationService | null>(null);
   const [failureCount, setFailureCount] = useState(0);
+  const [activeHealthIssue, setActiveHealthIssue] = useState<BookmarkHealthIssue | null>(null);
+  const healthReport = useMemo(() => analyzeBookmarkHealth(bookmarks), [bookmarks]);
 
   // AI生成标签处理函数
-  const handleGenerateTags = async (item: EnhancedBookmark) => {
+  const handleGenerateTags = React.useCallback(async (item: EnhancedBookmark) => {
     if (!item.title || !item.url) {
       toast.error(t('bookmarks.fillTitleUrl'));
       return;
@@ -554,7 +657,7 @@ export const BookmarkPage: React.FC = () => {
       const systemPrompt = buildTagGenerationPrompt(allExistingTags);
       const userMessage = t('tagGeneration.promptTemplate', { title: item.title, url: item.url });
 
-      const messages = [
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ];
@@ -623,7 +726,7 @@ export const BookmarkPage: React.FC = () => {
         setGenerationStatusMessage('');
       }, 2000);
     }
-  };
+  }, [t, toast, updateBookmarkTags]);
 
   const handleCancelTagGeneration = () => {
     if (tagGenerationAbortController) {
@@ -818,37 +921,37 @@ export const BookmarkPage: React.FC = () => {
 
   // AI整理书签处理函数
   const handleOrganizeConfirm = async (action: 'export' | 'organize') => {
-    console.log('[BookmarkPage] 用户确认AI整理操作:', action);
+    debugLog('用户确认AI整理操作:', action);
     setIsOrganizeModalOpen(false);
     
     if (action === 'export') {
-      console.log('[BookmarkPage] 执行导出书签操作');
+      debugLog('执行导出书签操作');
       exportBookmarksToHTML(bookmarks);
       return; // 导出后直接返回
     }
     
     // 开始整理流程
-    console.log('[BookmarkPage] 开始AI整理书签流程');
+    debugLog('开始AI整理书签流程');
     setIsOrganizeProgressModalOpen(true);
     
     const controller = new AbortController();
     setOrganizeAbortController(controller);
 
-    console.log('[BookmarkPage] 开始AI整理书签流程', bookmarks);
+    debugLog('开始AI整理书签流程', { bookmarkCount: bookmarks.length });
     
     try {
       await organizeBookmarksBatch(
         bookmarks,
         bookmarks,
         (progress: OrganizeProgress) => {
-          console.log('[BookmarkPage] 整理进度更新:', progress);
+          debugLog('整理进度更新:', progress);
           setOrganizeProgress(progress);
         },
         applyBookmarkOrganizationBatch,
         controller.signal
       );
       
-      console.log('[BookmarkPage] AI整理书签完成或中止');
+      debugLog('AI整理书签完成或中止');
       
       // 刷新书签数据
       await refreshBookmarks();
@@ -870,14 +973,14 @@ export const BookmarkPage: React.FC = () => {
   };
 
   const handleOrganizeProgressClose = () => {
-    console.log('[BookmarkPage] 关闭整理进度对话框');
+    debugLog('关闭整理进度对话框');
     if (organizeAbortController) {
       if (window.confirm(t('organizeProgress.confirmAbort'))) {
-        console.log('[BookmarkPage] 用户确认中止，取消整理操作');
+        debugLog('用户确认中止，取消整理操作');
         organizeAbortController.abort();
         setOrganizeAbortController(null);
       } else {
-        console.log('[BookmarkPage] 用户取消中止操作');
+        debugLog('用户取消中止操作');
         return; // 如果用户取消，则不关闭对话框
       }
     }
@@ -900,6 +1003,7 @@ export const BookmarkPage: React.FC = () => {
 
   const selectedFolder = useMemo(() => findFolder(bookmarks, selectedFolderId), [bookmarks, selectedFolderId]);
   const allBookmarksFlat = useMemo(() => flattenBookmarks(bookmarks), [bookmarks]);
+  const duplicateBookmarkUrls = useMemo(() => getDuplicateBookmarkUrls(allBookmarksFlat), [allBookmarksFlat]);
 
   // 保存删除前的滚动位置
   const scrollPositionRef = useRef<number>(0);
@@ -982,6 +1086,18 @@ export const BookmarkPage: React.FC = () => {
     );
   }, [searchTerm, allBookmarksFlat]);
 
+  const healthFilteredBookmarks = useMemo(() => {
+    if (!activeHealthIssue) return [];
+    return allBookmarksFlat.filter(item =>
+      bookmarkMatchesHealthIssue(item, activeHealthIssue, duplicateBookmarkUrls)
+    );
+  }, [activeHealthIssue, allBookmarksFlat, duplicateBookmarkUrls]);
+
+  const handleSelectHealthIssue = useCallback((issue: BookmarkHealthIssue) => {
+    setActiveHealthIssue(current => current === issue ? null : issue);
+    setSearchTerm('');
+  }, []);
+
   const handleDelete = useCallback((id: string) => {
     setConfirmDelete({ isOpen: true, id, isBulk: false });
   }, []);
@@ -1055,24 +1171,39 @@ export const BookmarkPage: React.FC = () => {
     {
       label: t('bookmarks.moveTo'),
       onClick: () => setIsMoveModalOpen(true),
-      className: "text-main hover:text-main",
+      className: "nb-text hover:nb-text",
       disabled: selectedBookmarkIds.length === 0,
     },
     {
       label: t('bookmarks.addTags'),
       onClick: () => setIsAddTagsModalOpen(true),
-      className: "text-main hover:text-main",
+      className: "nb-text hover:nb-text",
       disabled: selectedBookmarkIds.length === 0,
     },
     {
       label: t('common.delete'),
       onClick: handleBulkDelete,
-      className: 'text-danger hover:opacity-80',
+      className: 'text-[color:var(--nb-accent-pink)] hover:opacity-80',
       disabled: selectedBookmarkIds.length === 0,
     },
   ];
+  const activeHealthTitle = activeHealthIssue ? t(`bookmarks.health.filters.${activeHealthIssue}`) : null;
 
   const bookmarksToDisplay = useMemo(() => {
+    if (activeHealthIssue) {
+      return healthFilteredBookmarks.sort((a, b) => {
+        const aVal = a[sortOrder.key] || 0;
+        const bVal = b[sortOrder.key] || 0;
+
+        if (aVal < bVal) {
+          return sortOrder.order === 'asc' ? -1 : 1;
+        }
+        if (aVal > bVal) {
+          return sortOrder.order === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
     if (searchTerm) {
       return searchResults;
     }
@@ -1093,7 +1224,7 @@ export const BookmarkPage: React.FC = () => {
       });
     }
     return [];
-  }, [searchTerm, searchResults, selectedFolder, sortOrder]);
+  }, [activeHealthIssue, healthFilteredBookmarks, searchTerm, searchResults, selectedFolder, sortOrder]);
 
   const bookmarkActions = useCallback((item: EnhancedBookmark) => [
     {
@@ -1122,16 +1253,16 @@ export const BookmarkPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full pl-10 nb-bg nb-text">
-      <aside className={`transition-all duration-300 ease-in-out h-full nb-bg nb-border nb-shadow relative z-20 overflow-y-auto pt-10 rounded-xl ${
-        isSidebarCollapsed ? 'w-0 pr-0 border-0 shadow-none' : 'w-1/5 min-w-[200px] pr-4'
+    <div className="flex h-full gap-4 pl-6 nb-bg nb-text">
+      <aside className={`transition-all duration-300 ease-in-out h-full nb-card-static relative z-20 overflow-y-auto pt-6 px-4 ${
+        isSidebarCollapsed ? 'w-0 p-0 border-0 shadow-none overflow-hidden' : 'w-1/5 min-w-[200px] max-w-[260px]'
       }`}>
         {!isSidebarCollapsed && (
           <>
-            <div className="flex justify-between items-center mb-4 pr-2">
-                <h2 className="text-xl font-bold text-main">{t('bookmarks.folders')}</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-base font-bold nb-text">{t('bookmarks.folders')}</h2>
                 <div className="relative" ref={organizeMenuRef}>
-                    <button onClick={() => setOrganizeMenuOpen(!organizeMenuOpen)} className="nb-btn nb-btn-ghost p-1 rounded-full">
+                    <button onClick={() => setOrganizeMenuOpen(!organizeMenuOpen)} className="nb-btn nb-btn-ghost p-1 rounded-md">
                         <span className="material-symbols-outlined icon-linear text-lg">more_horiz</span>
                     </button>
                     {organizeMenuOpen && (
@@ -1148,7 +1279,7 @@ export const BookmarkPage: React.FC = () => {
                                 </div>
                                 <div
                                     onClick={() => {
-                                        console.log('[BookmarkPage] 用户点击AI整理书签');
+                                        debugLog('用户点击AI整理书签');
                                         setIsOrganizeModalOpen(true);
                                         setOrganizeMenuOpen(false);
                                     }}
@@ -1176,21 +1307,32 @@ export const BookmarkPage: React.FC = () => {
         )}
       </aside>
       
-      <main className="flex-1 h-full overflow-y-auto">
-        <header className="sticky top-0 z-5 flex items-center justify-between nb-bg nb-border nb-shadow pb-4 pt-10 px-8 rounded-b-xl">
+      <main className="flex-1 h-full overflow-y-auto pr-6">
+        <header className="sticky top-0 z-5 flex items-center justify-between nb-bg nb-border nb-shadow py-4 px-6 rounded-b-[8px]">
           <div className="flex items-center gap-3">
             <button
               onClick={toggleSidebar}
-              className="nb-btn nb-btn-ghost p-2 rounded-full"
+              className="nb-btn nb-btn-ghost p-2 rounded-md"
               title={isSidebarCollapsed ? t('bookmarks.expand') : t('bookmarks.collapse')}
             >
               <span className="material-symbols-outlined icon-linear text-lg">
                 {isSidebarCollapsed ? 'menu_open' : 'menu'}
               </span>
             </button>
-            <h2 className="text-xl font-bold text-main">
-              {isMultiSelectMode ? t('bookmarks.selectedCount', { count: selectedBookmarkIds.length }) : (searchTerm ? t('bookmarks.searchResults', { term: searchTerm }) : selectedFolder?.title || t('bookmarks.title'))}
+            <h2 className="text-xl font-bold nb-text">
+              {isMultiSelectMode
+                ? t('bookmarks.selectedCount', { count: selectedBookmarkIds.length })
+                : activeHealthTitle || (searchTerm ? t('bookmarks.searchResults', { term: searchTerm }) : selectedFolder?.title || t('bookmarks.title'))}
             </h2>
+            {activeHealthIssue && (
+              <button
+                type="button"
+                onClick={() => setActiveHealthIssue(null)}
+                className="nb-btn nb-btn-ghost px-3 py-1 text-xs"
+              >
+                {t('bookmarks.health.clearFilter')}
+              </button>
+            )}
             <FailedBookmarksIndicator failureCount={failureCount} onRetryClick={handleRetryFailedTags} />
           </div>
           <div className="flex items-center space-x-4">
@@ -1207,7 +1349,10 @@ export const BookmarkPage: React.FC = () => {
                 <UnifiedSearchBar
                     mode="bookmark"
                     value={searchTerm}
-                    onChange={setSearchTerm}
+                    onChange={(value) => {
+                      setSearchTerm(value);
+                      setActiveHealthIssue(null);
+                    }}
                     placeholder={t('bookmarks.searchPlaceholder')}
                     loading={loading}
                 />
@@ -1297,6 +1442,12 @@ export const BookmarkPage: React.FC = () => {
           </div>
         </header>
 
+        <BookmarkHealthOverview
+          report={healthReport}
+          activeIssue={activeHealthIssue}
+          onSelectIssue={handleSelectHealthIssue}
+        />
+
         <div className={`mt-8 ${getGridClass()} px-8`}>
             {bookmarksToDisplay.length > 0 ? bookmarksToDisplay.map(item => {
               const dateToDisplay = sortOrder.key === 'dateLastUsed' ? item.dateLastUsed : item.dateAdded;
@@ -1306,7 +1457,7 @@ export const BookmarkPage: React.FC = () => {
                     key={item.id}
                     href={item.url!}
                     title={item.title}
-                    hostname={new URL(item.url!).hostname}
+                    hostname={getUrlHostname(item.url)}
                     faviconUrl={getFaviconUrl(item.url!)}
                     tags={item.tags}
                     actions={bookmarkActions(item)}
@@ -1316,7 +1467,7 @@ export const BookmarkPage: React.FC = () => {
                     onSelect={() => toggleBookmarkSelection(item.id)}
                     dragProps={{
                       draggable: !isMultiSelectMode,
-                      onDragStart: (event) => handleBookmarkDragStart(event, item),
+                      onDragStart: (event: React.DragEvent<HTMLDivElement>) => handleBookmarkDragStart(event, item),
                       onDragEnd: handleBookmarkDragEnd,
                     }}
                 />
@@ -1334,7 +1485,6 @@ export const BookmarkPage: React.FC = () => {
             item={editingItem} 
             onClose={() => setEditingItem(null)} 
             onSave={handleSaveEdit}
-            moveBookmark={moveBookmark}
         />
       )}
 
@@ -1378,7 +1528,7 @@ export const BookmarkPage: React.FC = () => {
       {isOrganizeModalOpen && (
         <OrganizeBookmarksModal
           onClose={() => {
-            console.log('[BookmarkPage] 用户关闭AI整理确认对话框');
+            debugLog('用户关闭AI整理确认对话框');
             setIsOrganizeModalOpen(false);
           }}
           onConfirm={handleOrganizeConfirm}

@@ -47,6 +47,7 @@
     "placeholder": "Search in history",
     "searching": "Searching...",
     "noResults": "No results found",
+    "searchFailed": "Search failed. Please try again.",
     "results": "{{count}} results",
     "clear": "Clear search"
   },
@@ -152,6 +153,25 @@
     "deleteNDuplicates": "Delete {{count}} Duplicates",
     "deduplicateSuccess": "Successfully deleted {{count}} duplicate bookmarks",
     "deduplicateError": "Failed to deduplicate bookmarks, please try again",
+    "health": {
+      "title": "Health Score",
+      "total": "{{count}} bookmarks total",
+      "duplicates": "Duplicates",
+      "duplicateGroups": "{{count}} duplicate groups",
+      "untagged": "Untagged",
+      "needTags": "Add tags recommended",
+      "stale": "Stale",
+      "staleHint": "180+ days or no history",
+      "invalidUrls": "Invalid URLs",
+      "invalidHint": "Non http/https addresses",
+      "clearFilter": "Clear filter",
+      "filters": {
+        "duplicates": "Duplicate bookmarks",
+        "untagged": "Untagged bookmarks",
+        "stale": "Stale bookmarks",
+        "invalid": "Invalid URL bookmarks"
+      }
+    },
     "regenerateAllTags": "Regenerate All Tags",
     "retryFailedTags": "Retry Failed Tags",
     "bulkRegenerationError": "Failed to regenerate tags in bulk",
@@ -221,8 +241,44 @@
     "momentsInHistory": "Moments in History",
     "momentsDescription": "In the past 14 days, you have frequently visited these websites during the current time period",
     "timeRangeFormat": "({{start}}:00 - {{end}}:00 high frequency access)",
-    "searchPlaceholder": "Search history and bookmarks...",
+    "searchPlaceholder": "Search history, bookmarks, or type tool:json / tag:ai / url:github / action:settings...",
     "searchResults": "Search Results",
+    "openTool": "Open tool {{name}}",
+    "openToolAction": "Open tool",
+    "toolCommandCategory": "Tool · {{category}}",
+    "openAction": "Run action {{name}}",
+    "openActionAction": "Run action",
+    "actionCommandCategory": "Action · Navigation",
+    "actions": {
+      "home": {
+        "title": "Open Home",
+        "description": "Return to frequent sites and history moment recommendations."
+      },
+      "bookmarks": {
+        "title": "Open Bookmarks",
+        "description": "View, search, and organize Chrome bookmarks."
+      },
+      "tags": {
+        "title": "Open Tags",
+        "description": "Manage bookmark tags, merge tags, and inspect related bookmarks."
+      },
+      "history": {
+        "title": "Open History",
+        "description": "View browsing history and filter by date or keyword."
+      },
+      "subscriptions": {
+        "title": "Open Subscriptions",
+        "description": "View subscription expiry reminders and notification settings."
+      },
+      "tools": {
+        "title": "Open Tools",
+        "description": "Open utilities such as JSON, QR code, and Base64 tools."
+      },
+      "settings": {
+        "title": "Open Settings",
+        "description": "Adjust theme, language, permission notes, and data import/export."
+      }
+    },
     "fromClipboard": "From Clipboard",
     "createWebCombo": "Create Web Combo",
     "editWebCombo": "Edit Web Combo",
@@ -316,10 +372,15 @@
     },
     "dataManagement": "Data Management",
     "exportDataTitle": "Export Data",
-    "exportDataDesc": "Export your bookmarks, tags, and web combos to a JSON file.",
+    "exportDataDesc": "Export bookmarks, tags, tool settings, and subscription data to a JSON file.",
     "exportButton": "Export",
+    "exportSensitiveTitle": "Include Sensitive Settings",
+    "exportSensitiveDesc": "When enabled, exports LLM API keys, Bark device keys, notification channel secrets, and Bark send history.",
+    "exportSafeModeHint": "Safe mode by default: keys and notification history are cleared during export.",
+    "exportSensitiveWarning": "The full backup contains usable secrets. Store it only in trusted locations.",
+    "exportSensitiveConfirm": "Full export will include LLM API keys, Bark device keys, notification channel secrets, and Bark send history. Continue?",
     "importDataTitle": "Import Data",
-    "importDataDesc": "Import bookmarks, tags, and web combos from a JSON file.",
+    "importDataDesc": "Import bookmarks, tags, tool settings, and subscription data from a JSON file.",
     "importButton": "Import",
     "moreFeaturesComing": "More features coming soon.",
     "llmTitle": "LLM Provider Settings",
@@ -342,6 +403,45 @@
     "settingsSavedAlert": "Settings saved",
     "connectionSuccessMsg": "Connection test successful!",
     "connectionFailedMsg": "Connection test failed: {{error}}",
+    "permissionsTitle": "Permission Notes",
+    "permissionsDesc": "These permissions are used only by the current feature entry points. Content scripts are limited to http/https pages.",
+    "permissions": {
+      "bookmarks": {
+        "title": "Bookmarks",
+        "scope": "bookmarks",
+        "desc": "Read, create, move, and organize Chrome bookmarks for the bookmark page, AI organization, import/export, and tag management."
+      },
+      "history": {
+        "title": "Browsing History",
+        "scope": "history",
+        "desc": "Read and delete local browsing history for the history page, home history moments, and history search."
+      },
+      "storage": {
+        "title": "Local Storage",
+        "scope": "storage",
+        "desc": "Save extension settings, tool configuration, scheduled tasks, and subscription reminder state without syncing them to third-party services."
+      },
+      "tabs": {
+        "title": "Tabs",
+        "scope": "tabs / activeTab",
+        "desc": "Open bookmarks, read the active page, and handle page actions only after the user triggers related features."
+      },
+      "clipboard": {
+        "title": "Clipboard Read",
+        "scope": "clipboardRead",
+        "desc": "Used to detect URLs from the clipboard on the home page, add content quickly, and prefill some tools. Clipboard content is not uploaded automatically."
+      },
+      "alarms": {
+        "title": "Scheduled Tasks",
+        "scope": "alarms",
+        "desc": "Power Bark scheduled notifications and subscription expiry reminders so the browser can trigger them on time in the background."
+      },
+      "contentScripts": {
+        "title": "Web Content Scripts",
+        "scope": "http/https",
+        "desc": "Injected only into regular web protocols for page interaction and content assistance; not injected into file, chrome-extension, or browser internal pages."
+      }
+    },
     "cardsPerRow": "Cards Per Row",
     "cardsPerRowDesc": "Set the number of cards displayed per row on the home page. Card size will automatically adjust.",
     "cardsPerRowOption": "{{count}} columns",
@@ -350,7 +450,10 @@
     "resetMenuOrder": "Reset",
     "menuOrderResetSuccess": "Menu order reset to default",
     "menuOrderHint": "Drag to reorder, click icon to change",
-    "changeIcon": "Click to change icon"
+    "changeIcon": "Click to change icon",
+    "brightness": "Brightness",
+    "brightnessDesc": "Adjust extension interface brightness without affecting system brightness",
+    "brightnessReset": "Reset brightness"
   },
   "time": {
     "justNow": "Just now",
@@ -605,6 +708,8 @@
       "reuseNotification": "Click to reuse",
       "deleteConfirm": "Are you sure you want to clear all history?",
       "historyCount": "History ({{count}}/{{max}})",
+      "historyToday": "Today",
+      "historyYesterday": "Yesterday",
       "advancedOptions": "Advanced Options",
       "enableSound": "Enable Sound",
       "customIcon": "Custom Icon",
@@ -676,7 +781,8 @@
           "active": "Active",
           "paused": "Paused",
           "completed": "Completed",
-          "failed": "Failed"
+          "failed": "Failed",
+          "success": "Success"
         },
         "validation": {
           "titleRequired": "Please enter notification title",
@@ -794,9 +900,11 @@
       "startTime": "Start Time (00:00:00)",
       "endTime": "End Time (23:59:59)",
       "today": "Today",
+      "tomorrow": "Tomorrow",
       "yesterday": "Yesterday",
       "thisWeek": "This Week",
-      "thisMonth": "This Month"
+      "thisMonth": "This Month",
+      "datePlaceholder": "yyyy-mm-dd hh:mm:ss or yyyy/mm/dd"
     },
     "base64Converter": {
       "name": "Base64 Converter",
@@ -1242,7 +1350,14 @@
       "exportCurl": "Export curl",
       "import": "Import",
       "importCurlDescription": "Paste a curl command to automatically parse and fill in request parameters. Supports curl commands copied from browser DevTools or API documentation.",
-      "curlPlaceholder": "Paste curl command...\n\nExample:\ncurl 'https://api.example.com/users' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"test\"}'"
+      "curlPlaceholder": "Paste curl command...\n\nExample:\ncurl 'https://api.example.com/users' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"test\"}'",
+      "curlErrors": {
+        "emptyCommand": "Command cannot be empty",
+        "missingCurlPrefix": "Command must start with 'curl'",
+        "unsupportedMethod": "Unsupported HTTP method: {{method}}. Supported methods: {{supportedMethods}}",
+        "missingUrl": "No valid URL found in the command",
+        "invalidUrl": "Invalid URL format. Check that the URL is correct"
+      }
     },
     "yamlTomlConverter": {
       "name": "YAML/TOML Converter",
@@ -1283,6 +1398,7 @@
         "type": "Subscription Type",
         "customType": "Custom Type",
         "customTypePlaceholder": "Enter custom type",
+        "customTypeRequired": "Please enter custom type",
         "cycle": "Billing Cycle",
         "expiryDate": "Expiry Date",
         "reminderDays": "Reminder Days Before",
@@ -1425,6 +1541,37 @@
       "clickToCopy": "Click to copy",
       "invalidInput": "Please enter a valid number",
       "hint": "Tip: Click any result to copy to clipboard, press Enter to focus input"
+    },
+    "caseConverter": {
+      "name": "Case Converter",
+      "description": "Convert text between case formats (camelCase, snake_case, etc.)",
+      "input": "Input Text",
+      "inputPlaceholder": "Enter text to convert...",
+      "batchPlaceholder": "Enter one text per line...",
+      "batchMode": "Batch Mode",
+      "clear": "Clear",
+      "copy": "Copy",
+      "copyAll": "Copy All",
+      "emptyHint": "Enter text to see all conversion results",
+      "stats": {
+        "chars": "Chars",
+        "charsNoSpaces": "Chars (no spaces)",
+        "words": "Words",
+        "lines": "Lines"
+      },
+      "types": {
+        "camelCase": "camelCase",
+        "pascalCase": "PascalCase",
+        "snakeCase": "snake_case",
+        "kebabCase": "kebab-case",
+        "constantCase": "CONSTANT_CASE",
+        "dotCase": "dot.case",
+        "pathCase": "path/case",
+        "titleCase": "Title Case",
+        "sentenceCase": "Sentence case",
+        "uppercase": "UPPERCASE",
+        "lowercase": "lowercase"
+      }
     }
   },
   "options": {
@@ -1465,6 +1612,11 @@
       "webhook": "Webhook",
       "bark": "Bark"
     },
+    "remaining": {
+      "expired": "{{days}} days overdue",
+      "today": "Expires today",
+      "days": "{{days}} days"
+    },
     "table": {
       "name": "Name",
       "type": "Type",
@@ -1481,6 +1633,75 @@
       "prev": "Previous",
       "next": "Next",
       "page": "Page {{current}} / {{total}}"
+    },
+    "calendar": {
+      "overview": "Expiry Calendar",
+      "expired": "Expired",
+      "thisMonth": "This Month",
+      "next30Days": "Next 30 Days",
+      "enabled": "Enabled",
+      "monthCount": "{{count}} items",
+      "monthEmpty": "No expiries",
+      "moreItems": "+ {{count}} more",
+      "clearFilter": "Clear Filter",
+      "filterTitle": "Viewing {{month}}",
+      "filterEmpty": "No subscriptions in this month",
+      "filterEmptyHint": "Clear the filter to view all subscriptions"
+    },
+    "backup": {
+      "title": "Backup & Restore",
+      "description": "Export subscriptions and reminder settings. Notification credentials are redacted by default; imports merge subscriptions and skip matching names.",
+      "export": "Export Backup",
+      "importMerge": "Merge Import",
+      "exportSuccess": "Subscription backup exported",
+      "exportError": "Failed to export subscription backup. Please try again later.",
+      "importSuccess": "Subscription backup imported: {{imported}} added, {{skipped}} skipped",
+      "importError": "Failed to import subscription backup. Check the file format and try again.",
+      "importReadError": "Could not read the subscription backup file. Choose the file again.",
+      "importConfirmTitle": "Import Subscription Backup",
+      "importConfirmMessage": "Subscriptions from \"{{name}}\" will be merged and reminder settings will be applied. Notification config is updated only when the backup includes full notification credentials. Matching subscription names will be skipped.",
+      "validation": {
+        "invalidJson": "The backup file is not valid JSON",
+        "invalidDataFormat": "The backup file data format is invalid",
+        "missingVersion": "The backup file is missing a version",
+        "versionMismatch": "Backup version {{version}} differs from current version {{currentVersion}}",
+        "missingExportedAt": "The backup file is missing its export time",
+        "missingSubscriptions": "The backup file is missing subscription data or the format is invalid",
+        "invalidSubscriptionFormat": "Subscription #{{number}} has an invalid data format",
+        "subscriptionNameRequired": "Subscription #{{number}} name cannot be empty",
+        "invalidSubscriptionType": "Subscription #{{number}} type is invalid: {{value}}",
+        "invalidSubscriptionCycle": "Subscription #{{number}} cycle is invalid: {{value}}",
+        "invalidExpiryDate": "Subscription #{{number}} expiry date is invalid",
+        "invalidReminderDays": "Subscription #{{number}} reminder days value is invalid",
+        "invalidEnabledState": "Subscription #{{number}} enabled state is invalid",
+        "invalidNotificationConfigFormat": "Notification config format is invalid",
+        "missingTelegramConfig": "Notification config is missing Telegram settings",
+        "missingEmailConfig": "Notification config is missing email settings",
+        "missingWebhookConfig": "Notification config is missing Webhook settings",
+        "missingBarkConfig": "Notification config is missing Bark settings",
+        "invalidSettingsFormat": "Reminder settings format is invalid",
+        "invalidLunarSetting": "Lunar date display setting is invalid",
+        "invalidDefaultReminderDays": "Default reminder days value is invalid"
+      }
+    },
+    "feedback": {
+      "loadError": "Failed to load subscriptions. Please try again later.",
+      "createSuccess": "Subscription added",
+      "updateSuccess": "Subscription updated",
+      "deleteSuccess": "Subscription deleted",
+      "renewSuccess": "Subscription renewed",
+      "enableSuccess": "Subscription enabled",
+      "disableSuccess": "Subscription disabled",
+      "settingsSuccess": "Subscription settings saved",
+      "settingsError": "Failed to save subscription settings. Please try again later.",
+      "errors": {
+        "invalidName": "Subscription name cannot be empty",
+        "invalidDate": "Subscription date is invalid. Check it and try again.",
+        "oneTimeRenew": "One-time subscriptions cannot be renewed",
+        "notFound": "Subscription does not exist or has been deleted",
+        "storageError": "Failed to save subscription data. Please try again later.",
+        "generic": "Operation failed. Please try again later."
+      }
     }
   },
   "dataSync": {

@@ -1,8 +1,21 @@
-console.log('background script loaded - v4');
-
 import { deleteBookmarkTag, deleteMultipleBookmarkTags, getBookmarkTag, addBookmarkTag, getAllSubscriptions, getSubscriptionNotificationConfig, getSubscriptionSettings } from '../../db/indexedDB';
 import { parseAlarmName, ALARM_NAME_PREFIX, getAlarmName } from '../../types/scheduledTask';
-import { Subscription, SubscriptionNotificationConfig, SubscriptionSettings } from '../../types/subscription';
+import { Subscription, SubscriptionNotificationConfig } from '../../types/subscription';
+import { getRemainingDays } from '../../services/SubscriptionService';
+import { formatSubscriptionNotificationContent } from '../../utils/subscriptionNotificationContent';
+import { getEnabledSubscriptionNotificationChannels } from '../../utils/subscriptionNotificationChannels';
+
+const debugLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.debug('[Background]', ...args);
+  }
+};
+
+const warnLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.warn('[Background]', ...args);
+  }
+};
 
 // 内存映射表：id -> url
 const bookmarkIdToUrlMap = new Map<string, string>();
@@ -26,14 +39,14 @@ const buildIdUrlMapping = (node: chrome.bookmarks.BookmarkTreeNode): void => {
 const initializeMapping = async (): Promise<void> => {
   try {
     const bookmarkTree = await chrome.bookmarks.getTree();
-    console.log('Building id->url mapping from bookmark tree');
+    debugLog('Building id->url mapping from bookmark tree');
 
     // 遍历整个书签树构建映射
     bookmarkTree.forEach(rootNode => {
       buildIdUrlMapping(rootNode);
     });
 
-    console.log(`Initialized mapping with ${bookmarkIdToUrlMap.size} bookmarks`);
+    debugLog(`Initialized mapping with ${bookmarkIdToUrlMap.size} bookmarks`);
   } catch (error) {
     console.error('Error initializing id->url mapping:', error);
   }
@@ -64,7 +77,7 @@ const getAllBookmarkUrls = (node: chrome.bookmarks.BookmarkTreeNode): string[] =
 // 监听书签创建事件
 chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
   if (bookmark.url) {
-    console.log('bookmark created, updating mapping', id, bookmark.url);
+    debugLog('bookmark created, updating mapping', id, bookmark.url);
     // 更新内存映射表
     bookmarkIdToUrlMap.set(id, bookmark.url);
   }
@@ -72,11 +85,11 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
 
 // 监听书签删除事件
 chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
-  console.log('bookmark removed, deleting from indexedDB', id);
+  debugLog('bookmark removed, deleting from indexedDB', id);
 
   // 检查是否为文件夹（url 为空表示文件夹）
   if (!removeInfo.node.url) {
-    console.log('folder removed, processing all contained bookmarks');
+    debugLog('folder removed, processing all contained bookmarks');
     // 获取文件夹中所有书签的URL
     const bookmarkUrls = getAllBookmarkUrls(removeInfo.node);
 
@@ -110,11 +123,11 @@ chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
 
 // 监听书签变更事件（处理URL变更）
 chrome.bookmarks.onChanged.addListener(async (id, changeInfo) => {
-  console.log('bookmark changed', id, changeInfo);
+  debugLog('bookmark changed', id, changeInfo);
 
   // 检查是否为URL变更
   if (changeInfo.url) {
-    console.log('URL changed, migrating tag data');
+    debugLog('URL changed, migrating tag data');
 
     try {
       // 从映射表中获取旧的URL
@@ -134,7 +147,7 @@ chrome.bookmarks.onChanged.addListener(async (id, changeInfo) => {
             tags: oldTagData.tags
           });
 
-          console.log(`Migrated tag data from ${oldUrl} to ${changeInfo.url}`);
+          debugLog(`Migrated tag data from ${oldUrl} to ${changeInfo.url}`);
         }
 
         // 更新映射表
@@ -265,7 +278,7 @@ async function saveExecutionRecord(record: TaskExecutionRecord): Promise<void> {
     }
     
     await chrome.storage.local.set({ [EXECUTION_HISTORY_KEY]: history });
-    console.log('Execution record saved:', record.id);
+    debugLog('Execution record saved:', record.id);
   } catch (e) {
     console.error('Failed to save execution record:', e);
   }
@@ -297,7 +310,8 @@ async function sendBarkNotification(
       url += `?${queryString}`;
     }
 
-    console.log(`Sending Bark notification to ${key.label}: ${url}`);
+    // 避免在日志中输出完整 Bark URL，里面包含设备密钥和通知内容。
+    debugLog('Sending Bark notification', { keyId: key.id, label: key.label });
     const response = await fetch(url);
     const data = await response.json();
 
@@ -431,7 +445,7 @@ function calculateNextExecutionTime(cronExpression: string): number | null {
  * 执行定时任务
  */
 async function executeScheduledTask(taskId: string): Promise<void> {
-  console.log(`Executing scheduled task: ${taskId}`);
+  debugLog(`Executing scheduled task: ${taskId}`);
 
   try {
     const tasks = await loadTasksFromStorage();
@@ -471,7 +485,7 @@ async function executeScheduledTask(taskId: string): Promise<void> {
       }
     }
 
-    console.log(`Task ${taskId} executed: success=${successCount}, failed=${failedCount}`);
+    debugLog(`Task ${taskId} executed: success=${successCount}, failed=${failedCount}`);
 
     // 保存执行历史记录
     const executionRecord: TaskExecutionRecord = {
@@ -520,7 +534,7 @@ async function executeScheduledTask(taskId: string): Promise<void> {
             nextExecutionTime = nextTime;
             // 注册下次执行的 Alarm
             registerTaskAlarm(t.id, nextTime);
-            console.log(`Scheduled next execution for task ${t.id} at ${new Date(nextTime).toISOString()}`);
+            debugLog(`Scheduled next execution for task ${t.id} at ${new Date(nextTime).toISOString()}`);
           }
         }
         return {
@@ -548,7 +562,7 @@ function registerTaskAlarm(taskId: string, nextExecutionTime: number): void {
   const now = Date.now();
   const delay = Math.max(nextExecutionTime - now, minDelay);
 
-  console.log(`Background: Registering alarm ${alarmName} for ${new Date(now + delay).toISOString()}`);
+  debugLog(`Background: Registering alarm ${alarmName} for ${new Date(now + delay).toISOString()}`);
 
   chrome.alarms.create(alarmName, {
     when: now + delay,
@@ -557,7 +571,7 @@ function registerTaskAlarm(taskId: string, nextExecutionTime: number): void {
   // 确认 alarm 已创建
   chrome.alarms.get(alarmName, (alarm) => {
     if (alarm) {
-      console.log(`Alarm ${alarmName} confirmed created, scheduled for ${new Date(alarm.scheduledTime).toISOString()}`);
+      debugLog(`Alarm ${alarmName} confirmed created, scheduled for ${new Date(alarm.scheduledTime).toISOString()}`);
     } else {
       console.error(`Failed to create alarm ${alarmName}`);
     }
@@ -569,7 +583,7 @@ function registerTaskAlarm(taskId: string, nextExecutionTime: number): void {
  */
 function cancelTaskAlarm(taskId: string): void {
   const alarmName = getAlarmName(taskId);
-  console.log(`Background: Canceling alarm ${alarmName}`);
+  debugLog(`Background: Canceling alarm ${alarmName}`);
   chrome.alarms.clear(alarmName);
 }
 
@@ -577,7 +591,7 @@ function cancelTaskAlarm(taskId: string): void {
  * 恢复所有定时任务
  */
 async function restoreScheduledTasks(): Promise<void> {
-  console.log('Restoring scheduled tasks...');
+  debugLog('Restoring scheduled tasks...');
   try {
     const tasks = await loadTasksFromStorage();
     const now = Date.now();
@@ -596,7 +610,7 @@ async function restoreScheduledTasks(): Promise<void> {
       if (!task.nextExecutionTime || task.nextExecutionTime < now) {
         if (task.type === 'one-time') {
           // 一次性任务已过期，标记为完成
-          console.log(`Task ${task.id} expired, marking as completed`);
+          debugLog(`Task ${task.id} expired, marking as completed`);
           taskToSave = { ...taskToSave, status: 'completed' as const, updatedAt: now };
           tasksUpdated = true;
           updatedTasks.push(taskToSave);
@@ -607,10 +621,10 @@ async function restoreScheduledTasks(): Promise<void> {
           if (nextTime) {
             taskToSave = { ...taskToSave, nextExecutionTime: nextTime, updatedAt: now };
             tasksUpdated = true;
-            console.log(`Task ${task.id} next execution recalculated: ${new Date(nextTime).toISOString()}`);
+            debugLog(`Task ${task.id} next execution recalculated: ${new Date(nextTime).toISOString()}`);
           } else {
             // 无法计算下次执行时间，跳过
-            console.warn(`Cannot calculate next execution time for task ${task.id}`);
+            warnLog(`Cannot calculate next execution time for task ${task.id}`);
             updatedTasks.push(taskToSave);
             continue;
           }
@@ -630,7 +644,7 @@ async function restoreScheduledTasks(): Promise<void> {
       await saveTasksToStorage(updatedTasks);
     }
 
-    console.log('Scheduled tasks restored');
+    debugLog('Scheduled tasks restored');
   } catch (error) {
     console.error('Failed to restore scheduled tasks:', error);
   }
@@ -638,7 +652,7 @@ async function restoreScheduledTasks(): Promise<void> {
 
 // 监听来自其他页面的消息
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('Background received message:', message.type);
+  debugLog('Background received message:', message.type);
 
   if (message.type === 'REGISTER_TASK_ALARM') {
     registerTaskAlarm(message.taskId, message.nextExecutionTime);
@@ -669,36 +683,36 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // 监听 Alarm 触发事件
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  console.log('Alarm triggered:', alarm.name, 'at', new Date().toISOString());
+  debugLog('Alarm triggered:', alarm.name, 'at', new Date().toISOString());
 
   // 检查是否为 Bark 定时任务
   if (alarm.name.startsWith(ALARM_NAME_PREFIX)) {
     const taskId = parseAlarmName(alarm.name);
-    console.log('Parsed task ID:', taskId);
+    debugLog('Parsed task ID:', taskId);
     if (taskId) {
       await executeScheduledTask(taskId);
       
       // 列出当前所有 alarms
       const allAlarms = await chrome.alarms.getAll();
-      console.log('Current alarms after execution:', allAlarms.map(a => ({ name: a.name, scheduledTime: new Date(a.scheduledTime).toISOString() })));
+      debugLog('Current alarms after execution:', allAlarms.map(a => ({ name: a.name, scheduledTime: new Date(a.scheduledTime).toISOString() })));
     }
   }
 });
 
 // 扩展启动时恢复任务
 chrome.runtime.onStartup.addListener(() => {
-  console.log('Extension started, restoring scheduled tasks');
+  debugLog('Extension started, restoring scheduled tasks');
   restoreScheduledTasks();
 });
 
 // 安装/更新时恢复任务
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Extension installed/updated:', details.reason);
+  debugLog('Extension installed/updated:', details.reason);
   restoreScheduledTasks();
 });
 
 // 立即恢复任务（用于开发模式和 service worker 重新加载）
-console.log('Background script loaded, restoring scheduled tasks immediately');
+debugLog('Background script loaded, restoring scheduled tasks immediately');
 restoreScheduledTasks();
 
 // ============================================
@@ -709,21 +723,6 @@ const SUBSCRIPTION_CHECK_ALARM = 'subscription_expiry_check';
 const SUBSCRIPTION_NOTIFIED_KEY = 'subscription_notified_dates';
 
 /**
- * 计算剩余天数（按日期计算，不考虑时间）
- */
-function getRemainingDays(expiryDate: number, currentDate: number = Date.now()): number {
-  const expiryDay = new Date(expiryDate);
-  expiryDay.setHours(0, 0, 0, 0);
-  
-  const currentDay = new Date(currentDate);
-  currentDay.setHours(0, 0, 0, 0);
-  
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const diffMs = expiryDay.getTime() - currentDay.getTime();
-  return Math.round(diffMs / msPerDay);
-}
-
-/**
  * 判断订阅是否需要提醒
  */
 function shouldRemindSubscription(subscription: Subscription, currentDate: number = Date.now()): boolean {
@@ -732,17 +731,6 @@ function shouldRemindSubscription(subscription: Subscription, currentDate: numbe
   }
   const remainingDays = getRemainingDays(subscription.expiryDate, currentDate);
   return remainingDays >= 0 && remainingDays <= subscription.reminderDays;
-}
-
-/**
- * 格式化日期
- */
-function formatDateForNotification(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 }
 
 /**
@@ -794,33 +782,14 @@ async function sendSubscriptionNotification(
   subscription: Subscription,
   config: SubscriptionNotificationConfig
 ): Promise<{ success: boolean; channels: string[] }> {
-  const remainingDays = getRemainingDays(subscription.expiryDate);
-  const expiryDateStr = formatDateForNotification(subscription.expiryDate);
-  
-  let title: string;
-  let body: string;
-  
-  if (remainingDays < 0) {
-    title = `⚠️ 订阅已过期: ${subscription.name}`;
-    body = `您的订阅「${subscription.name}」已于 ${expiryDateStr} 过期，已过期 ${Math.abs(remainingDays)} 天。`;
-  } else if (remainingDays === 0) {
-    title = `🔔 订阅今日到期: ${subscription.name}`;
-    body = `您的订阅「${subscription.name}」将于今日（${expiryDateStr}）到期，请及时续费。`;
-  } else {
-    title = `📅 订阅即将到期: ${subscription.name}`;
-    body = `您的订阅「${subscription.name}」将于 ${expiryDateStr} 到期，还剩 ${remainingDays} 天。`;
-  }
-  
-  // 如果有订阅地址，添加到通知内容
-  if (subscription.url) {
-    body += `\n\n🔗 ${subscription.url}`;
-  }
+  const content = formatSubscriptionNotificationContent(subscription, { includeUrl: true });
+  const { title, body, expiryDate: expiryDateStr, remainingDays } = content;
   
   const successChannels: string[] = [];
-  const channelsToNotify = subscription.notificationChannels;
+  const channelsToNotify = getEnabledSubscriptionNotificationChannels(subscription, config);
   
   // Telegram
-  if (channelsToNotify.includes('telegram') && config.telegram.enabled) {
+  if (channelsToNotify.includes('telegram')) {
     try {
       const message = `${title}\n\n${body}`;
       const url = `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`;
@@ -842,7 +811,7 @@ async function sendSubscriptionNotification(
   }
   
   // Email (Resend)
-  if (channelsToNotify.includes('email') && config.email.enabled) {
+  if (channelsToNotify.includes('email')) {
     try {
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -866,7 +835,7 @@ async function sendSubscriptionNotification(
   }
   
   // Webhook
-  if (channelsToNotify.includes('webhook') && config.webhook.enabled) {
+  if (channelsToNotify.includes('webhook')) {
     try {
       const response = await fetch(config.webhook.url, {
         method: config.webhook.method || 'POST',
@@ -893,7 +862,7 @@ async function sendSubscriptionNotification(
   }
   
   // Bark
-  if (channelsToNotify.includes('bark') && config.bark.enabled) {
+  if (channelsToNotify.includes('bark')) {
     try {
       let server: string | undefined;
       let deviceKey: string | undefined;
@@ -989,14 +958,13 @@ function registerSubscriptionCheckAlarm(): void {
     delayInMinutes: 0.5, // 首次延迟 30 秒执行
     periodInMinutes: 0.5, // 之后每 30 秒执行一次
   });
-  console.log('Subscription check alarm registered (every 30 seconds)');
+  debugLog('Subscription check alarm registered (every 30 seconds)');
 }
 
 // 在 Alarm 监听器中添加订阅检查
-const originalAlarmListener = chrome.alarms.onAlarm.hasListeners();
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === SUBSCRIPTION_CHECK_ALARM) {
-    console.log('Subscription check alarm triggered');
+    debugLog('Subscription check alarm triggered');
     await checkSubscriptionExpiry();
   }
 });
@@ -1017,6 +985,6 @@ registerSubscriptionCheckAlarm();
 
 // 启动时立即检查一次
 setTimeout(() => {
-  console.log('Initial subscription expiry check');
+  debugLog('Initial subscription expiry check');
   checkSubscriptionExpiry();
 }, 5000); // 延迟 5 秒，等待其他初始化完成

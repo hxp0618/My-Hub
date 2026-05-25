@@ -1,8 +1,5 @@
 body {
-    font-family: 'Inter', sans-serif;
-}
-.btn-capsule {
-    border-radius: 9999px;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
 }
 .icon-linear {
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;

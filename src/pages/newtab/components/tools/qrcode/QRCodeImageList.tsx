@@ -35,13 +35,13 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
     <div className="space-y-3">
       {/* 标题和操作栏 */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-main">
+        <span className="text-sm font-medium nb-text">
           {t('tools.qrcodeGenerator.generatedImages')} ({images.length})
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onSelectAll(!allSelected)}
-            className="px-3 py-1 text-xs rounded bg-secondary hover:bg-tertiary transition-colors"
+            className="nb-btn nb-btn-secondary text-xs px-3 py-1"
           >
             {allSelected ? t('common.cancel') : t('tools.qrcodeGenerator.selectAll')}
           </button>
@@ -49,13 +49,13 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
             <>
               <button
                 onClick={onDeleteSelected}
-                className="px-3 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                className="nb-btn nb-btn-danger text-xs px-3 py-1"
               >
                 {t('common.delete')}
               </button>
               <button
                 onClick={onDownloadSelected}
-                className="px-3 py-1 text-xs rounded bg-accent text-white hover:opacity-90 transition-opacity"
+                className="nb-btn nb-btn-primary text-xs px-3 py-1"
               >
                 {t('tools.qrcodeGenerator.downloadZip')}
               </button>
@@ -69,8 +69,10 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
         {images.map(image => (
           <div
             key={image.id}
-            className={`relative group rounded-lg border-2 transition-colors ${
-              image.selected ? 'border-accent bg-accent/5' : 'border-default bg-secondary'
+            className={`relative group rounded-none border-2 transition-colors ${
+              image.selected
+                ? 'border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)]'
+                : 'border-[color:var(--nb-border)] nb-bg-card'
             }`}
           >
             {/* 选择框 */}
@@ -79,14 +81,14 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
                 type="checkbox"
                 checked={image.selected}
                 onChange={() => onSelect(image.id)}
-                className="w-4 h-4 rounded border-default accent-accent cursor-pointer"
+                className="w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-card)] accent-[color:var(--nb-border)] cursor-pointer"
               />
             </div>
 
             {/* 删除按钮 */}
             <button
               onClick={() => onDelete(image.id)}
-              className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-[2px_2px_0px_0px_var(--nb-border)]"
             >
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
@@ -106,7 +108,7 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
 
             {/* 内容预览 */}
             <div className="px-2 pb-2">
-              <p className="text-xs text-secondary truncate" title={image.content}>
+              <p className="text-xs nb-text-secondary truncate" title={image.content}>
                 {image.content}
               </p>
             </div>
@@ -114,7 +116,7 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
             {/* 下载按钮 */}
             <button
               onClick={() => onDownload(image.id)}
-              className="absolute bottom-2 right-2 z-10 w-6 h-6 rounded-full bg-accent/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              className="absolute bottom-2 right-2 z-10 w-7 h-7 rounded-full bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-[2px_2px_0px_0px_var(--nb-border)]"
             >
               <span className="material-symbols-outlined text-sm">download</span>
             </button>

@@ -27,15 +27,16 @@ export const BatchModeToggle: React.FC<BatchModeToggleProps> = ({
 
   return (
     <label className={`flex items-center gap-2 cursor-pointer ${className}`}>
-      <div className="relative">
+      <div className="relative nb-toggle">
         <input
           type="checkbox"
           checked={enabled}
           onChange={(e) => onChange(e.target.checked)}
           className="sr-only peer"
         />
-        <div className="w-9 h-5 bg-secondary rounded-full peer peer-checked:bg-accent transition-colors"></div>
-        <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+        <div className={`nb-toggle-track ${enabled ? 'active' : ''}`}>
+          <div className="nb-toggle-thumb" />
+        </div>
       </div>
       <span className="text-sm nb-text-secondary">
         {t('tools.common.batchMode')}

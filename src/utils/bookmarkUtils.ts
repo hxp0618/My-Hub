@@ -4,6 +4,7 @@
  */
 
 import { EnhancedBookmark } from '@src/types/bookmarks';
+import { getFaviconUrl as buildFaviconUrl } from './favicon';
 
 /**
  * Recursively flattens a bookmark tree structure into a single array
@@ -80,12 +81,7 @@ export const findFolderIdByTitle = (
  * @returns Favicon URL or default favicon on error
  */
 export const getFaviconUrl = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=32`;
-  } catch {
-    return '/default-favicon.png';
-  }
+  return buildFaviconUrl(url);
 };
 
 /**

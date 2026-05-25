@@ -5,7 +5,7 @@ import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
-import type { QRCodeOptions, QRCodeImage, DEFAULT_QRCODE_OPTIONS } from '../types/qrcode';
+import type { QRCodeOptions, QRCodeImage } from '../types/qrcode';
 
 /**
  * 生成二维码 Data URL（增强版）

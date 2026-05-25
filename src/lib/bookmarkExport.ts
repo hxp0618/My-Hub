@@ -1,4 +1,7 @@
 import { EnhancedBookmark } from '../types/bookmarks';
+import { createLogger } from '../utils/logger';
+
+const bookmarkExportLogger = createLogger('[BookmarkExport]');
 
 /**
  * 检查是否是书签栏文件夹
@@ -54,7 +57,7 @@ const isMobileBookmarksFolder = (node: EnhancedBookmark): boolean => {
  * 将书签导出为Netscape Bookmark File Format (HTML)
  */
 export const exportBookmarksToHTML = (bookmarks: EnhancedBookmark[]): void => {
-  console.log('[BookmarkExport] 开始导出书签到HTML格式');
+  bookmarkExportLogger.debug('Starting HTML bookmark export', { count: bookmarks.length });
   
   const generateBookmarkHTML = (node: EnhancedBookmark, level = 0): string => {
     const indent = '    '.repeat(level);
@@ -133,5 +136,5 @@ export const exportBookmarksToHTML = (bookmarks: EnhancedBookmark[]): void => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   
-  console.log('[BookmarkExport] 书签导出完成');
+  bookmarkExportLogger.debug('Finished HTML bookmark export');
 };

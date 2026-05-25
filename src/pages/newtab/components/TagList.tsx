@@ -47,90 +47,94 @@ export const TagList: React.FC<TagListProps> = ({
   const hasTags = tags.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-4 items-center">
-        <div className="flex-1 min-w-[240px]">
-          <div className="relative">
-            <span className="material-symbols-outlined icon-linear absolute left-3 top-1/2 -translate-y-1/2 nb-text-secondary">
-              search
-            </span>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => onSearchChange(e.target.value)}
-              placeholder={t('tags.searchPlaceholder')}
-              className="nb-input w-full pl-10 pr-4 py-2 rounded-full"
-            />
-          </div>
+    <div className="space-y-4">
+      {/* 工具栏 - 紧凑布局 */}
+      <div className="flex flex-wrap gap-3 items-center">
+        {/* 搜索框 */}
+        <div className="flex-1 min-w-[200px] relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-base nb-text-secondary">search</span>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => onSearchChange(e.target.value)}
+            placeholder={t('tags.searchPlaceholder')}
+            className="nb-input w-full pr-4 py-2 text-sm"
+            style={{ paddingLeft: '2.5rem' }}
+          />
         </div>
-        <div className="flex items-center">
-          <label className="text-sm nb-text-secondary mr-2">{t('tags.sortBy')}</label>
-          <select
-            value={sortBy}
-            onChange={e => onSortChange(e.target.value as TagSortBy)}
-            className="nb-input px-4 py-2"
-          >
-            <option value="name">{t('tags.sortByName')}</option>
-            <option value="count">{t('tags.sortByCount')}</option>
-            <option value="recent">{t('tags.sortByRecent')}</option>
-          </select>
-        </div>
+
+        {/* 排序选择器 */}
+        <select
+          value={sortBy}
+          onChange={e => onSortChange(e.target.value as TagSortBy)}
+          className="nb-input px-3 py-2 text-sm"
+        >
+          <option value="name">{t('tags.sortByName')}</option>
+          <option value="count">{t('tags.sortByCount')}</option>
+          <option value="recent">{t('tags.sortByRecent')}</option>
+        </select>
+
+        {/* 多选模式按钮 */}
         <button
-          className={`nb-btn px-4 py-2 ${
-            isMultiSelectMode ? 'nb-btn-primary' : 'nb-btn-secondary'
-          }`}
+          className={`nb-btn px-3 py-2 text-sm ${isMultiSelectMode ? 'nb-btn-primary' : 'nb-btn-secondary'}`}
           onClick={onToggleMultiSelect}
         >
+          <span className="material-symbols-outlined text-sm mr-1">checklist</span>
           {isMultiSelectMode ? t('tags.exitMultiSelect') : t('tags.multiSelectMode')}
         </button>
       </div>
 
+      {/* 多选操作栏 - 紧凑版 */}
       {isMultiSelectMode && (
-        <div className="flex flex-wrap items-center gap-3 nb-card-static px-4 py-3">
-          <span className="text-sm font-medium nb-text">
+        <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-[color:var(--nb-accent-yellow)]/30 border-2 border-[color:var(--nb-border)]">
+          <span className="text-sm font-bold nb-text">
             {t('tags.selectedCount', { count: selectedTags.length })}
           </span>
-          <button className="nb-btn nb-btn-ghost text-sm px-3 py-1" onClick={onSelectAll}>
+          <button className="text-sm nb-text hover:underline" onClick={onSelectAll}>
             {t('tags.selectAll')}
           </button>
-          <button className="nb-btn nb-btn-ghost text-sm px-3 py-1" onClick={onClearSelection}>
+          <button className="text-sm nb-text hover:underline" onClick={onClearSelection}>
             {t('tags.clearSelection')}
           </button>
           <div className="flex items-center gap-2 ml-auto">
             <button
-              className="nb-btn nb-btn-secondary px-4 py-2 text-sm disabled:opacity-50"
+              className="nb-btn nb-btn-info px-3 py-1.5 text-sm disabled:opacity-50"
               onClick={onMergeSelected}
               disabled={selectedTags.length < 2}
             >
+              <span className="material-symbols-outlined text-sm mr-1">merge</span>
               {t('tags.merge')}
             </button>
             <button
-              className="nb-btn nb-btn-danger px-4 py-2 text-sm disabled:opacity-50"
+              className="nb-btn nb-btn-danger px-3 py-1.5 text-sm disabled:opacity-50"
               onClick={onDeleteSelected}
               disabled={selectedTags.length === 0}
             >
+              <span className="material-symbols-outlined text-sm mr-1">delete</span>
               {t('tags.delete')}
             </button>
           </div>
         </div>
       )}
 
+      {/* 加载状态 */}
       {loading && (
-        <div className="text-secondary">{t('common.loading')}</div>
+        <div className="flex items-center justify-center py-8">
+          <div className="w-8 h-8 border-3 border-[color:var(--nb-border)]/20 border-t-[color:var(--nb-accent-yellow)] animate-spin"></div>
+        </div>
       )}
 
+      {/* 空状态 */}
       {!loading && !hasTags && (
-        <div className="text-center py-12 nb-card-static border-dashed">
-          <div className="text-lg font-semibold nb-text mb-2">
+        <div className="text-center py-8">
+          <span className="material-symbols-outlined text-4xl nb-text-secondary mb-2">label_off</span>
+          <div className="text-base nb-text-secondary">
             {searchTerm ? t('tags.noResults') : t('tags.noTags')}
-          </div>
-          <div className="nb-text-secondary">
-            {searchTerm ? t('tags.noResults') : t('tags.selectedModeHint')}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {tags.map(tag => (
           <TagCard
             key={tag.name}

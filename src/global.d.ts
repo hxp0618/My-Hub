@@ -10,10 +10,37 @@ declare module '*.json' {
   export default content;
 }
 
+declare module 'turndown' {
+  type TurndownFilter = string | string[] | ((node: Node) => boolean);
+
+  interface TurndownRule {
+    filter: TurndownFilter;
+    replacement: (content: string, node: Node) => string;
+  }
+
+  export default class TurndownService {
+    constructor(options?: Record<string, unknown>);
+    keep(filter: string | string[]): void;
+    remove(filter: string | string[]): void;
+    addRule(key: string, rule: TurndownRule): void;
+    turndown(input: string): string;
+  }
+}
+
 interface LanguageModel {
-  availability(): Promise<'available' | 'unavailable' | 'downloading' | 'downloadable'>;
+  availability(options?: LanguageModelCreateOptions): Promise<'available' | 'unavailable' | 'downloading' | 'downloadable'>;
   create(options?: LanguageModelCreateOptions): Promise<LanguageModelSession>;
   params(): Promise<LanguageModelParams>;
+}
+
+interface LanguageModelExpectedContent {
+  type: 'text' | 'image' | 'audio';
+  languages?: string[];
+}
+
+interface LanguageModelExpectedOutput {
+  type: 'text';
+  languages?: string[];
 }
 
 interface LanguageModelCreateOptions {
@@ -21,8 +48,8 @@ interface LanguageModelCreateOptions {
   topK?: number;
   temperature?: number;
   initialPrompts?: any[];
-  expectedInputs?: any[];
-  expectedOutputs?: any[];
+  expectedInputs?: LanguageModelExpectedContent[];
+  expectedOutputs?: LanguageModelExpectedOutput[];
 }
 
 interface LanguageModelParams {

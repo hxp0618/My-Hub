@@ -103,19 +103,19 @@ export function parseCurl(curlCommand: string): CurlParseResult {
   const normalized = normalizeCurlCommand(curlCommand);
   
   if (!normalized) {
-    return { success: false, error: '命令不能为空' };
+    return { success: false, error: 'emptyCommand' };
   }
 
   // 分词
   const tokens = tokenizeCurlCommand(normalized);
   
   if (tokens.length === 0) {
-    return { success: false, error: '命令不能为空' };
+    return { success: false, error: 'emptyCommand' };
   }
 
   // 验证以 curl 开头
   if (tokens[0].toLowerCase() !== 'curl') {
-    return { success: false, error: "命令必须以 'curl' 开头" };
+    return { success: false, error: 'missingCurlPrefix' };
   }
 
   // 解析状态
@@ -140,7 +140,11 @@ export function parseCurl(curlCommand: string): CurlParseResult {
         } else {
           return {
             success: false,
-            error: `不支持的 HTTP 方法: ${tokens[i]}，支持的方法: ${HTTP_METHODS.join(', ')}`,
+            error: 'unsupportedMethod',
+            values: {
+              method: tokens[i],
+              supportedMethods: HTTP_METHODS.join(', '),
+            },
           };
         }
       }
@@ -214,11 +218,11 @@ export function parseCurl(curlCommand: string): CurlParseResult {
 
   // 验证 URL
   if (!url) {
-    return { success: false, error: '命令中未找到有效的 URL' };
+    return { success: false, error: 'missingUrl' };
   }
 
   if (!isValidUrl(url)) {
-    return { success: false, error: 'URL 格式无效，请检查 URL 是否正确' };
+    return { success: false, error: 'invalidUrl' };
   }
 
   // 推断 HTTP 方法

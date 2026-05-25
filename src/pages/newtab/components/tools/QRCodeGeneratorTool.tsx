@@ -47,7 +47,6 @@ export const QRCodeGeneratorTool: React.FC<ToolComponentProps> = ({
     toggleSelect,
     selectAll,
     removeSelected,
-    clearAll,
     addScanImage,
     removeScanImage,
     clearScanImages,

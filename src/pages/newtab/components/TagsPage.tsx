@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useTagManagement } from '../../../hooks/useTagManagement';
 import { TagInfo } from '../../../types/tags';
 import { TagService } from '../../../services/tagService';
-import { TagStatistics } from './TagStatistics';
 import { TagList } from './TagList';
 import { TagDetailView } from './TagDetailView';
 import { RenameTagDialog } from './RenameTagDialog';
@@ -121,18 +120,54 @@ export const TagsPage: React.FC = () => {
     } else {
       setDetailTag(null);
     }
-  }, [allTags, detailTag?.name]);
+  }, [allTags, detailTag]);
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-6 space-y-4 nb-bg">
+      {/* 顶部工具栏 - 紧凑布局 */}
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm nb-text-secondary">{t('tags.title')}</p>
-          <h1 className="text-3xl font-bold nb-text">{t('tags.title')}</h1>
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-xl nb-text">label</span>
+          <h1 className="text-xl font-bold nb-text">{t('tags.title')}</h1>
+        </div>
+        
+        {/* 内联统计数据 */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)]">
+            <span className="material-symbols-outlined text-sm nb-text">label</span>
+            <span className="text-sm font-bold nb-text">{statistics?.totalTags ?? 0}</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)]">
+            <span className="material-symbols-outlined text-sm nb-text">bookmark</span>
+            <span className="text-sm font-bold nb-text">{statistics?.totalItems ?? 0}</span>
+          </div>
+          {(statistics?.unusedTags ?? 0) > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)]">
+              <span className="material-symbols-outlined text-sm nb-text">label_off</span>
+              <span className="text-sm font-bold nb-text">{statistics?.unusedTags ?? 0}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <TagStatistics statistics={statistics} loading={loading} />
+      {/* 热门标签 - 紧凑单行 */}
+      {statistics?.topTags && statistics.topTags.length > 0 && (
+        <div className="flex items-center gap-3 py-2 border-b border-[color:var(--nb-border)]/20">
+          <span className="text-xs font-bold nb-text-secondary uppercase">{t('tags.topTags')}:</span>
+          <div className="flex flex-wrap gap-2">
+            {statistics.topTags.slice(0, 8).map((tag, index) => (
+              <span
+                key={tag.name}
+                className={`inline-flex items-center px-2 py-0.5 text-xs font-medium border-2 border-[color:var(--nb-border)] ${
+                  ['bg-[color:var(--nb-accent-yellow)]', 'bg-[color:var(--nb-accent-pink)]', 'bg-[color:var(--nb-accent-blue)]', 'bg-[color:var(--nb-accent-green)]'][index % 4]
+                }`}
+              >
+                {tag.name} <span className="ml-1 opacity-60">({tag.count})</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {detailTag ? (
         <TagDetailView

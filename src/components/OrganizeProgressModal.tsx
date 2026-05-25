@@ -26,14 +26,6 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
   canClose = false
 }) => {
   const { t } = useTranslation();
-  console.log('[OrganizeProgressModal] 渲染进度对话框', {
-    progress,
-    currentBatch,
-    totalBatches,
-    processedCount,
-    totalCount,
-    currentStatus
-  });
 
   return (
     <Modal 
@@ -43,15 +35,15 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
       widthClass="max-w-md"
     >
       <div className="space-y-6">
-        {/* 总体进度 */}
+        {/* 总体进度 - Neo-Brutalism 风格 */}
         <div>
-          <div className="flex justify-between text-sm text-secondary mb-2">
-            <span>{t('organizeProgress.overallProgress')}</span>
-            <span>{Math.round(progress)}%</span>
+          <div className="flex justify-between text-sm nb-text-secondary mb-2">
+            <span className="font-bold uppercase tracking-wide">{t('organizeProgress.overallProgress')}</span>
+            <span className="font-mono font-bold">{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-secondary rounded-full h-2">
-            <div 
-              className="bg-black dark:bg-white h-2 rounded-full transition-all duration-300 ease-out"
+          <div className="w-full bg-[color:var(--nb-bg)] border-3 border-[color:var(--nb-border)] h-4 relative overflow-hidden">
+            <div
+              className="bg-[color:var(--nb-accent-yellow)] h-full transition-all duration-300 ease-out absolute left-0 top-0 border-r-2 border-[color:var(--nb-border)]"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -59,28 +51,31 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
 
         {/* 批次进度 */}
         <div>
-          <div className="flex justify-between text-sm text-secondary mb-2">
-            <span>{t('organizeProgress.currentBatch')}</span>
-            <span>{currentBatch} / {totalBatches}</span>
+          <div className="flex justify-between text-sm nb-text-secondary mb-2">
+            <span className="font-bold uppercase tracking-wide">{t('organizeProgress.currentBatch')}</span>
+            <span className="font-mono font-bold">{currentBatch} / {totalBatches}</span>
           </div>
-          <div className="text-xs text-secondary">
+          <div className="text-xs nb-text-secondary">
             {t('organizeProgress.processedCount', { processed: processedCount, total: totalCount })}
           </div>
         </div>
 
         {/* 当前状态 */}
         <div>
-          <div className="text-sm text-secondary mb-2">{t('organizeProgress.currentStatus')}</div>
-          <div className="text-sm bg-secondary text-main p-3 rounded-lg">
+          <div className="text-sm nb-text-secondary mb-2 font-bold uppercase tracking-wide">{t('organizeProgress.currentStatus')}</div>
+          <div className="text-sm nb-bg-card nb-text p-3 border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]">
             {currentStatus}
           </div>
         </div>
 
-        {/* 加载动画 */}
+        {/* 加载动画 - Neo-Brutalism 风格 */}
         {!canClose && (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
-            <span className="ml-2 text-sm text-secondary">{t('organizeProgress.processing')}</span>
+          <div className="flex items-center justify-center gap-3">
+            <div className="relative w-8 h-8">
+              <div className="w-8 h-8 border-3 border-[color:var(--nb-border)]/20"></div>
+              <div className="absolute top-0 left-0 w-8 h-8 border-3 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
+            </div>
+            <span className="text-sm nb-text-secondary font-medium">{t('organizeProgress.processing')}</span>
           </div>
         )}
 
@@ -89,7 +84,7 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="px-5 py-2 rounded-full text-white bg-accent hover:opacity-90 transition-theme"
+              className="nb-btn nb-btn-success px-6 py-2"
             >
               {t('organizeProgress.done')}
             </button>

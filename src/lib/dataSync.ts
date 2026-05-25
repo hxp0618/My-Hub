@@ -31,7 +31,16 @@ import {
   DEFAULT_SUBSCRIPTION_SETTINGS,
   generateSubscriptionId,
 } from '../types/subscription';
+import {
+  mergeSubscriptionNotificationConfigForImport,
+  redactSubscriptionNotificationConfig,
+} from '../utils/subscriptionNotificationConfigPrivacy';
 import i18n from '../i18n';
+
+export {
+  mergeSubscriptionNotificationConfigForImport,
+  redactSubscriptionNotificationConfig,
+} from '../utils/subscriptionNotificationConfigPrivacy';
 
 interface ExportedBookmarkNode {
   title: string;
@@ -69,6 +78,10 @@ interface SubscriptionData {
   subscriptions?: Subscription[];
   notificationConfig?: SubscriptionNotificationConfig;
   settings?: SubscriptionSettings;
+}
+
+export interface ExportOptions {
+  includeSensitiveData?: boolean;
 }
 
 interface ExportData {
@@ -171,8 +184,75 @@ const buildExportTree = (node: chrome.bookmarks.BookmarkTreeNode): ExportedBookm
   return newNode;
 };
 
-export const exportData = async (): Promise<void> => {
+export const redactLLMSettings = (settings: LLMSettings): LLMSettings => ({
+  ...settings,
+  apiKey: '',
+  providers: Object.fromEntries(
+    Object.entries(settings.providers || {}).map(([providerId, provider]) => [
+      providerId,
+      {
+        ...provider,
+        apiKey: '',
+      },
+    ])
+  ),
+});
+
+export const redactBarkKeys = (keys: BarkKeyConfig[]): BarkKeyConfig[] => (
+  keys.map(key => ({
+    ...key,
+    deviceKey: '',
+  }))
+);
+
+export const mergeLLMSettingsForImport = (
+  incoming: LLMSettings,
+  existing: LLMSettings | null
+): LLMSettings => {
+  if (!existing) return incoming;
+
+  return {
+    ...incoming,
+    apiKey: incoming.apiKey || existing.apiKey,
+    providers: Object.fromEntries(
+      Object.entries(incoming.providers || {}).map(([providerId, provider]) => {
+        const existingProvider = existing.providers?.[providerId];
+        return [
+          providerId,
+          {
+            ...provider,
+            apiKey: provider.apiKey || existingProvider?.apiKey || '',
+          },
+        ];
+      })
+    ),
+  };
+};
+
+export const mergeBarkKeysForImport = (
+  incomingKeys: BarkKeyConfig[],
+  existingKeys: BarkKeyConfig[]
+): BarkKeyConfig[] => {
+  const existingById = new Map(existingKeys.map(key => [key.id, key]));
+
+  return incomingKeys
+    .map(key => {
+      if (key.deviceKey) return key;
+
+      const existingKey = existingById.get(key.id);
+      if (!existingKey?.deviceKey) return null;
+
+      return {
+        ...key,
+        deviceKey: existingKey.deviceKey,
+      };
+    })
+    .filter((key): key is BarkKeyConfig => key !== null);
+};
+
+export const exportData = async (options: ExportOptions = {}): Promise<void> => {
   try {
+    const includeSensitiveData = options.includeSensitiveData === true;
     const [bookmarkTree] = await chrome.bookmarks.getTree();
     const tags = await getAllBookmarkTags();
     const combos = safeParseJSON<WebCombo[]>(localStorage.getItem(STORAGE_KEYS.combos), []);
@@ -275,14 +355,18 @@ export const exportData = async (): Promise<void> => {
       null
     );
     if (llmSettings) {
-      data.llmSettings = llmSettings;
+      data.llmSettings = includeSensitiveData ? llmSettings : redactLLMSettings(llmSettings);
     }
 
     // Bark notifier
+    const barkKeys = safeParseJSON<BarkKeyConfig[]>(localStorage.getItem(STORAGE_KEYS.barkKeys), []);
+    // 默认导出不携带可直接发送通知的密钥和历史内容，避免备份文件泄露隐私。
     data.bark = {
-      keys: safeParseJSON<BarkKeyConfig[]>(localStorage.getItem(STORAGE_KEYS.barkKeys), []),
+      keys: includeSensitiveData ? barkKeys : redactBarkKeys(barkKeys),
       selectedKeyId: localStorage.getItem(STORAGE_KEYS.barkSelectedKeyId),
-      history: safeParseJSON<BarkNotificationRecord[]>(localStorage.getItem(STORAGE_KEYS.barkHistory), []),
+      history: includeSensitiveData
+        ? safeParseJSON<BarkNotificationRecord[]>(localStorage.getItem(STORAGE_KEYS.barkHistory), [])
+        : [],
     };
 
     // Subscription manager
@@ -291,7 +375,9 @@ export const exportData = async (): Promise<void> => {
     const subscriptionSettings = await getSubscriptionSettings();
     data.subscription = {
       subscriptions,
-      notificationConfig: subscriptionNotificationConfig,
+      notificationConfig: includeSensitiveData
+        ? subscriptionNotificationConfig
+        : redactSubscriptionNotificationConfig(subscriptionNotificationConfig),
       settings: subscriptionSettings,
     };
 
@@ -484,16 +570,30 @@ export const importData = async (file: File): Promise<void> => {
 
       // Import LLM settings
       if (data.llmSettings) {
-        localStorage.setItem(STORAGE_KEYS.llmSettings, JSON.stringify(data.llmSettings));
+        const existingLLMSettings = safeParseJSON<LLMSettings | null>(
+          localStorage.getItem(STORAGE_KEYS.llmSettings),
+          null
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.llmSettings,
+          JSON.stringify(mergeLLMSettingsForImport(data.llmSettings, existingLLMSettings))
+        );
       }
 
       // Import Bark notifier data
       if (data.bark) {
         if (data.bark.keys) {
-          localStorage.setItem(STORAGE_KEYS.barkKeys, JSON.stringify(data.bark.keys));
+          const existingBarkKeys = safeParseJSON<BarkKeyConfig[]>(
+            localStorage.getItem(STORAGE_KEYS.barkKeys),
+            []
+          );
+          const mergedBarkKeys = mergeBarkKeysForImport(data.bark.keys, existingBarkKeys);
+          localStorage.setItem(STORAGE_KEYS.barkKeys, JSON.stringify(mergedBarkKeys));
         }
         if ('selectedKeyId' in data.bark) {
-          if (data.bark.selectedKeyId) {
+          const currentKeys = safeParseJSON<BarkKeyConfig[]>(localStorage.getItem(STORAGE_KEYS.barkKeys), []);
+          const selectedKeyExists = currentKeys.some(key => key.id === data.bark?.selectedKeyId);
+          if (data.bark.selectedKeyId && selectedKeyExists) {
             localStorage.setItem(STORAGE_KEYS.barkSelectedKeyId, data.bark.selectedKeyId);
           } else {
             localStorage.removeItem(STORAGE_KEYS.barkSelectedKeyId);
@@ -522,9 +622,17 @@ export const importData = async (file: File): Promise<void> => {
         }
         // Import notification config
         if (data.subscription.notificationConfig) {
+          const existingNotificationConfig = await getSubscriptionNotificationConfig();
+          const mergedNotificationConfig = mergeSubscriptionNotificationConfigForImport(
+            {
+              ...DEFAULT_NOTIFICATION_CONFIG,
+              ...data.subscription.notificationConfig,
+            },
+            existingNotificationConfig
+          );
           await setSubscriptionNotificationConfig({
             ...DEFAULT_NOTIFICATION_CONFIG,
-            ...data.subscription.notificationConfig,
+            ...mergedNotificationConfig,
           });
         }
         // Import settings

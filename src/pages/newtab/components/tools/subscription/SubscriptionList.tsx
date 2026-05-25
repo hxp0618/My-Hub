@@ -18,6 +18,8 @@ import {
 
 interface SubscriptionListProps {
   subscriptions: Subscription[];
+  emptyTitle?: string;
+  emptyHint?: string;
   onEdit: (subscription: Subscription) => void;
   onDelete: (subscription: Subscription) => void;
   onToggleEnabled: (subscription: Subscription) => void;
@@ -33,13 +35,16 @@ const CHANNEL_ICONS: Record<NotificationChannel, string> = {
 
 export const SubscriptionList: React.FC<SubscriptionListProps> = ({
   subscriptions,
+  emptyTitle,
+  emptyHint,
   onEdit,
   onDelete,
   onToggleEnabled,
   onRenew,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const now = Date.now();
+  const dateLocale = i18n.language === 'zh-CN' ? 'zh-CN' : 'en-US';
 
   if (subscriptions.length === 0) {
     return (
@@ -48,10 +53,10 @@ export const SubscriptionList: React.FC<SubscriptionListProps> = ({
           event_busy
         </span>
         <p className="nb-text-secondary text-lg mb-2">
-          {t('subscriptions.empty')}
+          {emptyTitle ?? t('subscriptions.empty')}
         </p>
         <p className="nb-text-secondary text-sm">
-          {t('subscriptions.emptyHint')}
+          {emptyHint ?? t('subscriptions.emptyHint')}
         </p>
       </div>
     );
@@ -89,44 +94,44 @@ export const SubscriptionList: React.FC<SubscriptionListProps> = ({
           </tr>
         </thead>
         <tbody>
-          {subscriptions.map((subscription, index) => {
+          {subscriptions.map((subscription) => {
             const status = calculateStatus(subscription, now);
             const remainingDays = getRemainingDays(subscription.expiryDate, now);
             const expiringSoon = isExpiringSoon(subscription, now);
             
-            // 格式化到期日期
-            const expiryDateStr = new Date(subscription.expiryDate).toLocaleDateString('zh-CN', {
+            const expiryDateStr = new Date(subscription.expiryDate).toLocaleDateString(dateLocale, {
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
             });
             
-            // 状态样式
-            const getStatusBadge = () => {
-              if (status === 'expired') {
-                return 'bg-[var(--nb-accent-pink)]';
-              }
-              if (status === 'disabled') {
-                return 'bg-gray-300 dark:bg-gray-600';
-              }
-              if (expiringSoon) {
-                return 'bg-[var(--nb-accent-yellow)]';
-              }
-              return 'bg-[var(--nb-accent-green)]';
-            };
-            
-            // 剩余天数显示
             const getRemainingText = () => {
               if (remainingDays < 0) {
-                return <span className="text-red-500">-{Math.abs(remainingDays)}天</span>;
+                return (
+                  <span className="text-[color:var(--nb-accent-pink)] font-semibold">
+                    {t('subscriptions.remaining.expired', { days: Math.abs(remainingDays) })}
+                  </span>
+                );
               }
               if (remainingDays === 0) {
-                return <span className="text-yellow-600">今天</span>;
+                return (
+                  <span className="text-[color:var(--nb-accent-yellow)] font-semibold">
+                    {t('subscriptions.remaining.today')}
+                  </span>
+                );
               }
               if (expiringSoon) {
-                return <span className="text-yellow-600">{remainingDays}天</span>;
+                return (
+                  <span className="text-[color:var(--nb-accent-yellow)] font-semibold">
+                    {t('subscriptions.remaining.days', { days: remainingDays })}
+                  </span>
+                );
               }
-              return <span className="text-green-600">{remainingDays}天</span>;
+              return (
+                <span className="text-[color:var(--nb-accent-green)] font-semibold">
+                  {t('subscriptions.remaining.days', { days: remainingDays })}
+                </span>
+              );
             };
 
             return (
@@ -205,16 +210,12 @@ export const SubscriptionList: React.FC<SubscriptionListProps> = ({
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => onToggleEnabled(subscription)}
-                    className={`relative w-10 h-5 rounded-full border-2 border-[var(--nb-border)] transition-colors ${
-                      subscription.isEnabled ? 'bg-[var(--nb-accent-green)]' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
+                    className="nb-toggle"
                     title={subscription.isEnabled ? t('subscriptions.enabled') : t('subscriptions.disabled')}
                   >
-                    <span
-                      className={`absolute top-0 w-3.5 h-3.5 rounded-full bg-[var(--nb-border)] transition-transform ${
-                        subscription.isEnabled ? 'left-5' : 'left-0.5'
-                      }`}
-                    />
+                    <span className={`nb-toggle-track ${subscription.isEnabled ? 'active' : ''}`}>
+                      <span className="nb-toggle-thumb" />
+                    </span>
                   </button>
                 </td>
                 

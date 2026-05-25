@@ -6,8 +6,6 @@
 import {
   ScheduledTask,
   TaskExecutionRecord,
-  generateTaskId,
-  generateExecutionId,
 } from '../types/scheduledTask';
 
 /** 存储键常量 */

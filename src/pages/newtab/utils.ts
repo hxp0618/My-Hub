@@ -1,5 +1,8 @@
 // A simple utility to format time difference
 import i18n from '../../i18n';
+import { createLogger } from '../../utils/logger';
+
+const bookmarkTreeLogger = createLogger('[BookmarkTree]');
 
 export function timeAgo(timestamp: number): string {
   const t = i18n.t.bind(i18n);
@@ -116,7 +119,7 @@ export type GeneratedNode = {
 
 // Applies the AI-generated tree structure to Chrome bookmarks.
 export const applyNewBookmarkTree = async (tree: GeneratedNode[]): Promise<void> => {
-    console.log("Applying new bookmark tree structure:", JSON.stringify(tree, null, 2));
+    bookmarkTreeLogger.debug('Applying generated bookmark tree', { nodeCount: tree.length });
 
     const topLevelFolderIds: { [key: string]: string } = {
         'Bookmarks bar': '1',
@@ -129,30 +132,30 @@ export const applyNewBookmarkTree = async (tree: GeneratedNode[]): Promise<void>
         // It's a folder
         if (node.title && node.children) {
             try {
-                console.log(`Creating folder "${node.title}" inside parent ID ${parentId}`);
+                bookmarkTreeLogger.debug('Creating generated folder');
                 const newFolder = await chrome.bookmarks.create({
                     parentId: parentId,
                     title: node.title,
                 });
-                console.log(`Successfully created folder "${node.title}" with ID ${newFolder.id}`);
+                bookmarkTreeLogger.debug('Created generated folder');
                 // Process children of the newly created folder
                 for (const child of node.children) {
                     await processNode(child, newFolder.id);
                 }
             } catch (error) {
-                console.error(`Failed to create folder "${node.title}" under parent ${parentId}:`, error);
+                bookmarkTreeLogger.warn('Failed to create generated folder', error);
             }
         } 
         // It's a bookmark
         else if (node.id) {
             try {
-                console.log(`Moving bookmark ID ${node.id} to parent ID ${parentId}`);
+                bookmarkTreeLogger.debug('Moving generated bookmark');
                 await chrome.bookmarks.move(node.id, { parentId: parentId });
-                console.log(`Successfully moved bookmark ID ${node.id}`);
+                bookmarkTreeLogger.debug('Moved generated bookmark');
             } catch (error) {
                 // It might fail if the bookmark is already in the target folder, which can happen.
                 // We can choose to log this as a warning instead of an error.
-                console.warn(`Could not move bookmark with id "${node.id}" to parent ${parentId}:`, error);
+                bookmarkTreeLogger.warn('Could not move generated bookmark', error);
             }
         }
     };
@@ -162,15 +165,15 @@ export const applyNewBookmarkTree = async (tree: GeneratedNode[]): Promise<void>
         if (node.title && node.children) {
             const parentId = topLevelFolderIds[node.title];
             if (parentId) {
-                console.log(`Found matching top-level folder: "${node.title}". Processing its children under parent ID ${parentId}.`);
+                bookmarkTreeLogger.debug('Processing generated top-level folder');
                 // This is an existing top-level folder, process its children
                 for (const child of node.children) {
                     await processNode(child, parentId);
                 }
             } else {
-                console.warn(`Generated top-level folder "${node.title}" is not a recognized root. Skipping.`);
+                bookmarkTreeLogger.warn('Generated top-level folder is not a recognized root');
             }
         }
     }
-    console.log("Finished applying new bookmark tree structure.");
+    bookmarkTreeLogger.debug('Finished applying generated bookmark tree');
 };

@@ -25,23 +25,37 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <div className="w-full">
       {message && (
-        <div className="text-sm nb-text-secondary mb-2">{message}</div>
+        <div className="text-sm font-medium nb-text-secondary mb-3 uppercase tracking-wide">{message}</div>
       )}
-      <div className="w-full nb-bg-card border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] rounded-full h-3 overflow-hidden">
-        <div
-          className={`${variantColors[variant]} h-full rounded-full transition-all duration-300 ease-out`}
-          style={{ width: `${clampedProgress}%` }}
-          role="progressbar"
-          aria-valuenow={clampedProgress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        />
-      </div>
-      {showPercentage && (
-        <div className="text-xs nb-text-secondary mt-1 text-right">
-          {Math.round(clampedProgress)}%
+      {/* Neo-Brutalism 风格进度条 - 无圆角，有硬阴影 */}
+      <div className="relative">
+        <div className="w-full nb-bg-card border-3 border-[color:var(--nb-border)] h-6 overflow-hidden shadow-[3px_3px_0px_0px_var(--nb-border)]">
+          <div
+            className={`${variantColors[variant]} h-full transition-all duration-300 ease-out relative`}
+            style={{ width: `${clampedProgress}%` }}
+            role="progressbar"
+            aria-valuenow={clampedProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            {/* 进度条内的条纹装饰 */}
+            <div 
+              className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.1) 4px, rgba(0,0,0,0.1) 8px)'
+              }}
+            ></div>
+          </div>
         </div>
-      )}
+        {/* 百分比显示 - Neo-Brutalism 风格 */}
+        {showPercentage && (
+          <div className="absolute right-0 top-full mt-2">
+            <span className="inline-block px-2 py-1 bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] text-xs font-bold nb-text">
+              {Math.round(clampedProgress)}%
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -56,7 +70,7 @@ interface CircularProgressProps {
 export const CircularProgress: React.FC<CircularProgressProps> = ({
   progress,
   size = 120,
-  strokeWidth = 8,
+  strokeWidth = 10,
   message
 }) => {
   const clampedProgress = Math.min(100, Math.max(0, progress));
@@ -65,8 +79,12 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   const offset = circumference - (clampedProgress / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3">
-      <div className="relative" style={{ width: size, height: size }}>
+    <div className="flex flex-col items-center justify-center gap-4">
+      {/* Neo-Brutalism 风格圆形进度 */}
+      <div 
+        className="relative border-4 border-[color:var(--nb-border)] shadow-[6px_6px_0px_0px_var(--nb-border)] bg-[color:var(--nb-card)]" 
+        style={{ width: size + 16, height: size + 16, padding: 8 }}
+      >
         <svg width={size} height={size} className="transform -rotate-90">
           {/* Background circle */}
           <circle
@@ -77,9 +95,9 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             strokeWidth={strokeWidth}
             fill="none"
             className="transition-colors"
-            opacity={0.3}
+            opacity={0.2}
           />
-          {/* Progress circle */}
+          {/* Progress circle - Neo-Brutalism 使用直线端点 */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -89,19 +107,21 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             fill="none"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            strokeLinecap="round"
+            strokeLinecap="butt"
             className="transition-all duration-300"
           />
         </svg>
-        {/* Percentage text in center */}
+        {/* Percentage text in center - Neo-Brutalism 风格 */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-semibold nb-text">
-            {Math.round(clampedProgress)}%
-          </span>
+          <div className="px-3 py-1 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+            <span className="text-lg font-black nb-text uppercase">
+              {Math.round(clampedProgress)}%
+            </span>
+          </div>
         </div>
       </div>
       {message && (
-        <div className="text-sm nb-text-secondary text-center">{message}</div>
+        <div className="text-sm font-medium nb-text-secondary text-center uppercase tracking-wide">{message}</div>
       )}
     </div>
   );

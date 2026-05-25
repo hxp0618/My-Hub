@@ -11,7 +11,7 @@ import {
   UpdateTaskParams,
   ScheduledTaskOptions,
 } from '../../../../../types/scheduledTask';
-import { BarkKey } from '../../../../../types/bark';
+import { BarkKeyConfig } from '../../../../../types/bark';
 import { KeySelector } from './KeySelector';
 import { CronConfigPanel } from './CronConfigPanel';
 import { validateCreateParams } from '../../../../../utils/scheduledTaskValidator';
@@ -22,7 +22,7 @@ interface ScheduledTaskModalProps {
   onClose: () => void;
   onSave: (params: CreateTaskParams | UpdateTaskParams, taskId?: string) => void;
   editingTask?: ScheduledTask | null;
-  keys: BarkKey[];
+  keys: BarkKeyConfig[];
 }
 
 /**

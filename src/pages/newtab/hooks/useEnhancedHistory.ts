@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { HistoryItem, Device } from '../types';
 import { startOfDay, format } from 'date-fns';
+import { getFaviconUrl } from '../../../utils/favicon';
 
 export function useEnhancedHistory() {
   const [allHistory, setAllHistory] = useState<HistoryItem[]>([]);
@@ -40,7 +41,6 @@ export function useEnhancedHistory() {
       setDevices(deviceList);
 
       const urlMap = new Map<string, HistoryItem>();
-      const getFaviconUrl = (url: string) => `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32}`;
 
       const processHistoryItems = (
         items: (
@@ -102,7 +102,7 @@ export function useEnhancedHistory() {
     } finally {
       setIsLoading(false);
     }
-  }, [filters.device, filters.startTime, filters.endTime]);
+  }, [filters.startTime, filters.endTime]);
 
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export function useEnhancedHistory() {
   useEffect(() => {
     let filtered = [...allHistory];
 
-    // Device filtering is now handled in fetchHistory, so this is redundant.
+    // 目前只读取本机 history，不再申请 sessions 权限读取跨设备会话。
     // if (filters.device !== 'all') {
     //   filtered = filtered.filter(item => item.deviceId === filters.device);
     // }

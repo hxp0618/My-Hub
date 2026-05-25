@@ -5,11 +5,8 @@ import { ChatMessage } from '../types/llm';
 import i18n from '../i18n';
 
 const logger = createLogger('[LLM Service]');
-
-// 定义回调函数类型
-type OnUpdateCallback = (chunk: string) => void;
-type OnFinishCallback = (reason: string) => void;
-type OnErrorCallback = (error: Error) => void;
+const SUPPORTED_PROMPT_API_OUTPUT_LANGUAGES = ['en', 'es', 'ja'] as const;
+type PromptApiOutputLanguage = typeof SUPPORTED_PROMPT_API_OUTPUT_LANGUAGES[number];
 
 type SendMessageCallbacks = {
     onUpdate: (chunk: string) => void;
@@ -21,6 +18,34 @@ type SendMessageOptions = {
     stream?: boolean;
 };
 
+const getPromptApiSessionOptions = (): LanguageModelCreateOptions => {
+    const currentLanguage = i18n.language.split('-')[0].toLowerCase();
+    const outputLanguage = SUPPORTED_PROMPT_API_OUTPUT_LANGUAGES.includes(
+        currentLanguage as PromptApiOutputLanguage
+    )
+        ? currentLanguage
+        : 'en';
+
+    // Chrome Prompt API currently accepts en/es/ja output declarations only.
+    return {
+        expectedOutputs: [{ type: 'text', languages: [outputLanguage] }],
+    };
+};
+
+const getSafeSettingsForLog = (settings: ReturnType<typeof getLLMSettings>) => ({
+    ...settings,
+    apiKey: settings.apiKey ? '[redacted]' : '',
+    providers: Object.fromEntries(
+        Object.entries(settings.providers || {}).map(([providerId, provider]) => [
+            providerId,
+            {
+                ...provider,
+                apiKey: provider.apiKey ? '[redacted]' : '',
+            },
+        ])
+    ),
+});
+
 async function tryGeminiNano(
     messages: ChatMessage[],
     callbacks: SendMessageCallbacks,
@@ -30,7 +55,8 @@ async function tryGeminiNano(
     if (typeof LanguageModel === 'undefined' || typeof LanguageModel.availability !== 'function') {
         throw new Error('Prompt API entry point not available.');
     }
-    const availability = await LanguageModel.availability();
+    const promptApiOptions = getPromptApiSessionOptions();
+    const availability = await LanguageModel.availability(promptApiOptions);
     if (availability !== 'available') {
         throw new Error(`Gemini Nano is not available. State: ${availability}`);
     }
@@ -38,13 +64,12 @@ async function tryGeminiNano(
     logger.info('[GeminiNano] Using Gemini Nano (Prompt API).');
     logger.debug('[GeminiNano] Input messages:', JSON.stringify(messages, null, 2));
 
-    const session = await LanguageModel.create();
+    const session = await LanguageModel.create(promptApiOptions);
 
     try {
         if (options.stream) {
             const stream = session.promptStreaming(messages, { signal: abortSignal });
             for await (const chunk of stream) {
-                //console.log('[LLM Service][GeminiNano][Stream] chunk:', chunk);
                 callbacks.onUpdate(chunk);
             }
             logger.info('[GeminiNano][Stream] finished');
@@ -72,7 +97,7 @@ export async function sendMessage(
   options: SendMessageOptions = { stream: true }
 ) {
   const settings = getLLMSettings();
-  logger.info('Sending message with settings:', settings);
+  logger.info('Sending message with settings:', getSafeSettingsForLog(settings));
 
   if (settings.prioritizeGeminiNano) {
       try {
@@ -178,7 +203,6 @@ export async function sendMessage(
                     }
                     try {
                         const data = JSON.parse(dataStr);
-                        //console.log('LLM Service: Parsed data:', data);
                         const content = data.choices[0]?.delta?.content;
                         if (content) {
                             logger.debug('[Cloud][Stream] content:', content);

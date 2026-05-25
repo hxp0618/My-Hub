@@ -85,10 +85,10 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed border-[color:var(--nb-border)] rounded-none p-8 text-center cursor-pointer transition-colors ${
           isDragging
-            ? 'border-accent bg-accent/5'
-            : 'border-default hover:border-accent hover:bg-secondary'
+            ? 'bg-[color:var(--nb-accent-yellow)]'
+            : 'nb-bg-card hover:bg-[color:var(--nb-bg)]'
         }`}
       >
         <input
@@ -98,10 +98,10 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
           onChange={handleFileChange}
           className="hidden"
         />
-        <span className="material-symbols-outlined text-4xl text-secondary mb-2">
+        <span className="material-symbols-outlined text-4xl nb-text-secondary mb-2">
           {isProcessing ? 'hourglass_empty' : 'qr_code_scanner'}
         </span>
-        <p className="text-sm text-secondary">
+        <p className="text-sm nb-text-secondary">
           {isProcessing ? t('common.loading') : t('tools.qrcodeGenerator.uploadHint')}
         </p>
       </div>
@@ -109,7 +109,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
       {/* 识别结果 */}
       {latestResult !== null && (
         <div className="space-y-2">
-          <label className="text-sm font-medium text-main">
+          <label className="text-sm font-medium nb-text">
             {t('tools.qrcodeGenerator.scanResult')}
           </label>
           <div className="flex items-center gap-2">
@@ -117,12 +117,12 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
               type="text"
               value={latestResult || t('tools.qrcodeGenerator.noQRCodeFound')}
               readOnly
-              className="flex-1 px-3 py-2 text-sm bg-secondary border border-default rounded-lg"
+              className="nb-input flex-1 text-sm py-2 px-3"
             />
             {latestResult && (
               <button
                 onClick={() => copyToClipboard(latestResult)}
-                className="px-3 py-2 text-sm rounded-lg bg-accent text-white hover:opacity-90 transition-opacity"
+                className="nb-btn nb-btn-primary text-sm px-3 py-2"
               >
                 {t('tools.qrcodeGenerator.copy')}
               </button>
@@ -135,12 +135,12 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
       {scanImages.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-main">
+            <span className="text-sm font-medium nb-text">
               {t('tools.qrcodeGenerator.uploadedImages')} ({scanImages.length})
             </span>
             <button
               onClick={onClear}
-              className="px-3 py-1 text-xs rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+              className="nb-btn nb-btn-danger text-xs px-3 py-1"
             >
               {t('tools.qrcodeGenerator.clear')}
             </button>
@@ -150,12 +150,12 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
             {scanImages.map(image => (
               <div
                 key={image.id}
-                className="relative group rounded-lg border border-default bg-secondary overflow-hidden"
+                className="relative group rounded-none border-2 border-[color:var(--nb-border)] nb-bg-card overflow-hidden"
               >
                 {/* 删除按钮 */}
                 <button
                   onClick={() => onDelete(image.id)}
-                  className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-[2px_2px_0px_0px_var(--nb-border)]"
                 >
                   <span className="material-symbols-outlined text-sm">close</span>
                 </button>
@@ -168,10 +168,10 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
                 />
 
                 {/* 识别结果 */}
-                <div className="p-2 bg-main">
+                <div className="p-2 nb-bg">
                   <p
                     className={`text-xs truncate ${
-                      image.decodedContent ? 'text-main' : 'text-secondary'
+                      image.decodedContent ? 'nb-text' : 'nb-text-secondary'
                     }`}
                     title={image.decodedContent || undefined}
                   >

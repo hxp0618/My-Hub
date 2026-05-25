@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import '@pages/newtab/Newtab.css';
 import { useMomentInHistory } from './hooks/useMomentInHistory';
-import { useEnhancedHistory } from './hooks/useEnhancedHistory';
 import { HomePage } from './components/HomePage';
 import { HistoryPage } from './components/HistoryPage';
 import { BookmarkPage } from './components/BookmarkPage';
@@ -17,6 +16,8 @@ import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { useMenuOrder } from '../../hooks/useMenuOrder';
 import { useMenuCustomization } from '../../hooks/useMenuCustomization';
 import { MENU_ITEMS } from '../../types/menu';
+import { ToolId } from '../../types/tools';
+import { SearchActionTarget } from '../../types/searchActions';
 
 // =================================================================================
 // Main Component
@@ -33,11 +34,10 @@ export default function Newtab() {
   const { t } = useTranslation();
   // 页面状态管理，用于在 'home', 'history', 'bookmarks' 之间切换
   const [page, setPage] = useState<Page>('home');
+  const [requestedToolId, setRequestedToolId] = useState<ToolId | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   // 自定义 hook，用于获取"历史上的今天"的推荐内容
   const { recommendations, timeRange, refreshRecommendations } = useMomentInHistory();
-  // 自定义 hook，用于获取、筛选和分页加载增强的历史记录
-  const { historyItems, devices, isLoading, filters, setFilters, hasMore, loadMore } = useEnhancedHistory();
   // 自定义 hook，用于获取菜单顺序和自定义配置
   const { menuOrder } = useMenuOrder();
   const { getItemIcon } = useMenuCustomization();
@@ -54,6 +54,20 @@ export default function Newtab() {
 
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenTool = (toolId: ToolId) => {
+    setRequestedToolId(toolId);
+    setPage('tools');
+  };
+
+  const handleOpenAction = (target: SearchActionTarget) => {
+    if (target.kind === 'settings') {
+      setIsSettingsOpen(true);
+      return;
+    }
+
+    setPage(target.page);
+  };
 
   // 处理拖拽开始
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -97,7 +111,13 @@ export default function Newtab() {
       case 'home':
         return (
           <ErrorBoundary>
-            <HomePage recommendations={recommendations} timeRange={timeRange} onRefresh={refreshRecommendations} />
+            <HomePage
+              recommendations={recommendations}
+              timeRange={timeRange}
+              onRefresh={refreshRecommendations}
+              onOpenTool={handleOpenTool}
+              onOpenAction={handleOpenAction}
+            />
           </ErrorBoundary>
         );
       case 'history':
@@ -121,7 +141,7 @@ export default function Newtab() {
       case 'tools':
         return (
           <ErrorBoundary>
-            <ToolsPage />
+            <ToolsPage initialToolId={requestedToolId} />
           </ErrorBoundary>
         );
       case 'subscriptions':
@@ -138,29 +158,54 @@ export default function Newtab() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <div className="flex h-screen nb-bg nb-text">
+        <div className="flex h-screen nb-bg nb-bg-grid nb-text">
           {/* 侧边栏 */}
           <aside
             ref={sidebarRef}
             style={{ width: `${sidebarWidth}px` }}
-            className="nb-bg nb-border nb-shadow rounded-xl p-6 flex flex-col relative flex-shrink-0 transition-none"
+            className="nb-card-static nb-bg-halftone p-8 flex flex-col relative flex-shrink-0 transition-none m-4 mr-0 rounded-none overflow-hidden"
           >
-            <h1 className="text-3xl font-bold mb-12 nb-text">{t('sidebar.appName')}</h1>
+            {/* 装饰元素 - 增强版 */}
+            {/* 浮动粉色圆形 */}
+            <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[color:var(--nb-accent-pink)] border-3 border-[color:var(--nb-border)] opacity-20 nb-float"></div>
+
+            {/* 蓝色有机形状 */}
+            <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-[color:var(--nb-accent-blue)] border-3 border-[color:var(--nb-border)] opacity-15 nb-sticker-2" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }}></div>
+
+            {/* 黄色星星装饰 */}
+            <div className="absolute top-1/3 -right-4 w-12 h-12 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] opacity-25 nb-rotate-slow" style={{ clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' }}></div>
+
+            {/* 绿色方块装饰 */}
+            <div className="absolute bottom-1/4 -left-6 w-14 h-14 bg-[color:var(--nb-accent-green)] border-3 border-[color:var(--nb-border)] opacity-20 nb-sticker-3 shadow-[3px_3px_0px_0px_var(--nb-border)]"></div>
+
+            {/* Logo / App Name - 增强版 */}
+            <div className="mb-12 relative z-10">
+              {/* Logo 背景框 */}
+              <div className="inline-block p-4 -ml-2 border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[4px_4px_0px_0px_var(--nb-border)] nb-sticker-1">
+                <h1 className="text-3xl font-black nb-text uppercase tracking-tighter leading-none">
+                  {t('sidebar.appName')}
+                </h1>
+              </div>
+            </div>
+
             {/* 导航菜单 */}
-            <nav>
-              <ul>
-                {menuOrder.map((itemId, index) => {
+            <nav className="flex-1">
+              <ul className="space-y-3">
+                {menuOrder.map((itemId) => {
                   const item = MENU_ITEMS[itemId];
                   const displayIcon = getItemIcon(itemId, item.icon);
                   return (
-                    <li key={itemId} className={index > 0 ? 'mt-4' : ''}>
+                    <li key={itemId}>
                       <a
                         className={`nb-nav-item ${page === itemId ? 'active' : ''}`}
                         href="#"
-                        onClick={() => setPage(itemId as Page)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setPage(itemId as Page);
+                        }}
                       >
-                        <span className="material-symbols-outlined icon-linear mr-4">{displayIcon}</span>
-                        {t(item.labelKey)}
+                        <span className="material-symbols-outlined text-xl">{displayIcon}</span>
+                        <span className="font-bold text-sm uppercase tracking-wide">{t(item.labelKey)}</span>
                       </a>
                     </li>
                   );
@@ -169,30 +214,38 @@ export default function Newtab() {
             </nav>
 
             {/* Settings Entry */}
-            <div className="mt-auto">
+            <div className="mt-6">
               <a
                 href="#"
-                onClick={() => setIsSettingsOpen(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsSettingsOpen(true);
+                }}
                 className="nb-nav-item"
               >
-                <span className="material-symbols-outlined icon-linear mr-4">settings</span>
-                {t('sidebar.settings')}
+                <span className="material-symbols-outlined text-xl">settings</span>
+                <span className="font-bold text-sm uppercase tracking-wide">{t('sidebar.settings')}</span>
               </a>
             </div>
 
             {/* 拖拽把手 */}
             <div
               onMouseDown={handleMouseDown}
-              className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors group ${
-                isResizing ? 'bg-accent' : ''
+              className={`absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-[color:var(--nb-accent-yellow)] transition-colors group ${
+                isResizing ? 'bg-[color:var(--nb-accent-pink)]' : ''
               }`}
             >
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-gray-300 dark:bg-gray-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-[color:var(--nb-border)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </aside>
+
           {/* 主内容区域 */}
-          <main className="flex-1 overflow-y-auto nb-bg">
-            {renderPageContent()}
+          <main className="flex-1 overflow-hidden nb-bg p-4">
+            <div className="h-full flex flex-col gap-4">
+              <div className="flex-1 nb-card-static p-8 rounded-none nb-bg-halftone overflow-auto">
+                {renderPageContent()}
+              </div>
+            </div>
           </main>
 
           <Modal

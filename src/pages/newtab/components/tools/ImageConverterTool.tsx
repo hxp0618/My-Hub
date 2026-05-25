@@ -8,7 +8,6 @@ import JSZip from 'jszip';
 import i18n from '../../../../i18n';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
-import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 
 // ==================== 类型定义 ====================
 
@@ -253,7 +252,6 @@ function formatFileSize(bytes: number): string {
 
 export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolComponentProps) {
   const { t } = useTranslation();
-  const { copy } = useCopyToClipboard();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<ImageInfo[]>([]);
@@ -418,8 +416,8 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
 
         {/* 错误提示 */}
         {error && (
-          <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{error}</p>
+          <div className="p-3 nb-bg-card nb-border rounded-none flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
+            <p className="text-sm text-[color:var(--nb-accent-pink)]">{error}</p>
           </div>
         )}
 
@@ -429,67 +427,73 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
           <div className="flex flex-col min-h-0 gap-3">
             {/* 上传区域 */}
             <div
-              className="border-2 border-dashed border-default rounded-lg p-4 text-center cursor-pointer hover:border-accent transition-colors flex-shrink-0"
+              className="border-2 border-dashed border-[color:var(--nb-border)] rounded-none p-4 text-center cursor-pointer nb-bg-card hover:bg-[color:var(--nb-bg)] transition-colors flex-shrink-0"
               onClick={handleUploadClick}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
             >
               <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
-              <span className="material-symbols-outlined text-3xl text-secondary">upload</span>
-              <p className="text-sm text-main mt-1">{t('tools.imageConverter.uploadHint')}</p>
-              <p className="text-xs text-secondary">{t('tools.imageConverter.supportedFormats')}</p>
+              <span className="material-symbols-outlined text-3xl nb-text-secondary">upload</span>
+              <p className="text-sm nb-text mt-1">{t('tools.imageConverter.uploadHint')}</p>
+              <p className="text-xs nb-text-secondary">{t('tools.imageConverter.supportedFormats')}</p>
             </div>
 
             {/* 图片列表 */}
             {images.length > 0 ? (
-              <div className="flex-1 overflow-y-auto border border-default rounded-lg">
+              <div className="flex-1 overflow-y-auto nb-border rounded-none">
                 {images.map((image, index) => {
                   const result = results.get(image.id);
                   return (
                     <div
                       key={image.id}
-                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-default last:border-b-0 ${selectedIndex === index ? 'nb-selected' : 'hover-bg'}`}
+                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-[color:var(--nb-border)] last:border-b-0 ${
+                        selectedIndex === index ? 'nb-selected' : 'hover:bg-[color:var(--nb-bg)]'
+                      }`}
                       onClick={() => setSelectedIndex(index)}
                     >
-                      <img src={image.dataUrl} alt={image.name} className="w-10 h-10 object-cover rounded" />
+                      <img src={image.dataUrl} alt={image.name} className="w-10 h-10 object-cover rounded-none nb-border" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-main truncate">{image.name}</p>
-                        <p className="text-xs text-secondary">{image.width}×{image.height} · {formatFileSize(image.size)}</p>
+                        <p className="text-sm nb-text truncate">{image.name}</p>
+                        <p className="text-xs nb-text-secondary">{image.width}×{image.height} · {formatFileSize(image.size)}</p>
                       </div>
-                      {result && <span className={`text-sm ${result.success ? 'text-success' : 'text-danger'}`}>{result.success ? '✓' : '✗'}</span>}
-                      <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(index); }} className="p-1 hover-bg rounded">
-                        <span className="material-symbols-outlined text-sm text-secondary">close</span>
+                      {result && (
+                        <span className={`text-sm ${result.success ? 'text-[color:var(--nb-accent-green)]' : 'text-[color:var(--nb-accent-pink)]'}`}>
+                          {result.success ? '✓' : '✗'}
+                        </span>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(index); }} className="p-1 rounded-none hover:bg-[color:var(--nb-bg)]">
+                        <span className="material-symbols-outlined text-sm nb-text-secondary">close</span>
                       </button>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center border border-default rounded-lg">
+              <div className="flex-1 flex items-center justify-center nb-border rounded-none nb-bg-card">
                 <div className="text-center">
-                  <span className="material-symbols-outlined text-4xl text-secondary">image</span>
-                  <p className="text-sm text-secondary mt-2">{t('tools.imageConverter.noImages')}</p>
+                  <span className="material-symbols-outlined text-4xl nb-text-secondary">image</span>
+                  <p className="text-sm nb-text-secondary mt-2">{t('tools.imageConverter.noImages')}</p>
                 </div>
               </div>
             )}
 
             {/* 批量进度 */}
             {batchState && (
-              <div className="p-3 bg-secondary rounded-lg flex-shrink-0">
+              <div className="nb-card-static p-3 flex-shrink-0">
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-main">{t('tools.imageConverter.batchProgress')}</span>
-                  <span className="text-secondary">{batchState.completed}/{batchState.total}</span>
+                  <span className="nb-text">{t('tools.imageConverter.batchProgress')}</span>
+                  <span className="nb-text-secondary">{batchState.completed}/{batchState.total}</span>
                 </div>
-                <div className="w-full h-2 bg-main rounded-full overflow-hidden">
-                  <div className="h-full bg-accent transition-all" style={{ width: `${(batchState.completed / batchState.total) * 100}%` }} />
+                <div className="w-full h-2 nb-border rounded-full overflow-hidden bg-[color:var(--nb-card)]">
+                  <div className="h-full bg-[color:var(--nb-accent-blue)] transition-all" style={{ width: `${(batchState.completed / batchState.total) * 100}%` }} />
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <div className="flex gap-3 text-xs">
-                    <span className="text-success">{t('tools.imageConverter.successCount', { count: batchState.successful })}</span>
-                    <span className="text-danger">{t('tools.imageConverter.failedCount', { count: batchState.failed })}</span>
+                    <span className="text-[color:var(--nb-accent-green)]">{t('tools.imageConverter.successCount', { count: batchState.successful })}</span>
+                    <span className="text-[color:var(--nb-accent-pink)]">{t('tools.imageConverter.failedCount', { count: batchState.failed })}</span>
                   </div>
                   {batchState.completed === batchState.total && batchState.successful > 0 && (
-                    <button onClick={handleDownloadAll} className="px-3 py-1 text-xs bg-accent text-white rounded hover:opacity-90">
+                    <button onClick={handleDownloadAll} className="nb-btn nb-btn-primary text-xs px-3 py-1">
                       {t('tools.imageConverter.downloadAll')}
                     </button>
                   )}
@@ -501,20 +505,20 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
           {/* 右侧：设置和预览 */}
           <div className="flex flex-col min-h-0 gap-3">
             {/* 转换设置 */}
-            <div className="p-4 bg-secondary rounded-lg flex-shrink-0 space-y-3">
+            <div className="nb-card-static p-4 flex-shrink-0 space-y-3">
               {/* 质量滑块 */}
               {shouldShowQualitySlider(options.targetFormat) && (
                 <div>
-                  <label className="block text-sm text-main mb-1">{t('tools.imageConverter.quality')}: {options.quality}%</label>
-                  <input type="range" min="1" max="100" value={options.quality} onChange={(e) => setOptions(prev => ({ ...prev, quality: parseInt(e.target.value, 10) }))} className="w-full accent-accent" />
+                  <label className="block text-sm nb-text mb-1">{t('tools.imageConverter.quality')}: {options.quality}%</label>
+                  <input type="range" min="1" max="100" value={options.quality} onChange={(e) => setOptions(prev => ({ ...prev, quality: parseInt(e.target.value, 10) }))} className="w-full accent-[color:var(--nb-border)]" />
                 </div>
               )}
 
               {/* ICO 尺寸 */}
               {options.targetFormat === 'ico' && (
                 <div>
-                  <label className="block text-sm text-main mb-1">{t('tools.imageConverter.icoSize')}</label>
-                  <select value={options.icoSize} onChange={(e) => setOptions(prev => ({ ...prev, icoSize: parseInt(e.target.value, 10) }))} className="w-full px-3 py-2 bg-main border border-default rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+                  <label className="block text-sm nb-text mb-1">{t('tools.imageConverter.icoSize')}</label>
+                  <select value={options.icoSize} onChange={(e) => setOptions(prev => ({ ...prev, icoSize: parseInt(e.target.value, 10) }))} className="nb-input w-full text-sm">
                     {ICO_SIZES.map(size => <option key={size} value={size}>{size}×{size}</option>)}
                   </select>
                 </div>
@@ -522,19 +526,19 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
 
               {/* 尺寸调整 */}
               <div>
-                <label className="flex items-center gap-2 text-sm text-main">
-                  <input type="checkbox" checked={options.resize.enabled} onChange={(e) => setOptions(prev => ({ ...prev, resize: { ...prev.resize, enabled: e.target.checked, width: selectedImage?.width || 0, height: selectedImage?.height || 0 } }))} className="rounded accent-accent" />
+                <label className="flex items-center gap-2 text-sm nb-text">
+                  <input type="checkbox" checked={options.resize.enabled} onChange={(e) => setOptions(prev => ({ ...prev, resize: { ...prev.resize, enabled: e.target.checked, width: selectedImage?.width || 0, height: selectedImage?.height || 0 } }))} className="h-4 w-4 border-2 border-[color:var(--nb-border)] rounded-sm accent-[color:var(--nb-border)]" />
                   {t('tools.imageConverter.resize')}
                 </label>
                 {options.resize.enabled && (
                   <div className="mt-2 pl-6 space-y-2">
                     <div className="flex items-center gap-2">
-                      <input type="number" value={options.resize.width || ''} onChange={(e) => handleWidthChange(e.target.value)} placeholder={t('tools.imageConverter.width')} className="w-20 px-2 py-1 bg-main border border-default rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                      <span className="text-secondary">×</span>
-                      <input type="number" value={options.resize.height || ''} onChange={(e) => handleHeightChange(e.target.value)} placeholder={t('tools.imageConverter.height')} className="w-20 px-2 py-1 bg-main border border-default rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+                      <input type="number" value={options.resize.width || ''} onChange={(e) => handleWidthChange(e.target.value)} placeholder={t('tools.imageConverter.width')} className="nb-input w-20 text-sm py-1 px-2" />
+                      <span className="nb-text-secondary">×</span>
+                      <input type="number" value={options.resize.height || ''} onChange={(e) => handleHeightChange(e.target.value)} placeholder={t('tools.imageConverter.height')} className="nb-input w-20 text-sm py-1 px-2" />
                     </div>
-                    <label className="flex items-center gap-2 text-xs text-secondary">
-                      <input type="checkbox" checked={options.resize.maintainAspectRatio} onChange={(e) => setOptions(prev => ({ ...prev, resize: { ...prev.resize, maintainAspectRatio: e.target.checked } }))} className="rounded accent-accent" />
+                    <label className="flex items-center gap-2 text-xs nb-text-secondary">
+                      <input type="checkbox" checked={options.resize.maintainAspectRatio} onChange={(e) => setOptions(prev => ({ ...prev, resize: { ...prev.resize, maintainAspectRatio: e.target.checked } }))} className="h-4 w-4 border-2 border-[color:var(--nb-border)] rounded-sm accent-[color:var(--nb-border)]" />
                       {t('tools.imageConverter.maintainAspectRatio')}
                     </label>
                   </div>
@@ -543,35 +547,35 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
             </div>
 
             {/* 预览区域 */}
-            <div className="flex-1 border border-default rounded-lg p-4 overflow-auto">
+            <div className="flex-1 nb-border rounded-none p-4 overflow-auto nb-bg-card">
               {selectedImage ? (
                 <div className="grid grid-cols-2 gap-4 h-full">
                   <div className="flex flex-col">
-                    <p className="text-xs text-secondary mb-2">{t('tools.imageConverter.original')}</p>
-                    <div className="flex-1 flex items-center justify-center bg-secondary rounded-lg p-2">
+                    <p className="text-xs nb-text-secondary mb-2">{t('tools.imageConverter.original')}</p>
+                    <div className="flex-1 flex items-center justify-center nb-bg-card nb-border rounded-none p-2">
                       <img src={selectedImage.dataUrl} alt="Original" className="max-w-full max-h-full object-contain" />
                     </div>
-                    <p className="text-xs text-secondary mt-2 text-center">{selectedImage.width}×{selectedImage.height} · {formatFileSize(selectedImage.size)}</p>
+                    <p className="text-xs nb-text-secondary mt-2 text-center">{selectedImage.width}×{selectedImage.height} · {formatFileSize(selectedImage.size)}</p>
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-xs text-secondary mb-2">{t('tools.imageConverter.converted')}</p>
-                    <div className="flex-1 flex items-center justify-center bg-secondary rounded-lg p-2">
+                    <p className="text-xs nb-text-secondary mb-2">{t('tools.imageConverter.converted')}</p>
+                    <div className="flex-1 flex items-center justify-center nb-bg-card nb-border rounded-none p-2">
                       {selectedResult?.dataUrl ? (
                         <img src={selectedResult.dataUrl} alt="Converted" className="max-w-full max-h-full object-contain" />
                       ) : (
-                        <span className="text-secondary text-sm">{t('tools.imageConverter.noImages')}</span>
+                        <span className="nb-text-secondary text-sm">{t('tools.imageConverter.noImages')}</span>
                       )}
                     </div>
                     {selectedResult && (
-                      <p className="text-xs text-secondary mt-2 text-center">{selectedResult.newName} · {formatFileSize(selectedResult.size || 0)}</p>
+                      <p className="text-xs nb-text-secondary mt-2 text-center">{selectedResult.newName} · {formatFileSize(selectedResult.size || 0)}</p>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
-                    <span className="material-symbols-outlined text-4xl text-secondary">compare</span>
-                    <p className="text-sm text-secondary mt-2">{t('tools.imageConverter.addImages')}</p>
+                    <span className="material-symbols-outlined text-4xl nb-text-secondary">compare</span>
+                    <p className="text-sm nb-text-secondary mt-2">{t('tools.imageConverter.addImages')}</p>
                   </div>
                 </div>
               )}

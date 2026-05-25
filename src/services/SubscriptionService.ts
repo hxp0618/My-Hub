@@ -58,9 +58,11 @@ export function calculateStatus(subscription: Subscription, currentDate: number 
   if (!subscription.isEnabled) {
     return 'disabled';
   }
-  if (subscription.expiryDate < currentDate) {
+
+  if (getRemainingDays(subscription.expiryDate, currentDate) < 0) {
     return 'expired';
   }
+
   return 'active';
 }
 

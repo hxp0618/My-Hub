@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
@@ -147,7 +147,7 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
   const [rgb, setRgb] = useState<RGB>({ r: 59, g: 130, b: 246 });
   const [hsl, setHsl] = useState<HSL>({ h: 217, s: 91, l: 60 });
   const [error, setError] = useState<string | null>(null);
-  const [activeInput, setActiveInput] = useState<'hex' | 'rgb' | 'hsl' | 'picker'>('hex');
+  const [, setActiveInput] = useState<'hex' | 'rgb' | 'hsl' | 'picker'>('hex');
 
   // 从 HEX 更新其他值
   const updateFromHex = useCallback((value: string) => {

@@ -101,20 +101,20 @@ export const ToolManagementModal: React.FC<ToolManagementModalProps> = ({
         <div className="flex gap-2 border-b-[length:var(--nb-border-width)] border-[color:var(--nb-border)] pb-2">
           <button
             onClick={() => setActiveTab('enable')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all duration-150 ${
               activeTab === 'enable'
-                ? 'bg-[color:var(--nb-accent-yellow)] nb-text nb-border nb-shadow'
-                : 'nb-text-secondary hover:nb-bg-card'
+                ? 'bg-[color:var(--nb-accent-yellow)] nb-text border-3 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-border)]'
+                : 'nb-text-secondary hover:nb-bg-card border-2 border-transparent hover:border-[color:var(--nb-border)]'
             }`}
           >
             {t('tools.management.tabEnable')}
           </button>
           <button
             onClick={() => setActiveTab('order')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all duration-150 ${
               activeTab === 'order'
-                ? 'bg-[color:var(--nb-accent-yellow)] nb-text nb-border nb-shadow'
-                : 'nb-text-secondary hover:nb-bg-card'
+                ? 'bg-[color:var(--nb-accent-yellow)] nb-text border-3 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-border)]'
+                : 'nb-text-secondary hover:nb-bg-card border-2 border-transparent hover:border-[color:var(--nb-border)]'
             }`}
           >
             {t('tools.management.tabOrder')}
@@ -148,7 +148,7 @@ export const ToolManagementModal: React.FC<ToolManagementModalProps> = ({
                 return (
                   <div
                     key={tool.id}
-                    className="nb-bg-card nb-border nb-shadow rounded-lg flex items-center justify-between p-3"
+                    className="nb-card-static flex items-center justify-between p-3 hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <span className="material-symbols-outlined text-[color:var(--nb-accent-blue)]">{tool.icon}</span>

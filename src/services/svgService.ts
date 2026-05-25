@@ -117,7 +117,7 @@ export function formatSVG(svgCode: string): string {
       .replace(/></g, '>\n<')
       .replace(/(<[^/][^>]*[^/]>)\n/g, '$1\n')
       .split('\n')
-      .map((line, index) => {
+      .map((line) => {
         // 计算缩进级别
         const trimmed = line.trim();
         if (!trimmed) return '';

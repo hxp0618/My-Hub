@@ -1,12 +1,24 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../../../components/Modal';
 import { EnhancedBookmark } from '../../../types/bookmarks';
 import { BookmarkFolderTree } from './BookmarkFolderTree';
 import { sendMessage } from '../../../services/llmService';
 import { getBookmarkOrganizationSystemPrompt } from '../../../lib/bookmarkOrganizationPrompts';
-import { extractBookmarks, extractFolderStructure, applyNewBookmarkTree, GeneratedNode, extractBookmarksForLlm } from '../utils';
+import { extractFolderStructure, GeneratedNode, extractBookmarksForLlm } from '../utils';
 import { jsonrepair } from 'jsonrepair';
+
+const debugLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.debug('[AutoOrganizeModal]', ...args);
+  }
+};
+
+const warnLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.warn('[AutoOrganizeModal]', ...args);
+  }
+};
 
 let tempIdCounter = 0;
 // This function converts the LLM's raw tree to a display-friendly, editable tree
@@ -72,7 +84,7 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
   const finalIsLoading = isLoading || isBulkUpdating;
 
   const handleGenerate = async () => {
-    console.log('handleGenerate: Starting...');
+    debugLog('handleGenerate: Starting...');
     setIsLoading(true);
     setError(null);
     setEditableGeneratedTree(null);
@@ -83,7 +95,7 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
     abortControllerRef.current = new AbortController();
 
     const bookmarksToOrganize = extractBookmarksForLlm(bookmarks);
-    console.log(`handleGenerate: Found bookmarks to organize.`);
+    debugLog(`handleGenerate: Found bookmarks to organize.`);
 
     if (Object.keys(bookmarksToOrganize).length === 0) {
         setError(t('organizeAiModal.noBookmarks'));
@@ -92,12 +104,12 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
     }
     
     const folderStructure = extractFolderStructure(bookmarks);
-    console.log('handleGenerate: Extracted existing folder structure:', folderStructure);
+    debugLog('handleGenerate: Extracted existing folder structure:', folderStructure);
 
     const systemPrompt = getBookmarkOrganizationSystemPrompt(JSON.stringify(folderStructure, null, 2));
     const userPrompt = `Here is the list of my bookmarks. Please organize them for me:\n\n${JSON.stringify(bookmarksToOrganize, null, 2)}`;
     
-    console.log('handleGenerate: Sending prompts to LLM:', "systemPrompt", systemPrompt, "userPrompt", userPrompt);
+    debugLog('handleGenerate: Sending prompts to LLM:', "systemPrompt", systemPrompt, "userPrompt", userPrompt);
 
     try {
         await sendMessage(
@@ -108,7 +120,7 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
             {
                 onUpdate: () => {}, // Not used in non-streaming mode
                 onFinish: (fullResponse) => {
-                    console.log('handleGenerate: Received raw response from LLM:', fullResponse);
+                    debugLog('handleGenerate: Received raw response from LLM:', fullResponse);
                     if (!fullResponse) {
                         setError(t('organizeAiModal.emptyResponse'));
                         setIsLoading(false);
@@ -122,13 +134,13 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
                         if (startIndex !== -1 && endIndex !== -1) {
                             jsonString = fullResponse.substring(startIndex, endIndex + 1);
                         } else {
-                            console.warn("Could not find a clear JSON array, attempting to repair the whole string.");
+                            warnLog("Could not find a clear JSON array, attempting to repair the whole string.");
                         }
                         
-                        console.log('handleGenerate: Attempting to repair and parse JSON.');
+                        debugLog('handleGenerate: Attempting to repair and parse JSON.');
                         const repairedJson = jsonrepair(jsonString);
                         const organizedTree = JSON.parse(repairedJson) as GeneratedNode[];
-                        console.log('handleGenerate: Successfully parsed generated tree:', organizedTree);
+                        debugLog('handleGenerate: Successfully parsed generated tree:', organizedTree);
 
                         // Merge top-level folders that don't exist into "Bookmarks Bar"
                         const existingTopLevelFolders = folderStructure.map(f => f.title);
@@ -182,7 +194,7 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
                         tempIdCounter = 0; // Reset counter for unique IDs
                         setEditableGeneratedTree(mapRawTreeToDisplayTree(finalTree, '0', bookmarksMap));
                     } catch (e) {
-                        console.error("handleGenerate: Failed to parse LLM response.", e, "\nRaw response:", fullResponse);
+                        console.error("handleGenerate: Failed to parse LLM response.", e);
                         setError(t('errors.aiParseFailed.message'));
                     } finally {
                         setIsLoading(false);
@@ -208,14 +220,14 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
   
   const handleApplyChanges = async () => {
     if (!editableGeneratedTree) return;
-    console.log('handleApplyChanges: Starting to apply new structure...', JSON.stringify(editableGeneratedTree, null, 2));
+    debugLog('handleApplyChanges: Starting to apply new structure...', JSON.stringify(editableGeneratedTree, null, 2));
     setIsLoading(true);
     setError(null);
     try {
         const rawTreeToApply = mapDisplayTreeToRawTree(editableGeneratedTree);
-        console.log('handleApplyChanges: Mapped raw tree to apply:', JSON.stringify(rawTreeToApply, null, 2));
+        debugLog('handleApplyChanges: Mapped raw tree to apply:', JSON.stringify(rawTreeToApply, null, 2));
         await applyBookmarkOrganization(rawTreeToApply);
-        console.log('handleApplyChanges: Successfully applied new structure.');
+        debugLog('handleApplyChanges: Successfully applied new structure.');
         onClose(); // No need to pass true, refresh is handled by the hook
     } catch (error) {
         console.error("handleApplyChanges: Failed to apply new bookmark tree:", error);
@@ -297,19 +309,31 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={t('organizeAiModal.title')} widthClass="max-w-4xl">
-        {error && <div className="mb-4 text-error p-3 bg-error-light rounded-lg text-sm">{error}</div>}
+        {error && (
+          <div className="mb-4 p-3 nb-border bg-[color:var(--nb-accent-pink)] text-sm nb-text">
+            {error}
+          </div>
+        )}
         <div className="flex space-x-6 h-[60vh]">
-            <div className="w-1/2 h-full overflow-y-auto border rounded-lg p-4">
+            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-none p-4 nb-bg-card">
                 <h4 className="text-lg font-semibold mb-2">{t('organizeAiModal.currentStructure')}</h4>
                 <BookmarkFolderTree nodes={bookmarks} selectedFolderId="" onSelectFolder={() => {}} disableContextMenu={true} createFolder={async () => {}} renameFolder={async () => {}} deleteFolder={async () => {}} />
             </div>
-            <div className="w-1/2 h-full overflow-y-auto border rounded-lg p-4 bg-gray-50">
+            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-none p-4 nb-bg-halftone">
                 <h4 className="text-lg font-semibold mb-2">{t('organizeAiModal.generatedStructure')}</h4>
-                {finalIsLoading && !editableGeneratedTree && <div className="flex items-center justify-center h-full text-gray-500"><p>{t('organizeAiModal.generating')}</p></div>}
+                {finalIsLoading && !editableGeneratedTree && (
+                  <div className="flex items-center justify-center h-full nb-text-secondary">
+                    <p>{t('organizeAiModal.generating')}</p>
+                  </div>
+                )}
                 {editableGeneratedTree ? (
                      <BookmarkFolderTree nodes={editableGeneratedTree} selectedFolderId="" onSelectFolder={() => {}} disableContextMenu={false} createFolder={handleInMemoryCreate} renameFolder={handleInMemoryRename} deleteFolder={handleInMemoryDelete} />
                 ) : (
-                    !finalIsLoading && <div className="flex items-center justify-center h-full text-gray-500"><p>{t('organizeAiModal.startHint')}</p></div>
+                    !finalIsLoading && (
+                      <div className="flex items-center justify-center h-full nb-text-secondary">
+                        <p>{t('organizeAiModal.startHint')}</p>
+                      </div>
+                    )
                 )}
             </div>
         </div>

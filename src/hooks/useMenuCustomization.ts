@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   MenuItemId,
   MenuCustomization,
-  MenuItemCustomization,
   MENU_CUSTOMIZATION_STORAGE_KEY,
   getValidMenuCustomization,
 } from '../types/menu';

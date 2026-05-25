@@ -86,11 +86,10 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
 
   // 处理交换（同时切换模式）
   const handleSwap = useCallback(() => {
-    const currentOutput = output;
     swap();
     // 切换模式
     setMode(prev => prev === 'encode' ? 'decode' : 'encode');
-  }, [swap, output]);
+  }, [swap]);
 
   // 处理模式切换
   const handleModeChange = useCallback((newMode: 'encode' | 'decode') => {
@@ -110,12 +109,15 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
     batchMode.clearResults();
   }, [clear, batchMode]);
 
+  const isBatchModeEnabled = batchMode.enabled;
+  const processBatchInput = batchMode.process;
+
   // 批量模式下处理输入变化
   useEffect(() => {
-    if (batchMode.enabled && input) {
-      batchMode.process(input);
+    if (isBatchModeEnabled && input) {
+      processBatchInput(input);
     }
-  }, [batchMode.enabled, input, batchMode.process]);
+  }, [isBatchModeEnabled, input, processBatchInput]);
 
   // 获取当前输出内容
   const currentOutput = batchMode.enabled 

@@ -2,7 +2,7 @@
  * 订阅表单组件
  * 用于创建和编辑订阅
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Subscription,
@@ -12,6 +12,11 @@ import {
   CreateSubscriptionParams,
   SUBSCRIPTION_TYPE_ICONS,
 } from '../../../../../types/subscription';
+import {
+  formatDateInputValue,
+  getDefaultDateInputValue,
+  parseDateInputValue,
+} from '../../../../../utils/dateInput';
 
 interface SubscriptionFormProps {
   subscription?: Subscription;
@@ -51,12 +56,9 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
   const [cycle, setCycle] = useState<SubscriptionCycle>(subscription?.cycle || 'annual');
   const [expiryDate, setExpiryDate] = useState(() => {
     if (subscription?.expiryDate) {
-      return new Date(subscription.expiryDate).toISOString().split('T')[0];
+      return formatDateInputValue(subscription.expiryDate);
     }
-    // 默认一年后
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 1);
-    return date.toISOString().split('T')[0];
+    return getDefaultDateInputValue();
   });
   const [reminderDays, setReminderDays] = useState(subscription?.reminderDays ?? defaultReminderDays);
   const [notificationChannels, setNotificationChannels] = useState<NotificationChannel[]>(
@@ -77,11 +79,11 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
     }
 
     if (type === 'other' && !customType.trim()) {
-      newErrors.customType = t('tools.subscriptionManager.subscription.nameRequired');
+      newErrors.customType = t('tools.subscriptionManager.subscription.customTypeRequired');
     }
 
-    if (!expiryDate) {
-      newErrors.expiryDate = t('tools.subscriptionManager.subscription.nameRequired');
+    if (parseDateInputValue(expiryDate) === null) {
+      newErrors.expiryDate = t('tools.subscriptionManager.errors.invalidDate');
     }
 
     setErrors(newErrors);
@@ -95,12 +97,21 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
       return;
     }
 
+    const parsedExpiryDate = parseDateInputValue(expiryDate);
+    if (parsedExpiryDate === null) {
+      setErrors((current) => ({
+        ...current,
+        expiryDate: t('tools.subscriptionManager.errors.invalidDate'),
+      }));
+      return;
+    }
+
     const data: CreateSubscriptionParams = {
       name: name.trim(),
       type,
       customType: type === 'other' ? customType.trim() : undefined,
       cycle,
-      expiryDate: new Date(expiryDate).getTime(),
+      expiryDate: parsedExpiryDate,
       reminderDays,
       notificationChannels,
       isEnabled,
@@ -109,7 +120,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
     };
 
     onSubmit(data);
-  }, [name, type, customType, cycle, expiryDate, reminderDays, notificationChannels, isEnabled, notes, validate, onSubmit]);
+  }, [name, type, customType, cycle, expiryDate, reminderDays, notificationChannels, isEnabled, url, notes, validate, onSubmit, t]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -123,10 +134,10 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t('tools.subscriptionManager.subscription.namePlaceholder')}
-          className={`nb-input w-full ${errors.name ? 'border-red-500' : ''}`}
+          className={`nb-input w-full ${errors.name ? 'border-[color:var(--nb-accent-pink)]' : ''}`}
         />
         {errors.name && (
-          <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+          <p className="text-[color:var(--nb-accent-pink)] text-xs mt-1">{errors.name}</p>
         )}
       </div>
 
@@ -144,7 +155,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               className={`p-2 rounded-lg border-2 flex flex-col items-center gap-1 transition-all ${
                 type === t_type
                   ? 'border-[var(--nb-border)] bg-[var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-border)]'
-                  : 'border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-gray-50 dark:hover:bg-gray-700'
+                  : 'border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)]'
               }`}
             >
               <span className="material-symbols-outlined text-lg">
@@ -169,10 +180,10 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
             value={customType}
             onChange={(e) => setCustomType(e.target.value)}
             placeholder={t('tools.subscriptionManager.subscription.customTypePlaceholder')}
-            className={`nb-input w-full ${errors.customType ? 'border-red-500' : ''}`}
+            className={`nb-input w-full ${errors.customType ? 'border-[color:var(--nb-accent-pink)]' : ''}`}
           />
           {errors.customType && (
-            <p className="text-red-500 text-xs mt-1">{errors.customType}</p>
+            <p className="text-[color:var(--nb-accent-pink)] text-xs mt-1">{errors.customType}</p>
           )}
         </div>
       )}
@@ -204,10 +215,10 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
           type="date"
           value={expiryDate}
           onChange={(e) => setExpiryDate(e.target.value)}
-          className={`nb-input w-full ${errors.expiryDate ? 'border-red-500' : ''}`}
+          className={`nb-input w-full ${errors.expiryDate ? 'border-[color:var(--nb-accent-pink)]' : ''}`}
         />
         {errors.expiryDate && (
-          <p className="text-red-500 text-xs mt-1">{errors.expiryDate}</p>
+          <p className="text-[color:var(--nb-accent-pink)] text-xs mt-1">{errors.expiryDate}</p>
         )}
       </div>
 
@@ -248,7 +259,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 className={`px-3 py-1.5 rounded-lg border-2 flex items-center gap-1.5 transition-all text-sm ${
                   isSelected
                     ? 'border-[var(--nb-border)] bg-[var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-border)]'
-                    : 'border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)]'
                 }`}
               >
                 <span className="material-symbols-outlined text-base">{channel.icon}</span>
@@ -284,15 +295,11 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
         <button
           type="button"
           onClick={() => setIsEnabled(!isEnabled)}
-          className={`relative w-12 h-6 rounded-full border-2 border-[var(--nb-border)] transition-colors ${
-            isEnabled ? 'bg-[var(--nb-accent-green)]' : 'bg-gray-300 dark:bg-gray-600'
-          }`}
+          className="nb-toggle"
         >
-          <span
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--nb-border)] transition-transform ${
-              isEnabled ? 'left-6' : 'left-0.5'
-            }`}
-          />
+          <span className={`nb-toggle-track ${isEnabled ? 'active' : ''}`}>
+            <span className="nb-toggle-thumb" />
+          </span>
         </button>
       </div>
 

@@ -1,38 +1,43 @@
 import React from 'react';
 
 export const HistoryItemSkeleton: React.FC = () => (
-  <div className="animate-pulse p-4 nb-border-b">
-    <div className="flex items-center gap-3">
-      <div className="w-4 h-4 bg-[color:var(--nb-border)]/20 rounded"></div>
-      <div className="w-4 h-4 bg-[color:var(--nb-border)]/20 rounded"></div>
+  <div className="animate-pulse p-5 nb-border-b border-[color:var(--nb-border)]/30">
+    <div className="flex items-center gap-4">
+      {/* Favicon skeleton */}
+      <div className="w-8 h-8 bg-[color:var(--nb-border)]/15 border-2 border-[color:var(--nb-border)]/20"></div>
       <div className="flex-1">
-        <div className="h-4 bg-[color:var(--nb-border)]/20 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-[color:var(--nb-border)]/10 rounded w-1/2"></div>
+        <div className="h-4 bg-[color:var(--nb-border)]/15 w-3/4 mb-3"></div>
+        <div className="h-3 bg-[color:var(--nb-border)]/10 w-1/2"></div>
       </div>
+      {/* Time skeleton */}
+      <div className="h-3 w-16 bg-[color:var(--nb-border)]/10"></div>
     </div>
   </div>
 );
 
 export const BookmarkTreeSkeleton: React.FC = () => (
-  <div className="animate-pulse space-y-2">
+  <div className="animate-pulse space-y-3 p-4">
     {[...Array(8)].map((_, i) => (
-      <div key={i} className="flex items-center gap-2 p-2">
-        <div className="w-4 h-4 bg-[color:var(--nb-border)]/20 rounded"></div>
-        <div className="h-4 bg-[color:var(--nb-border)]/20 rounded flex-1" style={{ width: `${60 + Math.random() * 30}%` }}></div>
+      <div key={i} className="flex items-center gap-3 p-2">
+        <div className="w-5 h-5 bg-[color:var(--nb-border)]/15 border border-[color:var(--nb-border)]/20"></div>
+        <div 
+          className="h-4 bg-[color:var(--nb-border)]/15" 
+          style={{ width: `${50 + (i % 3) * 15}%` }}
+        ></div>
       </div>
     ))}
   </div>
 );
 
 export const SearchResultSkeleton: React.FC = () => (
-  <div className="space-y-3">
+  <div className="space-y-4">
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="animate-pulse p-3 nb-card-static">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[color:var(--nb-border)]/20 rounded"></div>
+      <div key={i} className="animate-pulse p-5 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-border)]/20">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-[color:var(--nb-border)]/15 border-2 border-[color:var(--nb-border)]/20"></div>
           <div className="flex-1">
-            <div className="h-4 bg-[color:var(--nb-border)]/20 rounded w-2/3 mb-2"></div>
-            <div className="h-3 bg-[color:var(--nb-border)]/10 rounded w-1/2"></div>
+            <div className="h-5 bg-[color:var(--nb-border)]/15 w-2/3 mb-3"></div>
+            <div className="h-3 bg-[color:var(--nb-border)]/10 w-1/2"></div>
           </div>
         </div>
       </div>
@@ -45,16 +50,26 @@ export const Spinner: React.FC<{
   message?: string;
 }> = ({ size = 'md', message }) => {
   const sizeClasses = {
-    sm: 'w-4 h-4 border-2',
-    md: 'w-8 h-8 border-4',
-    lg: 'w-12 h-12 border-4'
+    sm: 'w-6 h-6',
+    md: 'w-12 h-12',
+    lg: 'w-16 h-16'
+  };
+
+  const borderClasses = {
+    sm: 'border-2',
+    md: 'border-4',
+    lg: 'border-4'
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3">
-      <div className={`${sizeClasses[size]} border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)] rounded-full animate-spin`} />
+    <div className="flex flex-col items-center justify-center gap-4">
+      {/* Neo-Brutalism 风格加载器 - 方形旋转 */}
+      <div className="relative">
+        <div className={`${sizeClasses[size]} ${borderClasses[size]} border-[color:var(--nb-border)]/20`}></div>
+        <div className={`absolute inset-0 ${borderClasses[size]} border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin`}></div>
+      </div>
       {message && (
-        <div className="text-sm nb-text-secondary">{message}</div>
+        <div className="text-sm font-bold nb-text-secondary uppercase tracking-wide">{message}</div>
       )}
     </div>
   );

@@ -42,7 +42,7 @@ const SEPARATOR = ':';
 /**
  * 获取 CryptoJS 加密模式
  */
-function getCryptoMode(mode: AESMode): CryptoJS.Mode {
+function getCryptoMode(mode: AESMode): typeof CryptoJS.mode.CBC {
   switch (mode) {
     case 'CBC':
       return CryptoJS.mode.CBC;
@@ -118,11 +118,6 @@ export class CryptoService {
         case 'AES-256':
         case 'AES-128': {
           const cryptoMode = getCryptoMode(mode);
-          const keySize = algorithm === 'AES-256' ? 256 / 32 : 128 / 32;
-          const key = CryptoJS.PBKDF2(password, CryptoJS.lib.WordArray.random(128 / 8), {
-            keySize,
-            iterations: 1000,
-          });
           
           // 使用简化的加密方式，让 CryptoJS 自动处理 key 和 iv
           const encrypted = CryptoJS.AES.encrypt(plaintext, password, {

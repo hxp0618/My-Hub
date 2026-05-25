@@ -75,10 +75,10 @@ const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType
     import('./tools/HTMLToMarkdownTool').then(mod => ({ default: mod.HTMLToMarkdownTool })),
   ),
   [ToolId.IMAGE_CONVERTER]: lazy(() =>
-    import('./tools/ImageConverterTool').then(mod => ({ default: mod.default || mod.ImageConverterTool })),
+    import('./tools/ImageConverterTool').then(mod => ({ default: mod.default })),
   ),
   [ToolId.SVG_TOOL]: lazy(() =>
-    import('./tools/SVGTool').then(mod => ({ default: mod.default || mod.SVGTool })),
+    import('./tools/SVGTool').then(mod => ({ default: mod.default })),
   ),
   [ToolId.HTTP_URL_TESTER]: lazy(() =>
     import('./tools/HTTPUrlTesterTool').then(mod => ({ default: mod.HTTPUrlTesterTool })),
@@ -89,9 +89,14 @@ const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType
   [ToolId.UNIT_CONVERTER]: lazy(() =>
     import('./tools/UnitConverterTool').then(mod => ({ default: mod.UnitConverterTool })),
   ),
+  [ToolId.CASE_CONVERTER]: lazy(() =>
+    import('./tools/CaseConverterTool').then(mod => ({ default: mod.CaseConverterTool })),
+  ),
 };
 
-interface ToolsPageProps {}
+interface ToolsPageProps {
+  initialToolId?: ToolId | null;
+}
 
 /**
  * 工具页面主组件
@@ -100,7 +105,7 @@ interface ToolsPageProps {}
  * - 管理工具的启用/禁用状态
  * - 处理工具管理弹窗
  */
-export const ToolsPage: React.FC<ToolsPageProps> = () => {
+export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) => {
   const { t } = useTranslation();
   const [config, setConfig] = useState<ToolConfig>({ enabledTools: Object.values(ToolId) });
   const [selectedTool, setSelectedTool] = useState<ToolId | null>(null);
@@ -127,6 +132,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
         if (cancelled) return;
 
         const initialTool =
+          (initialToolId && loadedConfig.enabledTools.includes(initialToolId) && initialToolId) ||
           (lastSelected && loadedConfig.enabledTools.includes(lastSelected) && lastSelected) ||
           loadedConfig.enabledTools[0] ||
           null;
@@ -147,7 +153,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialToolId]);
 
   // 保存工具配置和顺序
   const handleSaveConfig = async (newConfig: ToolConfig, newOrder: ToolId[]) => {
@@ -170,12 +176,18 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
   };
 
   // 选择工具
-  const handleSelectTool = (toolId: ToolId) => {
+  const handleSelectTool = useCallback((toolId: ToolId) => {
     setSelectedTool(toolId);
     setRecentToolId(toolId);
     setLastSelectedTool(toolId).catch(error => console.error('Failed to save last selected tool:', error));
     incrementToolUsageCount(toolId).catch(error => console.error('Failed to record tool usage:', error));
-  };
+  }, []);
+
+  useEffect(() => {
+    if (initialToolId && config.enabledTools.includes(initialToolId)) {
+      handleSelectTool(initialToolId);
+    }
+  }, [config.enabledTools, handleSelectTool, initialToolId]);
 
   // 按顺序排列的启用工具列表
   const orderedEnabledTools = useMemo(() => {
@@ -192,7 +204,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
       }
 
       const currentIndex = orderedEnabledTools.findIndex(id => id === selectedTool);
-      
+
       if (e.key === 'ArrowUp' && currentIndex > 0) {
         e.preventDefault();
         handleSelectTool(orderedEnabledTools[currentIndex - 1]);
@@ -204,7 +216,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [orderedEnabledTools, selectedTool]);
+  }, [handleSelectTool, orderedEnabledTools, selectedTool]);
 
   // 拖拽事件处理
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
@@ -232,10 +244,10 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
         // 计算在完整 toolOrder 中的实际索引
         const fromToolId = orderedEnabledTools[fromIndex];
         const toToolId = orderedEnabledTools[toIndex];
-        
+
         const actualFromIndex = toolOrder.indexOf(fromToolId);
         const actualToIndex = toolOrder.indexOf(toToolId);
-        
+
         if (actualFromIndex !== -1 && actualToIndex !== -1) {
           moveItem(actualFromIndex, actualToIndex);
         }
@@ -267,7 +279,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
   const toolProps = useMemo(
     () => ({
       isExpanded: true,
-      onToggleExpand: () => {},
+      onToggleExpand: () => { },
     }),
     [],
   );
@@ -275,25 +287,28 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
   const ToolComponent = selectedTool ? TOOL_LOADERS[selectedTool] : null;
 
   return (
-    <div className="flex h-full nb-bg nb-text">
-      {/* 左侧工具列表 - Neo-Brutalism 风格 */}
-      <div className="w-72 nb-bg nb-border nb-shadow rounded-xl flex-shrink-0 flex flex-col">
+    <div className="flex h-full nb-bg nb-text overflow-hidden">
+      {/* 左侧工具列表 - 简洁风格 */}
+      <div className="w-64 nb-card-static flex-shrink-0 flex flex-col m-4 mr-2 overflow-hidden">
         <div className="p-4 nb-border-b flex-shrink-0">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold nb-text">{t('tools.title')}</h2>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-xl nb-text">construction</span>
+              <h2 className="text-lg font-bold nb-text">{t('tools.title')}</h2>
+            </div>
             <button
               onClick={() => setIsManagementOpen(true)}
-              className="nb-btn nb-btn-secondary p-2 h-10 w-10 justify-center"
+              className="nb-btn nb-btn-ghost p-2"
               title={t('tools.manage')}
             >
               <span className="material-symbols-outlined text-lg">settings</span>
             </button>
           </div>
-          
-          {/* 搜索框 - Neo-Brutalism 风格 */}
+
+          {/* 搜索框 */}
           {config.enabledTools.length > 3 && (
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--nb-text-secondary)] text-lg pointer-events-none z-10">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 nb-text-secondary text-base pointer-events-none">
                 search
               </span>
               <input
@@ -308,15 +323,15 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
           )}
         </div>
 
-        <nav className="p-3 flex-1 overflow-y-auto space-y-2">
+        <nav className="p-2 flex-1 overflow-y-auto space-y-1">
           {filteredTools.map((toolId, index) => {
             const metadata = getToolMetadata(toolId);
             const isSelected = selectedTool === toolId;
-            const isRecent = toolId === recentToolId && !searchQuery; // 标记最近使用的工具
+            const isRecent = toolId === recentToolId && !searchQuery;
             const isDragging = draggedIndex === index;
             const isDragOver = dragOverIndex === index;
-            const canDrag = !searchQuery; // 搜索时禁用拖拽
-            
+            const canDrag = !searchQuery;
+
             return (
               <button
                 key={toolId}
@@ -327,38 +342,34 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
                 onDrop={canDrag ? (e) => handleDrop(e, index) : undefined}
                 onDragEnd={canDrag ? handleDragEnd : undefined}
                 onClick={() => handleSelectTool(toolId)}
-                className={`nb-btn w-full justify-start gap-3 text-left transition-all duration-150 ${
-                  isSelected ? 'nb-btn-primary' : 'nb-btn-secondary'
-                } ${isDragging ? 'opacity-50 border-dashed' : ''} ${
-                  isDragOver ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-accent-yellow)]/10' : ''
-                } ${canDrag ? 'cursor-move' : ''}`}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-100 border-2 ${isSelected
+                  ? 'bg-[color:var(--nb-accent-yellow)] border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]'
+                  : 'bg-transparent border-transparent hover:border-[color:var(--nb-border)] hover:bg-[color:var(--nb-card)]'
+                  } ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-[color:var(--nb-accent-blue)]' : ''
+                  }`}
               >
                 {canDrag && (
-                  <span className="material-symbols-outlined text-sm nb-text-secondary">
+                  <span className="material-symbols-outlined text-sm nb-text-secondary opacity-50">
                     drag_indicator
                   </span>
                 )}
-                <span className="material-symbols-outlined text-xl">{metadata.icon}</span>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-semibold">
-                    {t(metadata.nameKey)}
-                  </div>
-                </div>
+                <span className="material-symbols-outlined text-lg nb-text">{metadata.icon}</span>
+                <span className="flex-1 text-sm font-medium nb-text truncate">
+                  {t(metadata.nameKey)}
+                </span>
                 {isRecent && (
-                  <span className="nb-badge nb-badge-blue text-xs px-2 py-0.5">
+                  <span className="text-xs px-1.5 py-0.5 bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] nb-text">
                     {t('tools.recent')}
                   </span>
                 )}
               </button>
             );
           })}
-          
+
           {/* 搜索无结果 */}
           {searchQuery && filteredTools.length === 0 && (
-            <div className="nb-card-static text-center py-6 px-4">
-              <span className="material-symbols-outlined text-4xl text-[color:var(--nb-text-secondary)] mb-2">
-                search_off
-              </span>
+            <div className="text-center py-8">
+              <span className="material-symbols-outlined text-3xl nb-text-secondary mb-2">search_off</span>
               <p className="text-sm nb-text-secondary">{t('tools.noSearchResults')}</p>
             </div>
           )}
@@ -367,13 +378,11 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
         {/* 空状态 */}
         {orderedEnabledTools.length === 0 && (
           <div className="p-4 text-center">
-            <span className="material-symbols-outlined text-4xl text-[color:var(--nb-text-secondary)] mb-2">
-              construction
-            </span>
+            <span className="material-symbols-outlined text-3xl nb-text-secondary mb-2">construction</span>
             <p className="text-sm nb-text-secondary mb-3">{t('tools.noToolsEnabled')}</p>
             <button
               onClick={() => setIsManagementOpen(true)}
-              className="w-full nb-btn nb-btn-primary text-sm"
+              className="nb-btn nb-btn-primary text-sm w-full"
             >
               {t('tools.enableTools')}
             </button>
@@ -381,41 +390,45 @@ export const ToolsPage: React.FC<ToolsPageProps> = () => {
         )}
       </div>
 
-      {/* 右侧工具内容区 */}
-      <div className="flex-1 overflow-y-auto nb-bg p-6">
-        {selectedTool ? (
-          ToolComponent ? (
-            <Suspense
-              fallback={
-                <div className="h-full flex items-center justify-center nb-text-secondary">
-                  {t('common.loading')}
+      {/* 右侧工具内容区 - 简化层级 */}
+      <div className="flex-1 overflow-hidden p-4 flex flex-col">
+        <div className="flex-1 nb-card-static overflow-y-auto p-6">
+          {selectedTool ? (
+            ToolComponent ? (
+              <Suspense
+                fallback={
+                  <div className="h-full flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 border-3 border-[color:var(--nb-border)]/20"></div>
+                        <div className="absolute inset-0 border-3 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
+                      </div>
+                      <span className="font-bold nb-text-secondary text-sm">{t('common.loading')}</span>
+                    </div>
+                  </div>
+                }
+              >
+                <div className="h-full">
+                  <ToolComponent {...toolProps} />
                 </div>
-              }
-            >
-              <div className="h-full">
-                <ToolComponent {...toolProps} />
+              </Suspense>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <span className="material-symbols-outlined text-5xl nb-text-secondary mb-4">construction</span>
+                  <p className="nb-text-secondary font-medium">{t('tools.selectTool')}</p>
+                </div>
               </div>
-            </Suspense>
+            )
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <span className="material-symbols-outlined text-6xl text-[color:var(--nb-text-secondary)] mb-4">
-                  warning
-                </span>
-                <p className="nb-text-secondary text-lg">{t('tools.selectTool')}</p>
+                <span className="material-symbols-outlined text-5xl nb-text-secondary mb-4">construction</span>
+                <p className="nb-text-secondary font-medium">{t('tools.selectTool')}</p>
               </div>
             </div>
-          )
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <span className="material-symbols-outlined text-6xl text-[color:var(--nb-text-secondary)] mb-4">
-                construction
-              </span>
-              <p className="nb-text-secondary text-lg">{t('tools.selectTool')}</p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 工具管理弹窗 */}

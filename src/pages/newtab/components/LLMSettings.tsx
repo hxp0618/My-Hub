@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getLLMSettings, saveLLMSettings, testLLMConnection } from '../../../lib/llmUtils';
-import { LLMSettings } from '../../../types/llm';
+import type { LLMSettings as LLMSettingsData } from '../../../types/llm';
 import { PROVIDERS, ProviderKey } from '../../../data/models';
 
 type GeminiNanoStatus = 'checking' | 'available' | 'unavailable' | 'downloading' | 'downloadable';
 
 const LLMSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [settings, setSettings] = useState<LLMSettings>({
+  const [settings, setSettings] = useState<LLMSettingsData>({
     selectedProvider: '',
     selectedModel: '',
     apiKey: '',
@@ -57,7 +57,7 @@ const LLMSettings: React.FC = () => {
       setGeminiNanoStatus(status);
 
       // 根据可用性及是否已有偏好决定是否需要更新并持久化
-      let nextSettingsToSave: LLMSettings | null = null;
+      let nextSettingsToSave: LLMSettingsData | null = null;
       setSettings(currentSettings => {
         // Only default to 'on' if the setting has never been saved before.
         const rawSettingsData = localStorage.getItem('llm_settings');
@@ -65,14 +65,14 @@ const LLMSettings: React.FC = () => {
 
         if (status === 'available') {
           if (!hasSetNanoPreference && !currentSettings.prioritizeGeminiNano) {
-            const next = { ...currentSettings, prioritizeGeminiNano: true } as LLMSettings;
+            const next = { ...currentSettings, prioritizeGeminiNano: true } as LLMSettingsData;
             nextSettingsToSave = next;
             return next;
           }
         } else {
           // If not available, always force it to off.
           if (currentSettings.prioritizeGeminiNano) {
-            const next = { ...currentSettings, prioritizeGeminiNano: false } as LLMSettings;
+            const next = { ...currentSettings, prioritizeGeminiNano: false } as LLMSettingsData;
             nextSettingsToSave = next;
             return next;
           }
@@ -136,7 +136,7 @@ const LLMSettings: React.FC = () => {
   const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setSettings(prev => {
-      const next = { ...prev, [name]: checked } as LLMSettings;
+      const next = { ...prev, [name]: checked } as LLMSettingsData;
       // 立即持久化，确保 localStorage 中的开关状态与 UI 同步
       saveLLMSettings(next);
       return next;
@@ -153,7 +153,7 @@ const LLMSettings: React.FC = () => {
     setTestResult(null);
     
     try {
-      const result = await testLLMConnection(settings);
+      await testLLMConnection(settings);
       setTestResult({ success: true, message: t('settings.connectionSuccessMsg') });
     } catch (error) {
       setTestResult({ 

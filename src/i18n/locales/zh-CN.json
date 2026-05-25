@@ -47,6 +47,7 @@
     "placeholder": "在历史记录中搜索",
     "searching": "搜索中...",
     "noResults": "未找到结果",
+    "searchFailed": "搜索失败，请稍后重试",
     "results": "{{count}} 个结果",
     "clear": "清除搜索"
   },
@@ -152,6 +153,25 @@
     "deleteNDuplicates": "删除 {{count}} 个重复项",
     "deduplicateSuccess": "成功删除 {{count}} 个重复书签",
     "deduplicateError": "去重失败，请稍后重试",
+    "health": {
+      "title": "健康分",
+      "total": "共 {{count}} 个书签",
+      "duplicates": "重复项",
+      "duplicateGroups": "{{count}} 组重复",
+      "untagged": "无标签",
+      "needTags": "建议补充标签",
+      "stale": "长期未访问",
+      "staleHint": "180 天以上或无历史记录",
+      "invalidUrls": "异常 URL",
+      "invalidHint": "非 http/https 地址",
+      "clearFilter": "清除筛选",
+      "filters": {
+        "duplicates": "重复书签",
+        "untagged": "无标签书签",
+        "stale": "长期未访问书签",
+        "invalid": "异常 URL 书签"
+      }
+    },
     "regenerateAllTags": "重新生成所有标签",
     "retryFailedTags": "重试失败的标签",
     "bulkRegenerationError": "批量重新生成标签失败",
@@ -221,8 +241,44 @@
     "momentsInHistory": "历史时刻",
     "momentsDescription": "在过去14天中，您在当前时间段经常访问这些网站",
     "timeRangeFormat": "({{start}}:00 - {{end}}:00 高频访问)",
-    "searchPlaceholder": "搜索历史记录和书签...",
+    "searchPlaceholder": "搜索历史、书签，或输入 tool:json / tag:ai / url:github / action:settings...",
     "searchResults": "搜索结果",
+    "openTool": "打开工具 {{name}}",
+    "openToolAction": "打开工具",
+    "toolCommandCategory": "工具 · {{category}}",
+    "openAction": "执行操作 {{name}}",
+    "openActionAction": "执行操作",
+    "actionCommandCategory": "操作 · 导航",
+    "actions": {
+      "home": {
+        "title": "打开首页",
+        "description": "返回常用网站和历史时刻推荐。"
+      },
+      "bookmarks": {
+        "title": "打开书签",
+        "description": "查看、搜索和整理 Chrome 书签。"
+      },
+      "tags": {
+        "title": "打开标签",
+        "description": "管理书签标签、合并标签并查看关联书签。"
+      },
+      "history": {
+        "title": "打开历史",
+        "description": "查看浏览历史并按日期、关键词筛选。"
+      },
+      "subscriptions": {
+        "title": "打开订阅",
+        "description": "查看订阅到期提醒和通知配置。"
+      },
+      "tools": {
+        "title": "打开工具箱",
+        "description": "进入 JSON、二维码、Base64 等实用工具。"
+      },
+      "settings": {
+        "title": "打开设置",
+        "description": "调整主题、语言、权限说明和数据导入导出。"
+      }
+    },
     "fromClipboard": "来自剪贴板",
     "createWebCombo": "创建网页Combo",
     "editWebCombo": "编辑网页Combo",
@@ -316,10 +372,15 @@
     },
     "dataManagement": "数据管理",
     "exportDataTitle": "导出数据",
-    "exportDataDesc": "将您的书签、标签和网页组合导出为 JSON 文件。",
+    "exportDataDesc": "将书签、标签、工具配置和订阅数据导出为 JSON 文件。",
     "exportButton": "导出",
+    "exportSensitiveTitle": "包含敏感配置",
+    "exportSensitiveDesc": "开启后会导出 LLM API Key、Bark 设备密钥、通知渠道密钥和 Bark 发送历史。",
+    "exportSafeModeHint": "默认安全模式：导出时会清空密钥和通知历史。",
+    "exportSensitiveWarning": "完整备份文件包含可用密钥，请只保存在可信位置。",
+    "exportSensitiveConfirm": "完整导出将包含 LLM API Key、Bark 设备密钥、通知渠道密钥和 Bark 发送历史。确认继续吗？",
     "importDataTitle": "导入数据",
-    "importDataDesc": "从 JSON 文件导入书签、标签和网页组合。",
+    "importDataDesc": "从 JSON 文件导入书签、标签、工具配置和订阅数据。",
     "importButton": "导入",
     "moreFeaturesComing": "更多功能正在开发中。",
     "llmTitle": "LLM 服务商设置",
@@ -342,6 +403,45 @@
     "settingsSavedAlert": "设置已保存",
     "connectionSuccessMsg": "连接测试成功！",
     "connectionFailedMsg": "连接测试失败: {{error}}",
+    "permissionsTitle": "权限说明",
+    "permissionsDesc": "这些权限仅用于当前功能入口，内容脚本范围已限制为 http/https 页面。",
+    "permissions": {
+      "bookmarks": {
+        "title": "书签",
+        "scope": "bookmarks",
+        "desc": "读取、创建、移动和整理 Chrome 书签，用于书签页、AI 整理、导入导出和标签管理。"
+      },
+      "history": {
+        "title": "浏览历史",
+        "scope": "history",
+        "desc": "读取和删除本机浏览历史，用于历史页、首页历史时刻和历史搜索。"
+      },
+      "storage": {
+        "title": "本地存储",
+        "scope": "storage",
+        "desc": "保存扩展设置、工具配置、定时任务和订阅提醒状态，不用于同步到第三方服务。"
+      },
+      "tabs": {
+        "title": "标签页",
+        "scope": "tabs / activeTab",
+        "desc": "打开书签、读取当前活动页信息和处理页面内操作入口，仅在用户触发相关功能时使用。"
+      },
+      "clipboard": {
+        "title": "剪贴板读取",
+        "scope": "clipboardRead",
+        "desc": "用于首页从剪贴板识别 URL、快捷添加内容和部分工具输入，不会自动上传剪贴板内容。"
+      },
+      "alarms": {
+        "title": "定时任务",
+        "scope": "alarms",
+        "desc": "驱动 Bark 定时通知和订阅到期提醒，保证浏览器后台可以按计划触发。"
+      },
+      "contentScripts": {
+        "title": "网页内容脚本",
+        "scope": "http/https",
+        "desc": "只注入普通网页协议，用于页面交互和内容辅助；不会注入 file、chrome-extension 或浏览器内部页面。"
+      }
+    },
     "cardsPerRow": "每行显示卡片数量",
     "cardsPerRowDesc": "设置首页每行显示的卡片数量，卡片大小会自动调整。",
     "cardsPerRowOption": "{{count}} 列",
@@ -350,7 +450,10 @@
     "resetMenuOrder": "重置",
     "menuOrderResetSuccess": "菜单顺序已重置为默认值",
     "menuOrderHint": "拖拽调整顺序，点击图标更换",
-    "changeIcon": "点击更换图标"
+    "changeIcon": "点击更换图标",
+    "brightness": "亮度",
+    "brightnessDesc": "调整扩展界面的亮度，不影响系统亮度",
+    "brightnessReset": "重置亮度"
   },
   "time": {
     "justNow": "刚刚",
@@ -605,6 +708,8 @@
       "reuseNotification": "点击重新使用",
       "deleteConfirm": "确定要清空所有历史记录吗？",
       "historyCount": "历史记录 ({{count}}/{{max}})",
+      "historyToday": "今天",
+      "historyYesterday": "昨天",
       "advancedOptions": "高级选项",
       "enableSound": "响铃提醒",
       "customIcon": "自定义图标",
@@ -760,9 +865,11 @@
       "startTime": "开始时间 (00:00:00)",
       "endTime": "结束时间 (23:59:59)",
       "today": "今天",
+      "tomorrow": "明天",
       "yesterday": "昨天",
       "thisWeek": "本周",
-      "thisMonth": "本月"
+      "thisMonth": "本月",
+      "datePlaceholder": "yyyy-mm-dd hh:mm:ss 或 yyyy/mm/dd"
     },
     "base64Converter": {
       "name": "Base64 编解码",
@@ -1243,7 +1350,14 @@
       "exportCurl": "导出 curl",
       "import": "导入",
       "importCurlDescription": "粘贴 curl 命令，自动解析并填充请求参数。支持从浏览器开发者工具或 API 文档复制的 curl 命令。",
-      "curlPlaceholder": "粘贴 curl 命令...\n\n例如:\ncurl 'https://api.example.com/users' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"test\"}'"
+      "curlPlaceholder": "粘贴 curl 命令...\n\n例如:\ncurl 'https://api.example.com/users' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"test\"}'",
+      "curlErrors": {
+        "emptyCommand": "命令不能为空",
+        "missingCurlPrefix": "命令必须以 'curl' 开头",
+        "unsupportedMethod": "不支持的 HTTP 方法: {{method}}，支持的方法: {{supportedMethods}}",
+        "missingUrl": "命令中未找到有效的 URL",
+        "invalidUrl": "URL 格式无效，请检查 URL 是否正确"
+      }
     },
     "yamlTomlConverter": {
       "name": "YAML/TOML 转换器",
@@ -1284,6 +1398,7 @@
         "type": "订阅类型",
         "customType": "自定义类型",
         "customTypePlaceholder": "输入自定义类型",
+        "customTypeRequired": "请输入自定义类型",
         "cycle": "订阅周期",
         "expiryDate": "到期日期",
         "reminderDays": "提前提醒天数",
@@ -1426,6 +1541,37 @@
       "clickToCopy": "点击复制",
       "invalidInput": "请输入有效的数字",
       "hint": "提示：点击任意结果可复制到剪贴板，按 Enter 键聚焦输入框"
+    },
+    "caseConverter": {
+      "name": "大小写转换",
+      "description": "转换文本大小写格式（驼峰、下划线等）",
+      "input": "输入文本",
+      "inputPlaceholder": "输入要转换的文本...",
+      "batchPlaceholder": "每行输入一个文本...",
+      "batchMode": "批量模式",
+      "clear": "清空",
+      "copy": "复制",
+      "copyAll": "复制全部",
+      "emptyHint": "输入文本后将自动显示所有转换结果",
+      "stats": {
+        "chars": "字符",
+        "charsNoSpaces": "字符(无空格)",
+        "words": "单词",
+        "lines": "行数"
+      },
+      "types": {
+        "camelCase": "小驼峰 (camelCase)",
+        "pascalCase": "大驼峰 (PascalCase)",
+        "snakeCase": "下划线 (snake_case)",
+        "kebabCase": "连字符 (kebab-case)",
+        "constantCase": "常量 (CONSTANT_CASE)",
+        "dotCase": "点分隔 (dot.case)",
+        "pathCase": "路径 (path/case)",
+        "titleCase": "标题 (Title Case)",
+        "sentenceCase": "句子 (Sentence case)",
+        "uppercase": "全大写 (UPPERCASE)",
+        "lowercase": "全小写 (lowercase)"
+      }
     }
   },
   "options": {
@@ -1466,6 +1612,11 @@
       "webhook": "Webhook",
       "bark": "Bark"
     },
+    "remaining": {
+      "expired": "已过期 {{days}} 天",
+      "today": "今天到期",
+      "days": "{{days}} 天"
+    },
     "table": {
       "name": "名称",
       "type": "类型",
@@ -1482,6 +1633,75 @@
       "prev": "上一页",
       "next": "下一页",
       "page": "第 {{current}} / {{total}} 页"
+    },
+    "calendar": {
+      "overview": "到期日历",
+      "expired": "已过期",
+      "thisMonth": "本月到期",
+      "next30Days": "30 天内",
+      "enabled": "启用中",
+      "monthCount": "{{count}} 项",
+      "monthEmpty": "本月暂无到期",
+      "moreItems": "另有 {{count}} 项",
+      "clearFilter": "清除筛选",
+      "filterTitle": "正在查看 {{month}}",
+      "filterEmpty": "该月份暂无订阅",
+      "filterEmptyHint": "清除筛选后可查看全部订阅"
+    },
+    "backup": {
+      "title": "备份与恢复",
+      "description": "导出订阅和提醒设置；通知渠道密钥默认脱敏，导入时会合并订阅，同名订阅会跳过。",
+      "export": "导出备份",
+      "importMerge": "合并导入",
+      "exportSuccess": "订阅备份已导出",
+      "exportError": "订阅备份导出失败，请稍后重试",
+      "importSuccess": "订阅备份已导入，新增 {{imported}} 项，跳过 {{skipped}} 项",
+      "importError": "订阅备份导入失败，请检查文件格式后重试",
+      "importReadError": "无法读取订阅备份文件，请重新选择文件",
+      "importConfirmTitle": "确认导入订阅备份",
+      "importConfirmMessage": "将从 \"{{name}}\" 合并导入订阅，并应用备份中的提醒设置；只有备份中包含完整通知密钥时才会更新通知配置。同名订阅会跳过。",
+      "validation": {
+        "invalidJson": "备份文件不是有效的 JSON",
+        "invalidDataFormat": "备份文件数据格式无效",
+        "missingVersion": "备份文件缺少版本号",
+        "versionMismatch": "备份版本 {{version}} 与当前版本 {{currentVersion}} 不一致",
+        "missingExportedAt": "备份文件缺少导出时间",
+        "missingSubscriptions": "备份文件缺少订阅数据或格式无效",
+        "invalidSubscriptionFormat": "订阅 #{{number}} 数据格式无效",
+        "subscriptionNameRequired": "订阅 #{{number}} 名称不能为空",
+        "invalidSubscriptionType": "订阅 #{{number}} 类型无效：{{value}}",
+        "invalidSubscriptionCycle": "订阅 #{{number}} 周期无效：{{value}}",
+        "invalidExpiryDate": "订阅 #{{number}} 到期日期无效",
+        "invalidReminderDays": "订阅 #{{number}} 提醒天数无效",
+        "invalidEnabledState": "订阅 #{{number}} 启用状态无效",
+        "invalidNotificationConfigFormat": "通知配置格式无效",
+        "missingTelegramConfig": "通知配置缺少 Telegram 配置",
+        "missingEmailConfig": "通知配置缺少邮件配置",
+        "missingWebhookConfig": "通知配置缺少 Webhook 配置",
+        "missingBarkConfig": "通知配置缺少 Bark 配置",
+        "invalidSettingsFormat": "提醒设置格式无效",
+        "invalidLunarSetting": "农历显示设置无效",
+        "invalidDefaultReminderDays": "默认提醒天数无效"
+      }
+    },
+    "feedback": {
+      "loadError": "订阅数据加载失败，请稍后重试",
+      "createSuccess": "订阅已添加",
+      "updateSuccess": "订阅已更新",
+      "deleteSuccess": "订阅已删除",
+      "renewSuccess": "订阅已续订",
+      "enableSuccess": "订阅已启用",
+      "disableSuccess": "订阅已停用",
+      "settingsSuccess": "订阅设置已保存",
+      "settingsError": "订阅设置保存失败，请稍后重试",
+      "errors": {
+        "invalidName": "订阅名称不能为空",
+        "invalidDate": "订阅日期无效，请检查后重试",
+        "oneTimeRenew": "一次性订阅不支持续订",
+        "notFound": "订阅不存在或已被删除",
+        "storageError": "订阅数据保存失败，请稍后重试",
+        "generic": "操作失败，请稍后重试"
+      }
     }
   },
   "dataSync": {

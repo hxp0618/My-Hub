@@ -214,35 +214,35 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
         {/* 左侧：代码编辑器 */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-secondary">
+            <label className="text-sm font-medium nb-text-secondary">
               {t('tools.svgTool.svgCode')}
             </label>
             <div className="flex items-center gap-1">
               <button
                 onClick={handleFormat}
                 disabled={!svgCode.trim()}
-                className="px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded transition-colors disabled:opacity-50"
+                className="nb-btn nb-btn-secondary text-xs px-2 py-1"
               >
                 {t('tools.svgTool.format')}
               </button>
               <button
                 onClick={handleMinify}
                 disabled={!svgCode.trim()}
-                className="px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded transition-colors disabled:opacity-50"
+                className="nb-btn nb-btn-secondary text-xs px-2 py-1"
               >
                 {t('tools.svgTool.minify')}
               </button>
               <button
                 onClick={handleCopy}
                 disabled={!svgCode.trim()}
-                className="px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded transition-colors disabled:opacity-50"
+                className="nb-btn nb-btn-secondary text-xs px-2 py-1"
               >
                 {t('tools.svgTool.copy')}
               </button>
               <button
                 onClick={handleClear}
                 disabled={!svgCode.trim()}
-                className="px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded transition-colors disabled:opacity-50"
+                className="nb-btn nb-btn-secondary text-xs px-2 py-1"
               >
                 {t('tools.svgTool.clear')}
               </button>
@@ -252,14 +252,14 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
             value={svgCode}
             onChange={handleCodeChange}
             placeholder={t('tools.svgTool.svgCodePlaceholder')}
-            className="flex-1 w-full p-3 font-mono text-sm border border-default rounded-lg bg-surface text-main focus:ring-2 focus:ring-accent resize-none min-h-[300px]"
+            className="nb-input flex-1 w-full font-mono text-sm resize-none min-h-[300px]"
             spellCheck={false}
           />
           <div className="mt-2 flex items-center justify-between">
             {error ? (
-              <p className="text-sm text-red-500">{error}</p>
+              <p className="text-sm text-[color:var(--nb-accent-pink)]">{error}</p>
             ) : svgInfo ? (
-              <p className="text-sm text-secondary">
+              <p className="text-sm nb-text-secondary">
                 {t('tools.svgTool.originalSize')}: {svgInfo.width} × {svgInfo.height}
               </p>
             ) : (
@@ -271,16 +271,16 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
         {/* 右侧：预览区 */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-secondary">
+            <label className="text-sm font-medium nb-text-secondary">
               {t('tools.svgTool.preview')}
             </label>
             {isConverting && (
-              <span className="text-xs text-secondary animate-pulse">
+              <span className="text-xs nb-text-secondary animate-nb-pulse">
                 {t('common.loading')}
               </span>
             )}
           </div>
-          <div className="flex-1 border border-default rounded-lg bg-surface flex items-center justify-center overflow-hidden relative min-h-[300px]">
+          <div className="flex-1 nb-border rounded-none nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-border)] flex items-center justify-center overflow-hidden relative min-h-[300px]">
             {/* 棋盘格背景，用于显示透明区域 */}
             <div 
               className="absolute inset-0 opacity-10"
@@ -303,14 +303,14 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                 dangerouslySetInnerHTML={{ __html: svgCode }}
               />
             ) : (
-              <span className="text-secondary text-sm relative z-10">
+              <span className="nb-text-secondary text-sm relative z-10">
                 {t('tools.svgTool.svgCodePlaceholder')}
               </span>
             )}
           </div>
           <div className="mt-2">
             {convertedImage && (
-              <p className="text-sm text-secondary">
+              <p className="text-sm nb-text-secondary">
                 {t('tools.svgTool.convertedSize')}: {exportOptions.width} × {exportOptions.height}
               </p>
             )}
@@ -321,17 +321,17 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
       {/* 底部：导出设置和文件上传 */}
       <div className="mt-4 flex-shrink-0 space-y-3">
         {/* 导出设置 - 紧凑布局 */}
-        <div className="p-3 border border-default rounded-lg bg-secondary/30">
+        <div className="nb-card-static p-3">
           <div className="flex flex-wrap items-center gap-4">
             {/* 格式选择 */}
             <div className="flex items-center gap-2">
-              <label className="text-sm text-secondary whitespace-nowrap">
+              <label className="text-sm nb-text-secondary whitespace-nowrap">
                 {t('tools.svgTool.exportFormat')}:
               </label>
               <select
                 value={exportOptions.format}
                 onChange={(e) => setExportOptions(prev => ({ ...prev, format: e.target.value as ExportFormat }))}
-                className="px-2 py-1 text-sm border border-default rounded bg-surface text-main"
+                className="nb-input text-sm py-1 px-2"
               >
                 <option value="png">PNG</option>
                 <option value="jpeg">JPEG</option>
@@ -341,13 +341,13 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
 
             {/* 尺寸选择 */}
             <div className="flex items-center gap-2">
-              <label className="text-sm text-secondary whitespace-nowrap">
+              <label className="text-sm nb-text-secondary whitespace-nowrap">
                 {t('tools.svgTool.exportSize')}:
               </label>
               <select
                 value={selectedPreset}
                 onChange={(e) => handlePresetChange(e.target.value)}
-                className="px-2 py-1 text-sm border border-default rounded bg-surface text-main"
+                className="nb-input text-sm py-1 px-2"
               >
                 {PRESET_SIZES.map(size => (
                   <option key={size.label} value={size.label}>{size.label}</option>
@@ -363,23 +363,23 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                   type="number"
                   value={exportOptions.width}
                   onChange={(e) => handleSizeChange('width', parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 text-sm border border-default rounded bg-surface text-main"
+                  className="nb-input w-16 text-sm py-1 px-2"
                   min="1"
                 />
-                <span className="text-secondary">×</span>
+                <span className="nb-text-secondary">×</span>
                 <input
                   type="number"
                   value={exportOptions.height}
                   onChange={(e) => handleSizeChange('height', parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 text-sm border border-default rounded bg-surface text-main"
+                  className="nb-input w-16 text-sm py-1 px-2"
                   min="1"
                 />
-                <label className="flex items-center gap-1 text-xs text-secondary">
+                <label className="flex items-center gap-1 text-xs nb-text-secondary">
                   <input
                     type="checkbox"
                     checked={exportOptions.maintainAspectRatio}
                     onChange={(e) => setExportOptions(prev => ({ ...prev, maintainAspectRatio: e.target.checked }))}
-                    className="rounded"
+                    className="h-4 w-4 border-2 border-[color:var(--nb-border)] rounded-sm accent-[color:var(--nb-border)]"
                   />
                   {t('tools.svgTool.maintainAspectRatio')}
                 </label>
@@ -389,7 +389,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
             {/* 质量滑块 */}
             {(exportOptions.format === 'jpeg' || exportOptions.format === 'webp') && (
               <div className="flex items-center gap-2">
-                <label className="text-sm text-secondary whitespace-nowrap">
+                <label className="text-sm nb-text-secondary whitespace-nowrap">
                   {t('tools.svgTool.quality')}: {exportOptions.quality}%
                 </label>
                 <input
@@ -398,7 +398,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                   max="100"
                   value={exportOptions.quality}
                   onChange={(e) => setExportOptions(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
-                  className="w-24"
+                  className="w-24 accent-[color:var(--nb-border)]"
                 />
               </div>
             )}
@@ -407,7 +407,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
             <button
               onClick={handleDownload}
               disabled={!convertedBlob || isConverting}
-              className="px-4 py-1.5 text-sm bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors disabled:opacity-50"
+              className="nb-btn nb-btn-primary text-sm px-4 py-1.5"
             >
               {t('tools.svgTool.download')}
             </button>
@@ -418,7 +418,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 min-w-[200px] px-4 py-1.5 border border-dashed border-default rounded-lg text-center cursor-pointer hover:border-accent transition-colors"
+              className="flex-1 min-w-[200px] px-4 py-1.5 nb-border border-dashed rounded-none text-center cursor-pointer nb-bg-card hover:bg-[color:var(--nb-bg)] transition-colors"
             >
               <input
                 ref={fileInputRef}
@@ -427,7 +427,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              <p className="text-secondary text-sm">{t('tools.svgTool.uploadHint')}</p>
+              <p className="nb-text-secondary text-sm">{t('tools.svgTool.uploadHint')}</p>
             </div>
           </div>
         </div>

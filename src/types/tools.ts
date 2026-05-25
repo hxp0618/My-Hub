@@ -33,6 +33,7 @@ export enum ToolId {
   HTTP_URL_TESTER = 'http-url-tester',
   YAML_TOML_CONVERTER = 'yaml-toml-converter',
   UNIT_CONVERTER = 'unit-converter',
+  CASE_CONVERTER = 'case-converter',
 }
 
 /**
@@ -72,26 +73,26 @@ export const TOOL_ORDER_STORAGE_KEY = 'tool_order';
  */
 export function getValidToolOrder(stored: unknown): ToolId[] {
   const allToolIds = Object.values(ToolId);
-  
+
   // 非数组输入返回默认顺序
   if (!Array.isArray(stored)) {
     return [...allToolIds];
   }
-  
+
   // 过滤无效的工具 ID 并去重
   const seen = new Set<ToolId>();
   const validIds: ToolId[] = [];
-  
+
   for (const id of stored) {
     if (allToolIds.includes(id as ToolId) && !seen.has(id as ToolId)) {
       seen.add(id as ToolId);
       validIds.push(id as ToolId);
     }
   }
-  
+
   // 添加缺失的新工具到末尾
   const missingIds = allToolIds.filter(id => !seen.has(id));
-  
+
   return [...validIds, ...missingIds];
 }
 
@@ -282,6 +283,13 @@ export const TOOL_METADATA: Record<ToolId, ToolMetadata> = {
     descriptionKey: 'tools.unitConverter.description',
     icon: 'straighten',
     category: 'utility',
+  },
+  [ToolId.CASE_CONVERTER]: {
+    id: ToolId.CASE_CONVERTER,
+    nameKey: 'tools.caseConverter.name',
+    descriptionKey: 'tools.caseConverter.description',
+    icon: 'text_fields',
+    category: 'developer',
   },
 };
 

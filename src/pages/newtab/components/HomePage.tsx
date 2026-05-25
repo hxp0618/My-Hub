@@ -9,11 +9,14 @@ import WebComboCard from './WebComboCard';
 import { v4 as uuidv4 } from 'uuid';
 import UnifiedSearchBar from '../../../components/UnifiedSearchBar';
 import { useGlobalSearch } from '../../../hooks/useGlobalSearch';
-import { SearchResultItem } from '../../../types/search';
+import { ActionSearchResultItem, SearchResultItem, ToolSearchResultItem } from '../../../types/search';
+import { ToolId } from '../../../types/tools';
+import { SearchActionTarget } from '../../../types/searchActions';
 import { getAllBookmarkTags, addBookmarkTag } from '../../../db/indexedDB';
 import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
 import { sendMessage } from '../../../services/llmService';
 import { useToastContext } from '../../../contexts/ToastContext';
+import type { ChatMessage } from '../../../types/llm';
 import {
   DndContext,
   closestCenter,
@@ -33,11 +36,19 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useTranslation } from 'react-i18next';
+import { createLogger } from '../../../utils/logger';
+import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
+
+const homePageLogger = createLogger('[HomePage]');
+type BrowsableSearchResultItem = Exclude<SearchResultItem, ToolSearchResultItem | ActionSearchResultItem>;
+
+const isToolSearchResult = (item: SearchResultItem): item is ToolSearchResultItem => item.type === 'tool';
+const isActionSearchResult = (item: SearchResultItem): item is ActionSearchResultItem => item.type === 'action';
 
 // Sortable Card wrapper
 interface SortableCardProps {
   id: string;
-  item: RecommendationItem | SearchResultItem;
+  item: RecommendationItem | BrowsableSearchResultItem;
   actions: any[];
 }
 
@@ -59,9 +70,9 @@ const SortableCard: React.FC<SortableCardProps> = ({ id, item, actions }) => {
   const isSearchResult = 'type' in item;
   const url = item.url!;
   const title = item.title!;
-  const hostname = url ? new URL(url).hostname : '';
+  const hostname = getUrlHostname(url);
   const faviconUrl = isSearchResult
-    ? `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`
+    ? getFaviconUrl(url)
     : item.favicon;
   const visitCount = 'visitCount' in item ? item.visitCount : ('visitsInWindow' in item ? item.visitsInWindow : undefined);
   const timeLabel = isSearchResult
@@ -94,9 +105,11 @@ interface HomePageProps {
   recommendations: RecommendationItem[];
   timeRange: string;
   onRefresh?: () => void;
+  onOpenTool?: (toolId: ToolId) => void;
+  onOpenAction?: (target: SearchActionTarget) => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, onRefresh }) => {
+export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, onRefresh, onOpenTool, onOpenAction }) => {
   const { t } = useTranslation();
   const toast = useToastContext();
   const [noMoreDisplayed, setNoMoreDisplayed] = useState<string[]>(() => {
@@ -107,12 +120,12 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   const { results: searchResults, loading: searchLoading } = useGlobalSearch(searchTerm);
 
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
-  const [itemToAddBookmark, setItemToAddBookmark] = useState<RecommendationItem | SearchResultItem | null>(null);
+  const [itemToAddBookmark, setItemToAddBookmark] = useState<RecommendationItem | BrowsableSearchResultItem | null>(null);
   const [clipboardItems, setClipboardItems] = useState<RecommendationItem[]>([]);
 
   // AI生成标签相关状态
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
-  const [tagGenerationItem, setTagGenerationItem] = useState<RecommendationItem | SearchResultItem | null>(null);
+  const [tagGenerationItem, setTagGenerationItem] = useState<RecommendationItem | BrowsableSearchResultItem | null>(null);
   const [generationStatusMessage, setGenerationStatusMessage] = useState('');
   const [tagGenerationAbortController, setTagGenerationAbortController] = useState<AbortController | null>(null);
 
@@ -158,7 +171,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
           const newItems: RecommendationItem[] = urls.map(url => ({
             url: url,
             title: url.length > 20 ? url.substring(0, 20) + '...' : url,
-            favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`,
+            favicon: getFaviconUrl(url),
             lastVisitTime: Date.now(),
             visits: [],
             visitsInWindow: 1,
@@ -171,9 +184,9 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
         window.removeEventListener('focus', checkClipboard);
       } catch (err) {
         if (err instanceof Error && err.name === 'NotAllowedError') {
-          console.log('Waiting for document focus to read clipboard.');
+          homePageLogger.debug('Waiting for document focus before reading clipboard');
         } else {
-          console.error('Failed to read clipboard contents: ', err);
+          homePageLogger.warn('Failed to read clipboard contents', err);
         }
       }
     };
@@ -255,7 +268,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
     localStorage.setItem('noMoreDisplayed', JSON.stringify(updatedList));
   };
 
-  const handleOpenBookmarkModal = (item: RecommendationItem | SearchResultItem) => {
+  const handleOpenBookmarkModal = (item: RecommendationItem | BrowsableSearchResultItem) => {
     setItemToAddBookmark(item);
     setIsBookmarkModalOpen(true);
   };
@@ -287,7 +300,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
     setIsComboModalOpen(true);
   };
 
-  const handleGenerateTags = async (item: RecommendationItem | SearchResultItem) => {
+  const handleGenerateTags = async (item: RecommendationItem | BrowsableSearchResultItem) => {
     if (!item.title || !item.url) {
       toast.error(t('bookmarks.fillTitleUrl'));
       return;
@@ -309,7 +322,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
       const systemPrompt = buildTagGenerationPrompt(allExistingTags);
       const userMessage = t('tagGeneration.promptTemplate', { title: item.title, url: item.url });
 
-      const messages = [
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ];
@@ -339,14 +352,14 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                 if (!isBookmark) {
                   // Create bookmark first, then add tags
                   try {
-                    const newBookmark = await chrome.bookmarks.create({
+                    await chrome.bookmarks.create({
                       title: item.title,
                       url: item.url,
                     });
 
                     // Add tags to the newly created bookmark
                     await addBookmarkTag({
-                      url: item.url,
+                      url: item.url!,
                       tags: generatedTags
                     });
 
@@ -361,7 +374,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                 } else {
                   // Item is already a bookmark, just add tags
                   await addBookmarkTag({
-                    url: item.url,
+                    url: item.url!,
                     tags: generatedTags
                   });
                   setGenerationStatusMessage(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
@@ -425,7 +438,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
     }
   };
 
-  const itemActions = (item: RecommendationItem | SearchResultItem) => {
+  const itemActions = (item: RecommendationItem | BrowsableSearchResultItem) => {
     const actions = [];
 
     const isBookmark = 'type' in item ? item.type === 'bookmark' : item.isBookmark;
@@ -453,9 +466,15 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
     return actions;
   };
 
-  const filteredRecommendations = recommendations.filter(item => !noMoreDisplayed.includes(item.url));
+  const filteredRecommendations = React.useMemo(
+    () => recommendations.filter(item => !noMoreDisplayed.includes(item.url)),
+    [recommendations, noMoreDisplayed]
+  );
 
-  const allItems = [...clipboardItems, ...filteredRecommendations];
+  const allItems = React.useMemo(
+    () => [...clipboardItems, ...filteredRecommendations],
+    [clipboardItems, filteredRecommendations]
+  );
 
   // Sort items based on saved order
   const sortedAllItems = React.useMemo(() => {
@@ -479,9 +498,20 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   }, [allItems, itemOrder]);
 
   return (
-    <div className="p-10 relative">
-      <div className="absolute top-10 right-10 flex items-center space-x-4">
-          <div className="w-64">
+    <div className="p-6 nb-bg">
+      {/* 顶部工具栏 - 紧凑布局 */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-xl nb-text">schedule</span>
+          <h2 className="text-xl font-bold nb-text">{t('home.momentsInHistory')}</h2>
+          <span className="text-sm nb-text-secondary">{t('home.momentsDescription')}</span>
+          <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] nb-text font-medium">
+            {timeRange}
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <div className="w-56">
             <UnifiedSearchBar
               mode="global"
               value={searchTerm}
@@ -491,9 +521,9 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
             />
           </div>
 
-          {/* Cards per row quick selector - Neo-Brutalism 风格 */}
+          {/* 网格选择器 */}
           <div className="nb-card-static flex items-center space-x-2 px-3 py-2">
-            <span className="material-symbols-outlined icon-linear text-sm text-[color:var(--nb-text)]">grid_view</span>
+            <span className="material-symbols-outlined text-sm nb-text-secondary">grid_view</span>
             <select
               value={cardsPerRow}
               onChange={(e) => {
@@ -502,8 +532,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                 localStorage.setItem('cardsPerRow', newValue.toString());
                 window.dispatchEvent(new CustomEvent('cardsPerRowChanged', { detail: newValue }));
               }}
-              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer pr-6 text-[color:var(--nb-text)]"
-              style={{ backgroundPosition: 'right 0.25rem center', backgroundSize: '1rem' }}
+              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer nb-text"
             >
               <option value="2">{t('settings.cardsPerRowOption', { count: 2 })}</option>
               <option value="3">{t('settings.cardsPerRowOption', { count: 3 })}</option>
@@ -514,56 +543,129 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
           </div>
 
           <div className="relative" ref={moreMenuRef}>
-              <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="nb-btn-ghost p-2 rounded-full transition">
-                  <span className="material-symbols-outlined icon-linear text-lg">more_vert</span>
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="nb-btn nb-btn-ghost p-2"
+              >
+                  <span className="material-symbols-outlined nb-text text-lg">more_vert</span>
               </button>
               {showMoreMenu && (
-                  <div className="nb-card-static absolute right-0 mt-2 w-48 z-10">
+                  <div className="absolute right-0 mt-2 w-48 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-border)] z-30">
                       <div className="py-1">
                           <div
                               onClick={handleOpenCreateComboModal}
-                              className="flex items-center px-4 py-2 text-sm text-[color:var(--nb-text)] hover:bg-[color:var(--nb-accent-yellow)]/20 cursor-pointer transition"
+                              className="flex items-center px-4 py-2.5 text-sm nb-text hover:bg-[color:var(--nb-accent-yellow)] cursor-pointer transition-colors"
                           >
+                              <span className="material-symbols-outlined mr-2 text-base">add_circle</span>
                               {t('home.createWebCombo')}
                           </div>
                       </div>
                   </div>
               )}
           </div>
+        </div>
       </div>
 
       {searchTerm ? (
-        <div className="mt-12">
-          <h2 className="text-xl font-bold text-main mb-6">{t('home.searchResults')}</h2>
+        <div>
+          {/* 搜索结果标题 - 紧凑版 */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="material-symbols-outlined text-xl nb-text">search</span>
+            <h2 className="text-xl font-bold nb-text">{t('home.searchResults')}</h2>
+            <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] nb-text font-medium">
+              {searchResults.length}
+            </span>
+          </div>
           <div className={getGridClass()}>
-            {searchResults.map(item => (
-              <ItemCard
-                key={item.type === 'history' ? item.url! : item.id}
-                href={item.url!}
-                title={item.title!}
-                hostname={item.url ? new URL(item.url).hostname : ''}
-                faviconUrl={`https://www.google.com/s2/favicons?domain=${item.url ? new URL(item.url).hostname : ''}&sz=32`}
-                visitCount={'visitCount' in item ? item.visitCount : undefined}
-                timeLabel={timeAgo((item.type === 'history' ? item.lastVisitTime : item.dateAdded) || 0)}
-                tags={'tags' in item ? (item.tags as string[]) : undefined}
-                actions={itemActions(item)}
-                type={item.type}
-              />
-            ))}
+            {searchResults.map(item => {
+              if (isToolSearchResult(item)) {
+                return (
+                  <button
+                    key={item.toolId}
+                    type="button"
+                    onClick={() => onOpenTool?.(item.toolId)}
+                    className="nb-card relative flex min-h-[140px] flex-col p-5 text-left group"
+                    aria-label={t('home.openTool', { name: item.title })}
+                  >
+                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-green)] opacity-60 pointer-events-none"></div>
+                    <div className="flex items-start">
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+                        <span className="material-symbols-outlined nb-text text-xl">{item.icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold nb-text text-base leading-tight line-clamp-2" title={item.title}>
+                          {item.title}
+                        </h3>
+                        <p className="text-xs nb-text-secondary truncate mt-1.5 font-medium">
+                          {t('home.toolCommandCategory', { category: item.category })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm nb-text-secondary line-clamp-2">
+                      {item.description}
+                    </p>
+                    <span className="mt-auto pt-3 inline-flex items-center gap-1 text-xs font-bold nb-text uppercase tracking-wide">
+                      {t('home.openToolAction')}
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </span>
+                  </button>
+                );
+              }
+
+              if (isActionSearchResult(item)) {
+                return (
+                  <button
+                    key={item.actionId}
+                    type="button"
+                    onClick={() => onOpenAction?.(item.target)}
+                    className="nb-card relative flex min-h-[140px] flex-col p-5 text-left group"
+                    aria-label={t('home.openAction', { name: item.title })}
+                  >
+                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] opacity-60 pointer-events-none"></div>
+                    <div className="flex items-start">
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+                        <span className="material-symbols-outlined nb-text text-xl">{item.icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold nb-text text-base leading-tight line-clamp-2" title={item.title}>
+                          {item.title}
+                        </h3>
+                        <p className="text-xs nb-text-secondary truncate mt-1.5 font-medium">
+                          {t('home.actionCommandCategory')}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm nb-text-secondary line-clamp-2">
+                      {item.description}
+                    </p>
+                    <span className="mt-auto pt-3 inline-flex items-center gap-1 text-xs font-bold nb-text uppercase tracking-wide">
+                      {t('home.openActionAction')}
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </span>
+                  </button>
+                );
+              }
+
+              const hostname = getUrlHostname(item.url);
+              return (
+                <ItemCard
+                  key={item.type === 'history' ? item.url! : item.id}
+                  href={item.url!}
+                  title={item.title!}
+                  hostname={hostname}
+                  faviconUrl={getFaviconUrl(item.url)}
+                  visitCount={'visitCount' in item ? item.visitCount : undefined}
+                  timeLabel={timeAgo((item.type === 'history' ? item.lastVisitTime : item.dateAdded) || 0)}
+                  tags={'tags' in item ? (item.tags as string[]) : undefined}
+                  actions={itemActions(item)}
+                  type={item.type}
+                />
+              );
+            })}
           </div>
         </div>
       ) : (
         <>
-          <div className="mb-10">
-            <div className="flex items-center mb-2">
-              <span className="material-symbols-outlined text-main mr-3 icon-linear">schedule</span>
-              <h2 className="text-xl font-bold text-main">{t('home.momentsInHistory')}</h2>
-            </div>
-            <p className="text-secondary ml-9">
-              {t('home.momentsDescription')}
-              <span className="block font-mono text-xs mt-1">{timeRange}</span>
-            </p>
-          </div>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -587,12 +689,14 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
           </DndContext>
           
           {webCombos.length > 0 && (
-            <div className="mt-12">
-                <div className="mb-10">
-                    <div className="flex items-center mb-2">
-                      <span className="material-symbols-outlined nb-text mr-3 icon-linear">collections_bookmark</span>
-                      <h2 className="text-xl font-bold nb-text">{t('home.webCombos')}</h2>
-                    </div>
+            <div className="mt-8 pt-6 border-t-2 border-[color:var(--nb-border)]/20">
+                {/* Web Combos 标题 - 紧凑版 */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="material-symbols-outlined text-xl nb-text">collections_bookmark</span>
+                  <h2 className="text-xl font-bold nb-text">{t('home.webCombos')}</h2>
+                  <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-green)] border-2 border-[color:var(--nb-border)] nb-text font-medium">
+                    {webCombos.length}
+                  </span>
                 </div>
                 <div className={getGridClass()}>
                     {webCombos.map(combo => (
@@ -633,25 +737,54 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
         />
       </Modal>
 
-      {/* AI生成标签进度模态框 - Neo-Brutalism 风格 */}
+      {/* AI生成标签进度模态框 - 增强 Neo-Brutalism 风格 */}
       {tagGenerationItem && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 transition-colors">
-          <div className="nb-card-static w-full max-w-md p-8">
-            <h3 className="text-lg font-bold mb-4 text-[color:var(--nb-text)]">{t('bookmarks.generatingTags')}</h3>
-            <p className="text-secondary mb-4">{tagGenerationItem.title}</p>
-            <div className="flex items-center justify-center py-6">
+      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="nb-card-static w-full max-w-md p-8 shadow-[8px_8px_0px_0px_var(--nb-border)] animate-modal-appear">
+            {/* 标题区域 */}
+            <div className="flex items-center mb-6">
+              <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)] mr-4">
+                <span className="material-symbols-outlined nb-text text-xl icon-linear">auto_awesome</span>
+              </div>
+              <h3 className="text-xl font-black nb-text uppercase tracking-tight">
+                {t('bookmarks.generatingTags')}
+              </h3>
+            </div>
+
+            {/* 书签信息 */}
+            <div className="mb-6 p-4 bg-[color:var(--nb-bg)] border-2 border-[color:var(--nb-border)]">
+              <p className="nb-text-secondary text-sm font-medium truncate">
+                {tagGenerationItem.title}
+              </p>
+            </div>
+
+            {/* 状态指示器 */}
+            <div className="flex items-center justify-center py-8">
               {isGeneratingTags ? (
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-[color:var(--nb-border)]/20"></div>
+                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
+                </div>
               ) : (
-                <span className="material-symbols-outlined text-6xl text-[color:var(--nb-accent-green)]">check_circle</span>
+                <div className="w-16 h-16 flex items-center justify-center bg-[color:var(--nb-accent-green)] border-4 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-border)]">
+                  <span className="material-symbols-outlined text-4xl nb-text">check</span>
+                </div>
               )}
             </div>
-            <p className="text-center text-[color:var(--nb-text)] mb-6">{generationStatusMessage}</p>
-            <div className="flex justify-end space-x-4">
+
+            {/* 状态消息 */}
+            <div className="mb-6 text-center">
+              <p className="nb-text font-bold text-sm uppercase tracking-wide">
+                {generationStatusMessage}
+              </p>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex justify-end">
               {isGeneratingTags && (
                 <button
                   onClick={handleCancelTagGeneration}
-                  className="nb-btn nb-btn-secondary px-5 py-2"
+                  className="nb-btn nb-btn-danger px-6 py-2.5"
                 >
                   {t('common.cancel')}
                 </button>

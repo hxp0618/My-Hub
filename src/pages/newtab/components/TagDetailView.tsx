@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TagInfo } from '../../../types/tags';
 import { ItemCard } from './ItemCard';
-import { getFaviconUrl } from '../../../utils/bookmarkUtils';
+import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
 import { timeAgo } from '../utils';
 
 interface TagDetailViewProps {
@@ -114,12 +114,7 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
 
   const bookmarkCards = useMemo(() => {
     return bookmarks.map(bookmark => {
-      let hostname = bookmark.url;
-      try {
-        hostname = new URL(bookmark.url).hostname;
-      } catch {
-        // ignore
-      }
+      const hostname = getUrlHostname(bookmark.url) || bookmark.url;
 
       return (
         <ItemCard

@@ -92,7 +92,7 @@ class ErrorBoundaryComponent extends Component<ErrorBoundaryProps, ErrorBoundary
 
               {this.state.error && (
                 <details className="mb-4">
-                  <summary className="cursor-pointer text-sm font-semibold mb-2 hover:text-accent">
+                  <summary className="cursor-pointer text-sm font-semibold mb-2 hover:text-[color:var(--nb-accent-blue)]">
                     {t('errorBoundary.details')}
                   </summary>
                   <div className="bg-error-light border border-error rounded p-4 overflow-auto">
@@ -112,7 +112,7 @@ class ErrorBoundaryComponent extends Component<ErrorBoundaryProps, ErrorBoundary
             <div className="flex gap-4">
               <button
                 onClick={this.handleReset}
-                className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition"
+                className="nb-btn nb-btn-primary px-6 py-2"
               >
                 {t('errorBoundary.tryAgain')}
               </button>

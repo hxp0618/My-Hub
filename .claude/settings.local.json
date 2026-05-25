@@ -6,7 +6,9 @@
       "Bash(npm test:*)",
       "Bash(npx eslint:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Skill(design-style)",
+      "Bash(npm run build:chrome:*)"
     ],
     "deny": [],
     "ask": []

@@ -9,8 +9,6 @@ import {
   EmailConfig,
   WebhookConfig,
   SubscriptionBarkConfig,
-  SubscriptionError,
-  SubscriptionErrorCode,
   Subscription,
 } from '../types/subscription';
 import {
@@ -18,7 +16,12 @@ import {
   setSubscriptionNotificationConfig,
 } from '../db/indexedDB';
 import { BarkKeyManager } from './BarkKeyManager';
-import { getRemainingDays } from './SubscriptionService';
+import {
+  formatSubscriptionNotificationContent,
+  formatSubscriptionTestNotificationContent,
+  getSubscriptionNotificationErrorMessage,
+} from '../utils/subscriptionNotificationContent';
+import { getEnabledSubscriptionNotificationChannels } from '../utils/subscriptionNotificationChannels';
 
 /**
  * 通知发送结果
@@ -27,17 +30,6 @@ export interface NotificationResult {
   success: boolean;
   channel: string;
   error?: string;
-}
-
-/**
- * 格式化日期为本地字符串
- */
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 }
 
 /**
@@ -50,30 +42,7 @@ export function formatNotificationContent(
   subscription: Subscription,
   currentDate: number = Date.now()
 ): NotificationContent {
-  const remainingDays = getRemainingDays(subscription.expiryDate, currentDate);
-  const expiryDateStr = formatDate(subscription.expiryDate);
-  
-  let title: string;
-  let body: string;
-  
-  if (remainingDays < 0) {
-    title = `⚠️ 订阅已过期: ${subscription.name}`;
-    body = `您的订阅「${subscription.name}」已于 ${expiryDateStr} 过期，已过期 ${Math.abs(remainingDays)} 天。`;
-  } else if (remainingDays === 0) {
-    title = `🔔 订阅今日到期: ${subscription.name}`;
-    body = `您的订阅「${subscription.name}」将于今日（${expiryDateStr}）到期，请及时续费。`;
-  } else {
-    title = `📅 订阅即将到期: ${subscription.name}`;
-    body = `您的订阅「${subscription.name}」将于 ${expiryDateStr} 到期，还剩 ${remainingDays} 天。`;
-  }
-  
-  return {
-    title,
-    body,
-    subscriptionName: subscription.name,
-    expiryDate: expiryDateStr,
-    remainingDays,
-  };
+  return formatSubscriptionNotificationContent(subscription, { currentDate });
 }
 
 /**
@@ -84,7 +53,7 @@ async function sendTelegramNotification(
   content: NotificationContent
 ): Promise<NotificationResult> {
   if (!config.enabled || !config.botToken || !config.chatId) {
-    return { success: false, channel: 'telegram', error: '配置不完整' };
+    return { success: false, channel: 'telegram', error: getSubscriptionNotificationErrorMessage('incompleteConfig') };
   }
   
   try {
@@ -106,13 +75,13 @@ async function sendTelegramNotification(
     if (data.ok) {
       return { success: true, channel: 'telegram' };
     } else {
-      return { success: false, channel: 'telegram', error: data.description || '发送失败' };
+      return { success: false, channel: 'telegram', error: data.description || getSubscriptionNotificationErrorMessage('sendFailed') };
     }
   } catch (error) {
     return {
       success: false,
       channel: 'telegram',
-      error: error instanceof Error ? error.message : '网络错误',
+      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -125,7 +94,7 @@ async function sendEmailNotification(
   content: NotificationContent
 ): Promise<NotificationResult> {
   if (!config.enabled || !config.resendApiKey || !config.recipientEmail) {
-    return { success: false, channel: 'email', error: '配置不完整' };
+    return { success: false, channel: 'email', error: getSubscriptionNotificationErrorMessage('incompleteConfig') };
   }
   
   try {
@@ -147,13 +116,13 @@ async function sendEmailNotification(
       return { success: true, channel: 'email' };
     } else {
       const data = await response.json();
-      return { success: false, channel: 'email', error: data.message || '发送失败' };
+      return { success: false, channel: 'email', error: data.message || getSubscriptionNotificationErrorMessage('sendFailed') };
     }
   } catch (error) {
     return {
       success: false,
       channel: 'email',
-      error: error instanceof Error ? error.message : '网络错误',
+      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -166,7 +135,7 @@ async function sendWebhookNotification(
   content: NotificationContent
 ): Promise<NotificationResult> {
   if (!config.enabled || !config.url) {
-    return { success: false, channel: 'webhook', error: '配置不完整' };
+    return { success: false, channel: 'webhook', error: getSubscriptionNotificationErrorMessage('incompleteConfig') };
   }
   
   try {
@@ -205,7 +174,7 @@ async function sendWebhookNotification(
     return {
       success: false,
       channel: 'webhook',
-      error: error instanceof Error ? error.message : '网络错误',
+      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -218,7 +187,7 @@ async function sendBarkNotification(
   content: NotificationContent
 ): Promise<NotificationResult> {
   if (!config.enabled) {
-    return { success: false, channel: 'bark', error: '未启用' };
+    return { success: false, channel: 'bark', error: getSubscriptionNotificationErrorMessage('disabled') };
   }
   
   try {
@@ -232,7 +201,7 @@ async function sendBarkNotification(
       const existingKey = keys.find(k => k.id === config.existingKeyId);
       
       if (!existingKey) {
-        return { success: false, channel: 'bark', error: '找不到已配置的 Bark Key' };
+        return { success: false, channel: 'bark', error: getSubscriptionNotificationErrorMessage('missingBarkKey') };
       }
       
       server = existingKey.server;
@@ -242,7 +211,7 @@ async function sendBarkNotification(
       server = config.server;
       deviceKey = config.deviceKey;
     } else {
-      return { success: false, channel: 'bark', error: '配置不完整' };
+      return { success: false, channel: 'bark', error: getSubscriptionNotificationErrorMessage('incompleteConfig') };
     }
     
     // 构建 Bark URL
@@ -256,13 +225,13 @@ async function sendBarkNotification(
     if (data.code === 200) {
       return { success: true, channel: 'bark' };
     } else {
-      return { success: false, channel: 'bark', error: data.message || '发送失败' };
+      return { success: false, channel: 'bark', error: data.message || getSubscriptionNotificationErrorMessage('sendFailed') };
     }
   } catch (error) {
     return {
       success: false,
       channel: 'bark',
-      error: error instanceof Error ? error.message : '网络错误',
+      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -305,24 +274,25 @@ class NotificationService {
   async sendReminder(subscription: Subscription): Promise<NotificationResult[]> {
     const config = await this.getConfig();
     const content = formatNotificationContent(subscription);
+    const channelsToNotify = getEnabledSubscriptionNotificationChannels(subscription, config);
     const results: NotificationResult[] = [];
     
-    // 并行发送所有启用的渠道
+    // 并行发送当前订阅已选择、且全局配置启用的渠道。
     const promises: Promise<NotificationResult>[] = [];
     
-    if (config.telegram.enabled) {
+    if (channelsToNotify.includes('telegram')) {
       promises.push(sendTelegramNotification(config.telegram, content));
     }
     
-    if (config.email.enabled) {
+    if (channelsToNotify.includes('email')) {
       promises.push(sendEmailNotification(config.email, content));
     }
     
-    if (config.webhook.enabled) {
+    if (channelsToNotify.includes('webhook')) {
       promises.push(sendWebhookNotification(config.webhook, content));
     }
     
-    if (config.bark.enabled) {
+    if (channelsToNotify.includes('bark')) {
       promises.push(sendBarkNotification(config.bark, content));
     }
     
@@ -335,7 +305,7 @@ class NotificationService {
         results.push({
           success: false,
           channel: 'unknown',
-          error: result.reason?.message || '发送失败',
+          error: result.reason?.message || getSubscriptionNotificationErrorMessage('sendFailed'),
         });
       }
     }
@@ -347,13 +317,7 @@ class NotificationService {
    * 测试 Telegram 通知
    */
   async testTelegram(config: TelegramConfig): Promise<NotificationResult> {
-    const testContent: NotificationContent = {
-      title: '🔔 测试通知',
-      body: '这是一条测试通知，用于验证 Telegram 配置是否正确。',
-      subscriptionName: '测试订阅',
-      expiryDate: formatDate(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      remainingDays: 7,
-    };
+    const testContent = formatSubscriptionTestNotificationContent('Telegram');
     
     return sendTelegramNotification(config, testContent);
   }
@@ -362,13 +326,7 @@ class NotificationService {
    * 测试邮件通知
    */
   async testEmail(config: EmailConfig): Promise<NotificationResult> {
-    const testContent: NotificationContent = {
-      title: '🔔 测试通知',
-      body: '这是一条测试通知，用于验证邮件配置是否正确。',
-      subscriptionName: '测试订阅',
-      expiryDate: formatDate(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      remainingDays: 7,
-    };
+    const testContent = formatSubscriptionTestNotificationContent('Email');
     
     return sendEmailNotification(config, testContent);
   }
@@ -377,13 +335,7 @@ class NotificationService {
    * 测试 Webhook 通知
    */
   async testWebhook(config: WebhookConfig): Promise<NotificationResult> {
-    const testContent: NotificationContent = {
-      title: '🔔 测试通知',
-      body: '这是一条测试通知，用于验证 Webhook 配置是否正确。',
-      subscriptionName: '测试订阅',
-      expiryDate: formatDate(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      remainingDays: 7,
-    };
+    const testContent = formatSubscriptionTestNotificationContent('Webhook');
     
     return sendWebhookNotification(config, testContent);
   }
@@ -392,13 +344,7 @@ class NotificationService {
    * 测试 Bark 通知
    */
   async testBark(config: SubscriptionBarkConfig): Promise<NotificationResult> {
-    const testContent: NotificationContent = {
-      title: '🔔 测试通知',
-      body: '这是一条测试通知，用于验证 Bark 配置是否正确。',
-      subscriptionName: '测试订阅',
-      expiryDate: formatDate(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      remainingDays: 7,
-    };
+    const testContent = formatSubscriptionTestNotificationContent('Bark');
     
     return sendBarkNotification(config, testContent);
   }

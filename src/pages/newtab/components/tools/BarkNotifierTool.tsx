@@ -70,40 +70,34 @@ const clearHistory = () => {
   return [];
 };
 
-// 通知预览组件
-const NotificationPreview: React.FC<{
-  title: string;
-  body: string;
-}> = ({ title, body }) => {
-  const { t } = useTranslation();
+// 按日期分组记录
+const groupRecordsByDate = (records: BarkNotificationRecord[]) => {
+  const groups: { [key: string]: BarkNotificationRecord[] } = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
 
-  return (
-    <div className="nb-card-static p-4">
-      <div className="flex items-start gap-3">
-        {/* iOS 通知图标 */}
-        <div className="w-10 h-10 nb-border nb-shadow rounded-lg bg-[color:var(--nb-accent-blue)] flex items-center justify-center flex-shrink-0">
-          <span className="material-symbols-outlined text-white text-lg">notifications</span>
-        </div>
+  records.forEach(record => {
+    const recordDate = new Date(record.timestamp);
+    recordDate.setHours(0, 0, 0, 0);
 
-        <div className="flex-1 min-w-0">
-          {/* 标题 */}
-          <div className="font-semibold nb-text mb-1 truncate">
-            {title || t('tools.barkNotifier.titlePlaceholder')}
-          </div>
+    let key: string;
+    if (recordDate.getTime() === today.getTime()) {
+      key = 'today';
+    } else if (recordDate.getTime() === yesterday.getTime()) {
+      key = 'yesterday';
+    } else {
+      key = recordDate.toLocaleDateString();
+    }
 
-          {/* 内容 */}
-          <div className="text-sm nb-text-secondary line-clamp-3">
-            {body || t('tools.barkNotifier.bodyPlaceholder')}
-          </div>
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(record);
+  });
 
-          {/* 时间 */}
-          <div className="text-xs nb-text-secondary mt-1">
-            {t('tools.barkNotifier.previewTime')}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return groups;
 };
 
 // 历史记录列表组件 - Neo-Brutalism 风格
@@ -127,66 +121,107 @@ const NotificationHistory: React.FC<{
     );
   }
 
+  const groupedRecords = groupRecordsByDate(records);
+  const groupKeys = Object.keys(groupedRecords);
+
+  const getGroupLabel = (key: string) => {
+    if (key === 'today') return t('tools.barkNotifier.historyToday');
+    if (key === 'yesterday') return t('tools.barkNotifier.historyYesterday');
+    return key;
+  };
+
   return (
     <div className="nb-card-static h-full flex flex-col p-4">
-      {/* 头部操作栏 - Neo-Brutalism 风格 */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h4 className="text-sm font-bold nb-text">
+      {/* 头部操作栏 - 更紧凑 */}
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+        <h4 className="text-sm font-bold nb-text flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">history</span>
           {t('tools.barkNotifier.historyCount', { count: records.length, max: MAX_HISTORY_RECORDS })}
         </h4>
         <button
           onClick={onClearAll}
-          className="nb-btn nb-btn-danger text-xs px-3 py-1"
+          className="nb-btn nb-btn-danger text-xs px-2 py-1"
         >
           {t('tools.barkNotifier.clearAll')}
         </button>
       </div>
 
-      {/* 记录列表 - Neo-Brutalism 风格，占满剩余空间 */}
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
-        {records.map(record => (
-          <div
-            key={record.id}
-            className="nb-card-static p-3 hover:shadow-[var(--nb-shadow-hover)] hover:-translate-y-[1px] transition-all"
-            style={{ borderColor: record.status === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)' }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div
-                className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => onReuse(record)}
-                title={t('tools.barkNotifier.reuseNotification')}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-sm nb-text truncate">
-                    {record.title}
-                  </span>
-                  {record.status === 'success' ? (
-                    <span className="nb-badge nb-badge-green text-xs px-1.5 py-0">✓</span>
-                  ) : (
-                    <span className="nb-badge nb-badge-pink text-xs px-1.5 py-0">✗</span>
-                  )}
-                </div>
-                <p className="text-xs nb-text-secondary line-clamp-2 mb-1">
-                  {record.body}
-                </p>
-                <div className="text-xs nb-text-secondary">
-                  {new Date(record.timestamp).toLocaleString()}
-                </div>
-                {record.errorMessage && (
-                  <div className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
-                    {record.errorMessage}
-                  </div>
-                )}
-              </div>
+      {/* 分组记录列表 */}
+      <div className="flex-1 overflow-y-auto pr-1 min-h-0 space-y-4">
+        {groupKeys.map(groupKey => (
+          <div key={groupKey}>
+            {/* 日期分组标签 */}
+            <div className="flex items-center gap-2 mb-2 sticky top-0 py-1" style={{ backgroundColor: 'var(--nb-card)' }}>
+              <span className="text-xs font-bold nb-text-secondary uppercase tracking-wide">
+                {getGroupLabel(groupKey)}
+              </span>
+              <span className="text-xs nb-text-secondary">
+                ({groupedRecords[groupKey].length})
+              </span>
+              <div className="flex-1 h-px" style={{ backgroundColor: 'var(--nb-border)' }}></div>
+            </div>
 
-              <button
-                onClick={() => onDelete(record.id)}
-                className="nb-btn nb-btn-ghost p-1.5 rounded-lg flex-shrink-0"
-                title={t('common.delete')}
-                style={{ color: 'var(--nb-accent-pink)' }}
-              >
-                <span className="material-symbols-outlined text-sm">delete</span>
-              </button>
+            {/* 记录列表 - 更紧凑的卡片 */}
+            <div className="space-y-1.5">
+              {groupedRecords[groupKey].map(record => (
+                <div
+                  key={record.id}
+                  className="group relative rounded-lg nb-border p-2.5 hover:shadow-sm transition-all cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--nb-bg)',
+                    borderLeftWidth: '3px',
+                    borderLeftColor: record.status === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)'
+                  }}
+                  onClick={() => onReuse(record)}
+                  title={t('tools.barkNotifier.reuseNotification')}
+                >
+                  <div className="flex items-start gap-2">
+                    {/* 状态图标 */}
+                    <div className="flex-shrink-0 mt-0.5">
+                      {record.status === 'success' ? (
+                        <span className="text-xs" style={{ color: 'var(--nb-accent-green)' }}>✓</span>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--nb-accent-pink)' }}>✗</span>
+                      )}
+                    </div>
+
+                    {/* 内容 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-sm nb-text truncate">
+                          {record.title}
+                        </span>
+                        <span className="text-xs nb-text-secondary whitespace-nowrap">
+                          {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      {record.body && (
+                        <p className="text-xs nb-text-secondary line-clamp-1 mt-0.5">
+                          {record.body}
+                        </p>
+                      )}
+                      {record.errorMessage && (
+                        <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--nb-accent-pink)' }}>
+                          {record.errorMessage}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 删除按钮 - hover 时显示 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(record.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[var(--nb-bg-hover)] flex-shrink-0"
+                      title={t('common.delete')}
+                      style={{ color: 'var(--nb-accent-pink)' }}
+                    >
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}
@@ -221,7 +256,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   const [history, setHistory] = useState<BarkNotificationRecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [keysVersion, setKeysVersion] = useState(0); // 用于强制刷新
+  const [, setKeysVersion] = useState(0); // 用于强制刷新
   const [selectedKeyIds, setSelectedKeyIds] = useState<string[]>([]); // 多选密钥
 
   // 新增：高级选项
@@ -284,7 +319,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
   }, [keyManager]);
 
   // 发送单个通知到指定密钥
-  const sendToKey = async (key: { server: string; deviceKey: string }) => {
+  const sendToKey = useCallback(async (key: { server: string; deviceKey: string }) => {
     let url = `${key.server}/${key.deviceKey}/${encodeURIComponent(title || defaultTitle)}/${encodeURIComponent(body || '')}`;
 
     const params = new URLSearchParams();
@@ -297,7 +332,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
 
     const response = await fetch(url);
     return response.json();
-  };
+  }, [body, customIcon, defaultTitle, enableSound, messageGroup, title]);
 
   // 发送 Bark 通知（支持多选）
   const sendNotification = useCallback(async () => {
@@ -366,10 +401,8 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
     } else if (successCount === 0) {
       // 全部失败
       const failedResults = results
-        .filter((r): r is PromiseFulfilledResult<{ key: typeof selectedKeys[0]; success: boolean; error?: string }> =>
-          r.status === 'fulfilled' && !r.value.success
-        )
-        .map(r => r.value.error)
+        .filter(r => r.status === 'fulfilled' && !r.value.success)
+        .map(r => (r as PromiseFulfilledResult<{ key: typeof selectedKeys[0]; success: boolean; error?: string }>).value.error)
         .filter(Boolean)
         .join('; ');
 
@@ -401,7 +434,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
     }
 
     setIsSending(false);
-  }, [selectedKeyIds, keys, title, body, enableSound, customIcon, messageGroup, defaultTitle, t]);
+  }, [selectedKeyIds, keys, title, body, enableSound, customIcon, messageGroup, defaultTitle, t, sendToKey]);
 
 
 
@@ -505,11 +538,10 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setActiveTab('instant')}
-            className={`flex-1 px-4 py-2 rounded-lg nb-border transition-all ${
-              activeTab === 'instant'
-                ? 'nb-shadow'
-                : 'opacity-70 hover:opacity-100'
-            }`}
+            className={`flex-1 px-4 py-2 rounded-lg nb-border transition-all ${activeTab === 'instant'
+              ? 'nb-shadow'
+              : 'opacity-70 hover:opacity-100'
+              }`}
             style={{
               backgroundColor: activeTab === 'instant'
                 ? 'var(--nb-accent-yellow)'
@@ -523,11 +555,10 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('scheduled')}
-            className={`flex-1 px-4 py-2 rounded-lg nb-border transition-all ${
-              activeTab === 'scheduled'
-                ? 'nb-shadow'
-                : 'opacity-70 hover:opacity-100'
-            }`}
+            className={`flex-1 px-4 py-2 rounded-lg nb-border transition-all ${activeTab === 'scheduled'
+              ? 'nb-shadow'
+              : 'opacity-70 hover:opacity-100'
+              }`}
             style={{
               backgroundColor: activeTab === 'scheduled'
                 ? 'var(--nb-accent-blue)'
@@ -551,16 +582,14 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
         {/* 消息提示 */}
         {message && (
           <div
-            className={`nb-card-static p-3 flex-shrink-0 ${
-              messageType === 'success' ? 'border-[color:var(--nb-accent-green)]' : 'border-[color:var(--nb-accent-pink)]'
-            }`}
+            className={`nb-card-static p-3 flex-shrink-0 ${messageType === 'success' ? 'border-[color:var(--nb-accent-green)]' : 'border-[color:var(--nb-accent-pink)]'
+              }`}
           >
             <p
-              className={`text-sm ${
-                messageType === 'success'
-                  ? 'text-[color:var(--nb-accent-green)]'
-                  : 'text-[color:var(--nb-accent-pink)]'
-              }`}
+              className={`text-sm ${messageType === 'success'
+                ? 'text-[color:var(--nb-accent-green)]'
+                : 'text-[color:var(--nb-accent-pink)]'
+                }`}
             >
               {message}
             </p>
@@ -573,21 +602,21 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
             /* 即时发送 Tab */
             <div className="h-full grid grid-cols-2 gap-6">
               {/* 左侧：配置和发送 */}
-              <div className="flex flex-col gap-4">
-                {/* 密钥管理区 */}
-                <div className="nb-card-static space-y-3 p-4 flex-shrink-0">
+              <div className="flex flex-col gap-3 overflow-y-auto pr-1">
+                {/* 密钥选择区 - 更紧凑 */}
+                <div className="nb-card-static p-3 flex-shrink-0">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium text-main">
+                    <h4 className="text-sm font-medium nb-text flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-base">key</span>
                       {t('tools.barkNotifier.keys.title')}
                     </h4>
                     <button
                       onClick={() => setIsModalOpen(true)}
-                      className="nb-btn nb-btn-secondary text-xs px-3 py-1.5"
+                      className="nb-btn nb-btn-secondary text-xs px-2 py-1"
                     >
                       {t('tools.barkNotifier.keys.manage')}
                     </button>
                   </div>
-
                   <KeySelector
                     keys={keys}
                     selectedKeyIds={selectedKeyIds}
@@ -597,31 +626,73 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
                   />
                 </div>
 
-                {/* 使用说明 */}
-                <div className="nb-card-static p-3 flex-shrink-0" style={{ borderColor: 'var(--nb-accent-blue)' }}>
-                  <p className="text-xs" style={{ color: 'var(--nb-accent-blue)' }}>
-                    {t('tools.barkNotifier.hint')}
-                  </p>
-                </div>
-
-                {/* 预览区 */}
-                <div className="flex-shrink-0">
-                  <h4 className="text-sm font-medium text-main mb-2">
+                {/* 通知内容输入 */}
+                <div className="nb-card-static p-3 flex-shrink-0 space-y-3">
+                  <h4 className="text-sm font-medium nb-text flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base">edit_note</span>
                     {t('tools.barkNotifier.preview')}
                   </h4>
-                  <NotificationPreview title={title} body={body} />
+
+                  {/* 标题输入 */}
+                  <div>
+                    <label className="block text-xs font-medium nb-text-secondary mb-1">
+                      {t('tools.barkNotifier.title')}
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={e => setTitle(e.target.value)}
+                      placeholder={t('tools.barkNotifier.titlePlaceholder')}
+                      className="nb-input w-full text-sm"
+                    />
+                  </div>
+
+                  {/* 内容输入 */}
+                  <div>
+                    <label className="block text-xs font-medium nb-text-secondary mb-1">
+                      {t('tools.barkNotifier.body')}
+                    </label>
+                    <textarea
+                      value={body}
+                      onChange={e => setBody(e.target.value)}
+                      placeholder={t('tools.barkNotifier.bodyPlaceholder')}
+                      className="nb-input w-full text-sm resize-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* 预览效果 - 紧凑版 */}
+                  <div className="rounded-lg p-2.5 nb-border" style={{ backgroundColor: 'var(--nb-bg)' }}>
+                    <div className="flex items-start gap-2">
+                      <div className="w-8 h-8 nb-border rounded-lg bg-[color:var(--nb-accent-blue)] flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-white text-sm">notifications</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm nb-text truncate">
+                          {title || t('tools.barkNotifier.titlePlaceholder')}
+                        </div>
+                        <div className="text-xs nb-text-secondary line-clamp-2">
+                          {body || t('tools.barkNotifier.bodyPlaceholder')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 通知内容 - 占据剩余空间 */}
-                <div className="flex-1 flex flex-col gap-4 min-h-0">
-                  {/* 高级选项 */}
-                  <div className="nb-card-static flex-shrink-0 p-3 space-y-3">
-                    <h5 className="text-xs font-medium nb-text-secondary mb-2">
+                {/* 高级选项 - 可折叠 */}
+                <details className="nb-card-static flex-shrink-0">
+                  <summary className="p-3 cursor-pointer flex items-center justify-between select-none hover:bg-[var(--nb-bg-hover)] transition-colors">
+                    <span className="text-xs font-medium nb-text-secondary flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">tune</span>
                       {t('tools.barkNotifier.advancedOptions')}
-                    </h5>
-
+                    </span>
+                    <span className="material-symbols-outlined text-sm nb-text-secondary transition-transform [details[open]>&]:rotate-180">
+                      expand_more
+                    </span>
+                  </summary>
+                  <div className="px-3 pb-3 space-y-3 border-t" style={{ borderColor: 'var(--nb-border)' }}>
                     {/* 响铃开关 */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pt-3">
                       <label className="text-sm nb-text">
                         {t('tools.barkNotifier.enableSound')}
                       </label>
@@ -666,45 +737,20 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
                       />
                     </div>
                   </div>
+                </details>
 
-                  <div className="flex-shrink-0">
-                    <label className="block text-sm font-medium text-main mb-2">
-                      {t('tools.barkNotifier.title')}
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                      placeholder={t('tools.barkNotifier.titlePlaceholder')}
-                      className="nb-input w-full text-sm"
-                    />
-                  </div>
-
-                  <div className="flex-1 flex flex-col min-h-0">
-                    <label className="block text-sm font-medium text-main mb-2 flex-shrink-0">
-                      {t('tools.barkNotifier.body')}
-                    </label>
-                    <textarea
-                      value={body}
-                      onChange={e => setBody(e.target.value)}
-                      placeholder={t('tools.barkNotifier.bodyPlaceholder')}
-                      className="nb-input flex-1 text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* 发送按钮 */}
-                  <button
-                    onClick={sendNotification}
-                    disabled={isSending || selectedKeyIds.length === 0}
-                    className="nb-btn nb-btn-primary w-full px-4 py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                  >
-                    {isSending
-                      ? t('tools.barkNotifier.sending')
-                      : selectedKeyIds.length > 1
-                        ? t('tools.barkNotifier.sendToMultiple', { count: selectedKeyIds.length })
-                        : t('tools.barkNotifier.send')}
-                  </button>
-                </div>
+                {/* 发送按钮 */}
+                <button
+                  onClick={sendNotification}
+                  disabled={isSending || selectedKeyIds.length === 0}
+                  className="nb-btn nb-btn-primary w-full px-4 py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 mt-auto"
+                >
+                  {isSending
+                    ? t('tools.barkNotifier.sending')
+                    : selectedKeyIds.length > 1
+                      ? t('tools.barkNotifier.sendToMultiple', { count: selectedKeyIds.length })
+                      : t('tools.barkNotifier.send')}
+                </button>
               </div>
 
               {/* 右侧：历史记录 */}

@@ -4,6 +4,9 @@
  */
 
 import { BarkKeyConfig } from '../types/bark';
+import { createLogger } from './logger';
+
+const barkKeyLogger = createLogger('[BarkKeyManager]');
 
 /**
  * 生成唯一的密钥配置 ID
@@ -167,7 +170,7 @@ export function migrateOldConfig(): void {
         localStorage.setItem(BARK_KEYS_STORAGE_KEY, JSON.stringify([migratedKey]));
         localStorage.setItem(BARK_SELECTED_KEY_ID_STORAGE_KEY, migratedKey.id);
         
-        console.log('Successfully migrated old Bark config to new multi-key system');
+        barkKeyLogger.debug('Migrated old Bark config to multi-key system');
       }
     } catch (e) {
       console.error('Failed to migrate old Bark config:', e);

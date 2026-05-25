@@ -22,8 +22,8 @@ export const LanguageSwitcher: React.FC = () => {
         aria-label={t('settings.languageAriaLabel')}
       >
         <span className="text-lg">{currentLanguage.flag}</span>
-        <span className="text-sm text-main">{currentLanguage.name}</span>
-        <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="text-sm nb-text">{currentLanguage.name}</span>
+        <svg className="w-4 h-4 nb-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>

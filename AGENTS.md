@@ -243,7 +243,7 @@
     box-shadow: var(--nb-shadow);
 }
 ```
-
+http://ssotest.hwwt2.com/openguide/yum/page/auth/auth1.jsp
 **输入框规则**:
 - ✅ 白色背景 + 2px 黑边框 + 圆角
 - ✅ 聚焦时显示硬阴影 (无发光效果)

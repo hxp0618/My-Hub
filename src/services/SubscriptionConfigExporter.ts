@@ -5,18 +5,12 @@
 import {
   Subscription,
   SubscriptionExportData,
-  SubscriptionNotificationConfig,
-  SubscriptionSettings,
   ImportMode,
-  SubscriptionError,
-  SubscriptionErrorCode,
   EXPORT_DATA_VERSION,
-  DEFAULT_NOTIFICATION_CONFIG,
-  DEFAULT_SUBSCRIPTION_SETTINGS,
   generateSubscriptionId,
   SubscriptionCycle,
   SubscriptionType,
-  SubscriptionStatus,
+  DEFAULT_NOTIFICATION_CONFIG,
 } from '../types/subscription';
 import {
   getAllSubscriptions,
@@ -27,14 +21,48 @@ import {
   getSubscriptionNotificationConfig,
   setSubscriptionNotificationConfig,
 } from '../db/indexedDB';
+import {
+  mergeSubscriptionNotificationConfigForImport,
+  redactSubscriptionNotificationConfig,
+} from '../utils/subscriptionNotificationConfigPrivacy';
 
 /**
  * 导入验证结果
  */
+export type ImportValidationIssueCode =
+  | 'invalidJson'
+  | 'invalidDataFormat'
+  | 'missingVersion'
+  | 'versionMismatch'
+  | 'missingExportedAt'
+  | 'missingSubscriptions'
+  | 'invalidSubscriptionFormat'
+  | 'subscriptionNameRequired'
+  | 'invalidSubscriptionType'
+  | 'invalidSubscriptionCycle'
+  | 'invalidExpiryDate'
+  | 'invalidReminderDays'
+  | 'invalidEnabledState'
+  | 'invalidNotificationConfigFormat'
+  | 'missingTelegramConfig'
+  | 'missingEmailConfig'
+  | 'missingWebhookConfig'
+  | 'missingBarkConfig'
+  | 'invalidSettingsFormat'
+  | 'invalidLunarSetting'
+  | 'invalidDefaultReminderDays';
+
+export interface ImportValidationIssue {
+  code: ImportValidationIssueCode;
+  values?: Record<string, string | number>;
+}
+
 export interface ImportValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  issues: ImportValidationIssue[];
+  warningIssues: ImportValidationIssue[];
   data?: SubscriptionExportData;
 }
 
@@ -46,6 +74,11 @@ export interface ImportResult {
   importedCount: number;
   skippedCount: number;
   errors: string[];
+  issues?: ImportValidationIssue[];
+}
+
+export interface SubscriptionExportOptions {
+  includeSensitiveData?: boolean;
 }
 
 /**
@@ -59,60 +92,66 @@ const VALID_CYCLES: SubscriptionCycle[] = ['monthly', 'quarterly', 'semi-annual'
 const VALID_TYPES: SubscriptionType[] = ['video', 'music', 'cloud', 'software', 'domain', 'server', 'other'];
 
 /**
- * 有效的订阅状态值
- */
-const VALID_STATUSES: SubscriptionStatus[] = ['active', 'disabled', 'expired'];
-
-/**
  * 验证订阅数据是否有效
  */
-function validateSubscription(sub: unknown, index: number): string[] {
+function validateSubscription(sub: unknown, index: number): { errors: string[]; issues: ImportValidationIssue[] } {
   const errors: string[] = [];
+  const issues: ImportValidationIssue[] = [];
+  const number = index + 1;
   
   if (!sub || typeof sub !== 'object') {
-    errors.push(`订阅 #${index + 1}: 无效的数据格式`);
-    return errors;
+    errors.push(`订阅 #${number}: 无效的数据格式`);
+    issues.push({ code: 'invalidSubscriptionFormat', values: { number } });
+    return { errors, issues };
   }
   
   const s = sub as Record<string, unknown>;
   
   // 验证必需字段
   if (typeof s.name !== 'string' || s.name.trim().length === 0) {
-    errors.push(`订阅 #${index + 1}: 名称不能为空`);
+    errors.push(`订阅 #${number}: 名称不能为空`);
+    issues.push({ code: 'subscriptionNameRequired', values: { number } });
   }
   
   if (!VALID_TYPES.includes(s.type as SubscriptionType)) {
-    errors.push(`订阅 #${index + 1}: 无效的订阅类型 "${s.type}"`);
+    errors.push(`订阅 #${number}: 无效的订阅类型 "${s.type}"`);
+    issues.push({ code: 'invalidSubscriptionType', values: { number, value: String(s.type) } });
   }
   
   if (!VALID_CYCLES.includes(s.cycle as SubscriptionCycle)) {
-    errors.push(`订阅 #${index + 1}: 无效的订阅周期 "${s.cycle}"`);
+    errors.push(`订阅 #${number}: 无效的订阅周期 "${s.cycle}"`);
+    issues.push({ code: 'invalidSubscriptionCycle', values: { number, value: String(s.cycle) } });
   }
   
   if (typeof s.expiryDate !== 'number' || isNaN(s.expiryDate)) {
-    errors.push(`订阅 #${index + 1}: 无效的到期日期`);
+    errors.push(`订阅 #${number}: 无效的到期日期`);
+    issues.push({ code: 'invalidExpiryDate', values: { number } });
   }
   
   if (typeof s.reminderDays !== 'number' || s.reminderDays < 0) {
-    errors.push(`订阅 #${index + 1}: 无效的提醒天数`);
+    errors.push(`订阅 #${number}: 无效的提醒天数`);
+    issues.push({ code: 'invalidReminderDays', values: { number } });
   }
   
   if (typeof s.isEnabled !== 'boolean') {
-    errors.push(`订阅 #${index + 1}: 无效的启用状态`);
+    errors.push(`订阅 #${number}: 无效的启用状态`);
+    issues.push({ code: 'invalidEnabledState', values: { number } });
   }
   
-  return errors;
+  return { errors, issues };
 }
 
 /**
  * 验证通知配置是否有效
  */
-function validateNotificationConfig(config: unknown): string[] {
+function validateNotificationConfig(config: unknown): { errors: string[]; issues: ImportValidationIssue[] } {
   const errors: string[] = [];
+  const issues: ImportValidationIssue[] = [];
   
   if (!config || typeof config !== 'object') {
     errors.push('通知配置: 无效的数据格式');
-    return errors;
+    issues.push({ code: 'invalidNotificationConfigFormat' });
+    return { errors, issues };
   }
   
   const c = config as Record<string, unknown>;
@@ -120,45 +159,53 @@ function validateNotificationConfig(config: unknown): string[] {
   // 验证各渠道配置存在
   if (!c.telegram || typeof c.telegram !== 'object') {
     errors.push('通知配置: 缺少 Telegram 配置');
+    issues.push({ code: 'missingTelegramConfig' });
   }
   
   if (!c.email || typeof c.email !== 'object') {
     errors.push('通知配置: 缺少邮件配置');
+    issues.push({ code: 'missingEmailConfig' });
   }
   
   if (!c.webhook || typeof c.webhook !== 'object') {
     errors.push('通知配置: 缺少 Webhook 配置');
+    issues.push({ code: 'missingWebhookConfig' });
   }
   
   if (!c.bark || typeof c.bark !== 'object') {
     errors.push('通知配置: 缺少 Bark 配置');
+    issues.push({ code: 'missingBarkConfig' });
   }
   
-  return errors;
+  return { errors, issues };
 }
 
 /**
  * 验证设置是否有效
  */
-function validateSettings(settings: unknown): string[] {
+function validateSettings(settings: unknown): { errors: string[]; issues: ImportValidationIssue[] } {
   const errors: string[] = [];
+  const issues: ImportValidationIssue[] = [];
   
   if (!settings || typeof settings !== 'object') {
     errors.push('设置: 无效的数据格式');
-    return errors;
+    issues.push({ code: 'invalidSettingsFormat' });
+    return { errors, issues };
   }
   
   const s = settings as Record<string, unknown>;
   
   if (typeof s.showLunarDate !== 'boolean') {
     errors.push('设置: 无效的农历显示设置');
+    issues.push({ code: 'invalidLunarSetting' });
   }
   
   if (typeof s.defaultReminderDays !== 'number' || s.defaultReminderDays < 0) {
     errors.push('设置: 无效的默认提醒天数');
+    issues.push({ code: 'invalidDefaultReminderDays' });
   }
   
-  return errors;
+  return { errors, issues };
 }
 
 /**
@@ -167,6 +214,8 @@ function validateSettings(settings: unknown): string[] {
 export function validateImportData(jsonString: string): ImportValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const issues: ImportValidationIssue[] = [];
+  const warningIssues: ImportValidationIssue[] = [];
   
   // 解析 JSON
   let data: unknown;
@@ -177,6 +226,8 @@ export function validateImportData(jsonString: string): ImportValidationResult {
       valid: false,
       errors: ['无效的 JSON 格式'],
       warnings: [],
+      issues: [{ code: 'invalidJson' }],
+      warningIssues: [],
     };
   }
   
@@ -185,6 +236,8 @@ export function validateImportData(jsonString: string): ImportValidationResult {
       valid: false,
       errors: ['无效的数据格式'],
       warnings: [],
+      issues: [{ code: 'invalidDataFormat' }],
+      warningIssues: [],
     };
   }
   
@@ -193,42 +246,59 @@ export function validateImportData(jsonString: string): ImportValidationResult {
   // 验证版本号
   if (typeof d.version !== 'string') {
     errors.push('缺少版本号');
+    issues.push({ code: 'missingVersion' });
   } else if (d.version !== EXPORT_DATA_VERSION) {
     warnings.push(`数据版本 (${d.version}) 与当前版本 (${EXPORT_DATA_VERSION}) 不同，可能存在兼容性问题`);
+    warningIssues.push({
+      code: 'versionMismatch',
+      values: { version: d.version, currentVersion: EXPORT_DATA_VERSION },
+    });
   }
   
   // 验证导出时间
   if (typeof d.exportedAt !== 'number') {
     warnings.push('缺少导出时间');
+    warningIssues.push({ code: 'missingExportedAt' });
   }
   
   // 验证订阅数组
   if (!Array.isArray(d.subscriptions)) {
     errors.push('缺少订阅数据或格式无效');
+    issues.push({ code: 'missingSubscriptions' });
   } else {
     d.subscriptions.forEach((sub, index) => {
-      errors.push(...validateSubscription(sub, index));
+      const result = validateSubscription(sub, index);
+      errors.push(...result.errors);
+      issues.push(...result.issues);
     });
   }
   
   // 验证通知配置
   if (d.notificationConfig) {
-    errors.push(...validateNotificationConfig(d.notificationConfig));
+    const result = validateNotificationConfig(d.notificationConfig);
+    errors.push(...result.errors);
+    issues.push(...result.issues);
   } else {
     warnings.push('缺少通知配置，将使用默认配置');
+    warningIssues.push({ code: 'invalidNotificationConfigFormat' });
   }
   
   // 验证设置
   if (d.settings) {
-    errors.push(...validateSettings(d.settings));
+    const result = validateSettings(d.settings);
+    errors.push(...result.errors);
+    issues.push(...result.issues);
   } else {
     warnings.push('缺少设置，将使用默认设置');
+    warningIssues.push({ code: 'invalidSettingsFormat' });
   }
   
   return {
     valid: errors.length === 0,
     errors,
     warnings,
+    issues,
+    warningIssues,
     data: errors.length === 0 ? (data as SubscriptionExportData) : undefined,
   };
 }
@@ -240,16 +310,20 @@ class SubscriptionConfigExporter {
   /**
    * 导出所有配置为 JSON 字符串
    */
-  async exportConfig(): Promise<string> {
+  async exportConfig(options: SubscriptionExportOptions = {}): Promise<string> {
     const subscriptions = await getAllSubscriptions();
     const notificationConfig = await getSubscriptionNotificationConfig();
     const settings = await getSubscriptionSettings();
+    const includeSensitiveData = options.includeSensitiveData === true;
     
     const exportData: SubscriptionExportData = {
       version: EXPORT_DATA_VERSION,
       exportedAt: Date.now(),
       subscriptions,
-      notificationConfig,
+      // 默认备份不携带可直接发送通知的密钥，避免 JSON 文件泄露后被滥用。
+      notificationConfig: includeSensitiveData
+        ? notificationConfig
+        : redactSubscriptionNotificationConfig(notificationConfig),
       settings,
     };
     
@@ -259,8 +333,8 @@ class SubscriptionConfigExporter {
   /**
    * 导出配置为 Blob（用于下载）
    */
-  async exportAsBlob(): Promise<Blob> {
-    const jsonString = await this.exportConfig();
+  async exportAsBlob(options: SubscriptionExportOptions = {}): Promise<Blob> {
+    const jsonString = await this.exportConfig(options);
     return new Blob([jsonString], { type: 'application/json' });
   }
   
@@ -294,6 +368,7 @@ class SubscriptionConfigExporter {
         importedCount: 0,
         skippedCount: 0,
         errors: validation.errors,
+        issues: validation.issues,
       };
     }
     
@@ -347,7 +422,18 @@ class SubscriptionConfigExporter {
       
       // 导入通知配置
       if (importData.notificationConfig) {
-        await setSubscriptionNotificationConfig(importData.notificationConfig);
+        const existingConfig = await getSubscriptionNotificationConfig();
+        const mergedConfig = mergeSubscriptionNotificationConfigForImport(
+          {
+            ...DEFAULT_NOTIFICATION_CONFIG,
+            ...importData.notificationConfig,
+          },
+          existingConfig
+        );
+        await setSubscriptionNotificationConfig({
+          ...DEFAULT_NOTIFICATION_CONFIG,
+          ...mergedConfig,
+        });
       }
       
       // 导入设置
@@ -367,6 +453,7 @@ class SubscriptionConfigExporter {
         importedCount: 0,
         skippedCount: 0,
         errors: [error instanceof Error ? error.message : '导入失败'],
+        issues: [],
       };
     }
   }
@@ -386,6 +473,7 @@ class SubscriptionConfigExporter {
             importedCount: 0,
             skippedCount: 0,
             errors: ['无法读取文件内容'],
+            issues: [],
           });
           return;
         }
@@ -400,6 +488,7 @@ class SubscriptionConfigExporter {
           importedCount: 0,
           skippedCount: 0,
           errors: ['文件读取失败'],
+          issues: [],
         });
       };
       

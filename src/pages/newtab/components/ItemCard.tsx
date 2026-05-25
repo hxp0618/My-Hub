@@ -38,6 +38,7 @@ interface ItemCardProps {
   // 拖拽相关
   isDraggable?: boolean;
   dragHandleProps?: any;
+  dragProps?: React.HTMLAttributes<HTMLDivElement>;
   isDragging?: boolean;
 }
 
@@ -58,6 +59,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   onSelect,
   isDraggable = false,
   dragHandleProps,
+  dragProps,
   isDragging = false,
 }) => {
   const { t } = useTranslation();
@@ -135,11 +137,18 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     </div>
   );
 
+  // 随机选择一个轻微的旋转角度，用于 sticker 效果
+  const rotationClass = React.useMemo(() => {
+    const rotations = ['nb-sticker-1', 'nb-sticker-2', 'nb-sticker-3', ''];
+    return rotations[Math.floor(Math.random() * rotations.length)];
+  }, []);
+
   return (
     <div
       ref={wrapperRef}
       onClick={handleWrapperClick}
-      className={`nb-card relative flex flex-col p-4 no-underline group min-h-[120px] ${
+      {...dragProps}
+      className={`nb-card relative flex flex-col p-5 no-underline group min-h-[140px] ${rotationClass} ${
         isMultiSelectMode ? 'cursor-pointer' : 'cursor-pointer'
       } ${isSelected ? 'nb-selected' : ''} ${
         isDragging ? 'opacity-50 scale-105' : ''
@@ -151,9 +160,18 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             type="checkbox"
             checked={isSelected}
             onChange={onSelect}
-            className="h-5 w-5 nb-border rounded-md bg-[color:var(--nb-card)] text-[color:var(--nb-border)] accent-[color:var(--nb-border)] cursor-pointer focus:outline-none focus:ring-0"
+            className="h-5 w-5 border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-card)] text-[color:var(--nb-border)] accent-[color:var(--nb-border)] cursor-pointer focus:outline-none focus:ring-0"
           />
         </div>
+      )}
+
+      {/* 装饰性小方块 - 随机颜色 */}
+      {!isMultiSelectMode && !isDraggable && (
+        <div
+          className={`absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] opacity-40 pointer-events-none ${
+            ['bg-[color:var(--nb-accent-pink)]', 'bg-[color:var(--nb-accent-yellow)]', 'bg-[color:var(--nb-accent-blue)]', 'bg-[color:var(--nb-accent-green)]'][Math.floor(href.length % 4)]
+          }`}
+        ></div>
       )}
 
       {/* -- Drag Handle -- */}
@@ -161,9 +179,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         <div
           className="drag-handle absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
           {...dragHandleProps}
-          onClick={e => e.stopPropagation()}
-        >
-          <span className="material-symbols-outlined icon-linear text-lg text-gray-400 hover:text-gray-600">
+        onClick={e => e.stopPropagation()}
+      >
+          <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary hover:nb-text">
             drag_indicator
           </span>
         </div>
@@ -171,10 +189,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({
 
       {/* -- Header -- */}
       <div className={`flex items-start ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
-        <img alt={`${title} favicon`} className="w-6 h-6 mr-3 mt-1 flex-shrink-0 avatar-flat" src={faviconUrl} />
+        <div className="w-8 h-8 mr-3 flex-shrink-0 rounded-full overflow-hidden border-3 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+          <img alt={`${title} favicon`} className="w-full h-full object-cover" src={faviconUrl} />
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold nb-text text-sm leading-tight line-clamp-2 flex-1" title={title}>
+            <h3 className="font-bold nb-text text-base leading-tight line-clamp-2 flex-1" title={title}>
               {title}
             </h3>
             {hasTagGenerationFailure && (
@@ -195,7 +215,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               </div>
             )}
           </div>
-          <p className="text-xs nb-text-secondary truncate mt-1">{hostname}</p>
+          <p className="text-xs nb-text-secondary truncate mt-1.5 font-medium">{hostname}</p>
         </div>
       </div>
 
@@ -203,9 +223,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
 
       {/* -- Tags -- */}
       {tags && tags.length > 0 && (
-          <div className={`flex items-center flex-wrap gap-2 text-xs mt-3 ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
+          <div className={`flex items-center flex-wrap gap-2 text-xs mt-4 ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
               {tags.map((tag, index) => (
-                  <span key={tag} className={getTagClassName(index)}>
+                  <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100`}>
                       {tag}
                   </span>
               ))}

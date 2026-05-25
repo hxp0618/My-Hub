@@ -1,6 +1,6 @@
 import { LLMSettings, ProviderConfig } from '../types/llm';
 import { PROVIDERS, ProviderKey } from '../data/models';
-import { llmSettings, StorageKey } from '../utils/storageManager';
+import { StorageKey } from '../utils/storageManager';
 
 const SETTINGS_KEY = StorageKey.LLM_SETTINGS;
 
