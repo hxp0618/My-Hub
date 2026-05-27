@@ -16,6 +16,10 @@ import {
   DATA_UNIT_BASE,
   UnitCategory,
   Unit,
+  formatTimeReadable,
+  ReadableTimeFormatter,
+  getCategoryConfig,
+  getUnitConfig,
 } from '../unitConverter';
 
 // ============================================================================
@@ -370,5 +374,57 @@ describe('Property 6: 类别偏好持久化往返', () => {
     
     localStorage.setItem('unit_converter_category', '');
     expect(loadCategoryPreference()).toBeNull();
+  });
+});
+
+describe('Readable time formatting', () => {
+  const englishFormatter: ReadableTimeFormatter = (count, part) => {
+    const labels = {
+      day: count === 1 ? 'day' : 'days',
+      hour: count === 1 ? 'hour' : 'hours',
+      minute: count === 1 ? 'minute' : 'minutes',
+      second: count === 1 ? 'second' : 'seconds',
+    };
+    return `${count} ${labels[part]}`;
+  };
+
+  it('uses the provided formatter for readable time parts', () => {
+    expect(formatTimeReadable(90, 'min', englishFormatter)).toBe('1 hour 30 minutes');
+    expect(formatTimeReadable(1.5, 'd', englishFormatter)).toBe('1 day 12 hours');
+  });
+
+  it('keeps the existing compact Chinese fallback when no formatter is provided', () => {
+    expect(formatTimeReadable(90, 'min')).toBe('1小时 30分钟');
+  });
+});
+
+describe('Unit converter stable errors', () => {
+  const getThrownMessage = (fn: () => void): string => {
+    try {
+      fn();
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+
+    throw new Error('Expected function to throw');
+  };
+
+  it('does not expose unknown category values in thrown errors', () => {
+    const message = getThrownMessage(() => {
+      getCategoryConfig('currency' as UnitCategory);
+    });
+
+    expect(message).toBe('unknownCategory');
+    expect(message).not.toContain('currency');
+  });
+
+  it('does not expose unknown unit values in thrown errors', () => {
+    const message = getThrownMessage(() => {
+      getUnitConfig('evil-unit' as Unit, 'time');
+    });
+
+    expect(message).toBe('unknownUnit');
+    expect(message).not.toContain('evil-unit');
+    expect(message).not.toContain('time');
   });
 });

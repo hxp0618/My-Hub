@@ -1,7 +1,19 @@
 import { BookmarkTag } from '../types/bookmarks';
-import { TagGenerationFailure } from '../types/tags';
-import { ToolConfig, ToolId, getValidToolOrder } from '../types/tools';
-import { HistoryEntry } from '../types/http';
+import { TagGenerationFailure, sanitizeTagGenerationFailureReason } from '../types/tags';
+import {
+  DEFAULT_TOOL_CONFIG,
+  ToolConfig,
+  ToolId,
+  getValidToolOrder,
+  isToolIdValue,
+  sanitizeToolConfig,
+  sanitizeToolUsageCounts,
+} from '../types/tools';
+import {
+  HistoryEntry,
+  sanitizeHttpHistoryEntries,
+  sanitizeHttpHistoryEntry,
+} from '../types/http';
 import {
   Subscription,
   SubscriptionSettings,
@@ -9,6 +21,9 @@ import {
   DEFAULT_SUBSCRIPTION_SETTINGS,
   DEFAULT_NOTIFICATION_CONFIG,
 } from '../types/subscription';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[IndexedDB]');
 
 const DB_NAME = 'ChromeHistoryDB';
 const DB_VERSION = 7; // v7: add subscription management stores
@@ -20,7 +35,12 @@ const SUBSCRIPTIONS_STORE_NAME = 'subscriptions';
 const SUBSCRIPTION_SETTINGS_STORE_NAME = 'subscription_settings';
 const SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME = 'subscription_notification_config';
 
-let db: IDBDatabase;
+let db: IDBDatabase | null = null;
+
+export const closeDB = (): void => {
+  db?.close();
+  db = null;
+};
 
 export const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -31,7 +51,7 @@ export const initDB = (): Promise<IDBDatabase> => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
-      console.error('Database error:', request.error);
+      logger.error('Database error', request.error);
       reject('Database error');
     };
 
@@ -41,13 +61,13 @@ export const initDB = (): Promise<IDBDatabase> => {
     };
 
     request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
+      const database = (event.target as IDBOpenDBRequest).result;
       const oldVersion = event.oldVersion;
 
       // 版本 1: 创建书签标签存储
       if (oldVersion < 1) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'url' });
+        if (!database.objectStoreNames.contains(STORE_NAME)) {
+          database.createObjectStore(STORE_NAME, { keyPath: 'url' });
         }
       }
 
@@ -56,47 +76,47 @@ export const initDB = (): Promise<IDBDatabase> => {
       // 版本 3: 删除阅读列表相关存储
       if (oldVersion < 3) {
         // 删除阅读列表存储（如果存在）
-        if (db.objectStoreNames.contains('reading_list')) {
-          db.deleteObjectStore('reading_list');
+        if (database.objectStoreNames.contains('reading_list')) {
+          database.deleteObjectStore('reading_list');
         }
-        if (db.objectStoreNames.contains('reading_progress')) {
-          db.deleteObjectStore('reading_progress');
+        if (database.objectStoreNames.contains('reading_progress')) {
+          database.deleteObjectStore('reading_progress');
         }
       }
 
       // 版本 4: 添加标签生成失败跟踪存储
       if (oldVersion < 4) {
-        if (!db.objectStoreNames.contains(FAILURES_STORE_NAME)) {
-          db.createObjectStore(FAILURES_STORE_NAME, { keyPath: 'url' });
+        if (!database.objectStoreNames.contains(FAILURES_STORE_NAME)) {
+          database.createObjectStore(FAILURES_STORE_NAME, { keyPath: 'url' });
         }
       }
 
       // 版本 5: 添加工具配置存储
       if (oldVersion < 5) {
-        if (!db.objectStoreNames.contains(TOOL_SETTINGS_STORE_NAME)) {
-          db.createObjectStore(TOOL_SETTINGS_STORE_NAME, { keyPath: 'key' });
+        if (!database.objectStoreNames.contains(TOOL_SETTINGS_STORE_NAME)) {
+          database.createObjectStore(TOOL_SETTINGS_STORE_NAME, { keyPath: 'key' });
         }
       }
 
       // 版本 6: 添加 HTTP 请求历史存储
       if (oldVersion < 6) {
-        if (!db.objectStoreNames.contains(HTTP_HISTORY_STORE_NAME)) {
-          db.createObjectStore(HTTP_HISTORY_STORE_NAME, { keyPath: 'id' });
+        if (!database.objectStoreNames.contains(HTTP_HISTORY_STORE_NAME)) {
+          database.createObjectStore(HTTP_HISTORY_STORE_NAME, { keyPath: 'id' });
         }
       }
 
       // 版本 7: 添加订阅管理相关存储
       if (oldVersion < 7) {
-        if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE_NAME)) {
-          const subscriptionsStore = db.createObjectStore(SUBSCRIPTIONS_STORE_NAME, { keyPath: 'id' });
+        if (!database.objectStoreNames.contains(SUBSCRIPTIONS_STORE_NAME)) {
+          const subscriptionsStore = database.createObjectStore(SUBSCRIPTIONS_STORE_NAME, { keyPath: 'id' });
           subscriptionsStore.createIndex('expiryDate', 'expiryDate', { unique: false });
           subscriptionsStore.createIndex('status', 'status', { unique: false });
         }
-        if (!db.objectStoreNames.contains(SUBSCRIPTION_SETTINGS_STORE_NAME)) {
-          db.createObjectStore(SUBSCRIPTION_SETTINGS_STORE_NAME, { keyPath: 'key' });
+        if (!database.objectStoreNames.contains(SUBSCRIPTION_SETTINGS_STORE_NAME)) {
+          database.createObjectStore(SUBSCRIPTION_SETTINGS_STORE_NAME, { keyPath: 'key' });
         }
-        if (!db.objectStoreNames.contains(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME)) {
-          db.createObjectStore(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME, { keyPath: 'key' });
+        if (!database.objectStoreNames.contains(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME)) {
+          database.createObjectStore(SUBSCRIPTION_NOTIFICATION_CONFIG_STORE_NAME, { keyPath: 'key' });
         }
       }
     };
@@ -235,6 +255,19 @@ type ToolSettingRecord<T> = {
   value: T;
 };
 
+const readLegacyJsonSetting = (key: string): { found: boolean; value?: unknown } => {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return { found: false };
+
+  try {
+    return { found: true, value: JSON.parse(raw) };
+  } catch (error) {
+    logger.warn('Ignoring invalid legacy tool setting JSON', { key, error });
+    localStorage.removeItem(key);
+    return { found: false };
+  }
+};
+
 const getToolSetting = async <T>(key: ToolSettingKey, defaultValue: T): Promise<T> => {
   const db = await initDB();
   if (!db.objectStoreNames.contains(TOOL_SETTINGS_STORE_NAME)) {
@@ -270,51 +303,52 @@ export const migrateLegacyToolSettings = async (): Promise<void> => {
     // Only migrate if IndexedDB store is empty
     const existingConfig = await getToolSetting<ToolConfig | null>('config', null);
     const hasConfig = !!existingConfig && existingConfig.enabledTools?.length > 0;
-    if (hasConfig) return;
 
-    const legacyConfigRaw = localStorage.getItem('tools_config');
-    if (legacyConfigRaw) {
-      const parsed = JSON.parse(legacyConfigRaw) as ToolConfig;
-      await setToolSetting('config', parsed);
+    const legacyConfig = readLegacyJsonSetting('tools_config');
+    if (legacyConfig.found) {
+      if (!hasConfig) {
+        await setToolSetting('config', sanitizeToolConfig(legacyConfig.value));
+      }
       localStorage.removeItem('tools_config');
     }
 
     const legacyLastSelected = localStorage.getItem('last_selected_tool');
-    if (legacyLastSelected) {
-      await setToolSetting('last_selected_tool', legacyLastSelected as ToolId);
+    if (isToolIdValue(legacyLastSelected)) {
+      await setToolSetting('last_selected_tool', legacyLastSelected);
+    }
+    if (legacyLastSelected !== null) {
       localStorage.removeItem('last_selected_tool');
     }
 
-    const legacyUsageRaw = localStorage.getItem('tool_usage_count');
-    if (legacyUsageRaw) {
-      const parsedUsage = JSON.parse(legacyUsageRaw) as Record<string, number>;
-      await setToolSetting('tool_usage_count', parsedUsage);
+    const legacyUsage = readLegacyJsonSetting('tool_usage_count');
+    if (legacyUsage.found) {
+      await setToolSetting('tool_usage_count', sanitizeToolUsageCounts(legacyUsage.value));
       localStorage.removeItem('tool_usage_count');
     }
   } catch (error) {
-    console.error('Failed to migrate legacy tool settings:', error);
+    logger.error('Failed to migrate legacy tool settings', error);
   }
 };
 
-const DEFAULT_TOOL_CONFIG: ToolConfig = { enabledTools: Object.values(ToolId) };
-
 export const getToolConfig = async (): Promise<ToolConfig> =>
-  getToolSetting<ToolConfig>('config', DEFAULT_TOOL_CONFIG);
+  sanitizeToolConfig(await getToolSetting<unknown>('config', DEFAULT_TOOL_CONFIG));
 
 export const setToolConfig = async (config: ToolConfig): Promise<void> =>
-  setToolSetting('config', config);
+  setToolSetting('config', sanitizeToolConfig(config));
 
-export const getLastSelectedTool = async (): Promise<ToolId | null> =>
-  getToolSetting<ToolId | null>('last_selected_tool', null);
+export const getLastSelectedTool = async (): Promise<ToolId | null> => {
+  const stored = await getToolSetting<unknown>('last_selected_tool', null);
+  return isToolIdValue(stored) ? stored : null;
+};
 
 export const setLastSelectedTool = async (toolId: ToolId | null): Promise<void> =>
-  setToolSetting('last_selected_tool', toolId);
+  setToolSetting('last_selected_tool', isToolIdValue(toolId) ? toolId : null);
 
 export const getToolUsageCounts = async (): Promise<Record<string, number>> =>
-  getToolSetting<Record<string, number>>('tool_usage_count', {});
+  sanitizeToolUsageCounts(await getToolSetting<unknown>('tool_usage_count', {}));
 
 export const setToolUsageCounts = async (counts: Record<string, number>): Promise<void> =>
-  setToolSetting('tool_usage_count', counts);
+  setToolSetting('tool_usage_count', sanitizeToolUsageCounts(counts));
 
 export const incrementToolUsageCount = async (toolId: ToolId): Promise<void> => {
   const counts = await getToolUsageCounts();
@@ -344,11 +378,21 @@ export const setToolOrder = async (order: ToolId[]): Promise<void> => {
 
 // ==================== Tag Generation Failure Tracking ====================
 
+const sanitizeTagGenerationFailureRecord = (
+  failure: TagGenerationFailure | undefined
+): TagGenerationFailure | undefined => {
+  if (!failure) return undefined;
+  return {
+    ...failure,
+    failureReason: sanitizeTagGenerationFailureReason(failure.failureReason),
+  };
+};
+
 export const addTagGenerationFailure = async (failure: TagGenerationFailure): Promise<void> => {
   const db = await initDB();
   const transaction = db.transaction([FAILURES_STORE_NAME], 'readwrite');
   const store = transaction.objectStore(FAILURES_STORE_NAME);
-  store.put(failure);
+  store.put(sanitizeTagGenerationFailureRecord(failure));
 
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => {
@@ -368,7 +412,7 @@ export const getTagGenerationFailure = async (url: string): Promise<TagGeneratio
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      resolve(request.result);
+      resolve(sanitizeTagGenerationFailureRecord(request.result));
     };
     request.onerror = () => {
       reject(request.error);
@@ -384,7 +428,7 @@ export const getAllTagGenerationFailures = async (): Promise<TagGenerationFailur
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      resolve(request.result);
+      resolve(request.result.map(sanitizeTagGenerationFailureRecord).filter(Boolean) as TagGenerationFailure[]);
     };
     request.onerror = () => {
       reject(request.error);
@@ -442,10 +486,7 @@ export const getHttpHistory = async (): Promise<HistoryEntry[]> => {
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      const entries = request.result as HistoryEntry[];
-      // 按时间戳降序排列
-      entries.sort((a, b) => b.timestamp - a.timestamp);
-      resolve(entries);
+      resolve(sanitizeHttpHistoryEntries(request.result, Number.MAX_SAFE_INTEGER));
     };
     request.onerror = () => {
       reject(request.error);
@@ -458,12 +499,18 @@ export const getHttpHistory = async (): Promise<HistoryEntry[]> => {
  * 如果超过最大数量限制，自动删除最旧的记录
  */
 export const addHttpHistoryEntry = async (entry: HistoryEntry): Promise<void> => {
+  const sanitizedEntry = sanitizeHttpHistoryEntry(entry);
+  if (!sanitizedEntry) {
+    logger.warn('Skipping invalid HTTP history entry');
+    return;
+  }
+
   const db = await initDB();
   const transaction = db.transaction([HTTP_HISTORY_STORE_NAME], 'readwrite');
   const store = transaction.objectStore(HTTP_HISTORY_STORE_NAME);
   
   // 添加新记录
-  store.put(entry);
+  store.put(sanitizedEntry);
 
   return new Promise((resolve, reject) => {
     transaction.oncomplete = async () => {
@@ -472,7 +519,7 @@ export const addHttpHistoryEntry = async (entry: HistoryEntry): Promise<void> =>
         await trimHttpHistory(10);
         resolve();
       } catch (error) {
-        console.error('Failed to trim HTTP history:', error);
+        logger.error('Failed to trim HTTP history', error);
         resolve(); // 即使清理失败也不影响添加操作
       }
     };

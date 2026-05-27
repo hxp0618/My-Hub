@@ -1,6 +1,235 @@
 body {
     font-family: 'Space Grotesk', 'Inter', sans-serif;
 }
+
+body.newtab-mobile-nav-open {
+    overflow: hidden;
+}
+
+.newtab-mobile-bar,
+.newtab-sidebar-backdrop {
+    display: none;
+}
+
+.newtab-mobile-icon-button {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nb-border);
+    background-color: var(--nb-accent-yellow);
+    border: var(--nb-border-width-thick) solid var(--nb-border);
+    border-radius: var(--nb-border-radius-md);
+    box-shadow: var(--nb-shadow);
+    transition: transform 0.15s linear, box-shadow 0.15s linear;
+}
+
+.newtab-mobile-icon-button:hover {
+    transform: translate(2px, 2px);
+    box-shadow: var(--nb-shadow-hover);
+}
+
+.newtab-mobile-icon-button:active {
+    transform: translate(4px, 4px);
+    box-shadow: var(--nb-shadow-none);
+}
+
+.newtab-mobile-title {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 900;
+    color: var(--nb-text);
+    text-transform: uppercase;
+}
+
+.newtab-mobile-title span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.newtab-shell.mobile-layout {
+    min-height: 100dvh;
+    height: 100dvh;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.newtab-shell.mobile-layout .newtab-mobile-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0.75rem;
+    margin-bottom: 0;
+    padding: 0.625rem;
+    position: relative;
+    z-index: 40;
+    border-radius: 0;
+}
+
+.newtab-shell.mobile-layout .newtab-sidebar {
+    width: min(82vw, 320px) !important;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100dvh - 1.5rem);
+    position: fixed !important;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    z-index: 60;
+    margin: 0 !important;
+    transform: translateX(calc(-100% - 1rem));
+    transition: transform 0.2s ease-out;
+}
+
+.newtab-shell.mobile-layout .newtab-sidebar.mobile-open {
+    transform: translateX(0);
+}
+
+.newtab-shell.mobile-layout .newtab-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.28);
+    transition: opacity 0.2s ease-out;
+}
+
+.newtab-shell.mobile-layout .newtab-sidebar-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.newtab-shell.mobile-layout .newtab-sidebar .absolute.right-0.top-0.bottom-0 {
+    display: none;
+}
+
+.newtab-shell.mobile-layout .newtab-main {
+    min-width: 0;
+    flex: 1;
+    padding: 0.75rem;
+    overflow: hidden;
+}
+
+.newtab-shell.mobile-layout .newtab-content-card {
+    min-width: 0;
+    padding: 1rem;
+}
+
+.newtab-shell.mobile-layout .newtab-mobile-icon-button {
+    width: 44px;
+    height: 44px;
+}
+
+@media (max-width: 900px) {
+    .newtab-shell {
+        min-height: 100dvh;
+        height: 100dvh;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .newtab-mobile-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin: 0.75rem;
+        margin-bottom: 0;
+        padding: 0.625rem;
+        position: relative;
+        z-index: 40;
+        border-radius: 0;
+    }
+
+    .newtab-sidebar {
+        width: min(82vw, 320px) !important;
+        max-width: calc(100vw - 2rem);
+        max-height: calc(100dvh - 1.5rem);
+        position: fixed !important;
+        top: 0.75rem;
+        bottom: 0.75rem;
+        left: 0.75rem;
+        z-index: 60;
+        margin: 0 !important;
+        transform: translateX(calc(-100% - 1rem));
+        transition: transform 0.2s ease-out;
+    }
+
+    .newtab-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .newtab-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        border: 0;
+        opacity: 0;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.28);
+        transition: opacity 0.2s ease-out;
+    }
+
+    .newtab-sidebar-backdrop.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .newtab-sidebar .absolute.right-0.top-0.bottom-0 {
+        display: none;
+    }
+
+    .newtab-main {
+        min-width: 0;
+        flex: 1;
+        padding: 0.75rem;
+        overflow: hidden;
+    }
+
+    .newtab-content-card {
+        min-width: 0;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .newtab-mobile-bar {
+        margin: 0.5rem;
+        margin-bottom: 0;
+        gap: 0.5rem;
+    }
+
+    .newtab-mobile-icon-button {
+        width: 44px;
+        height: 44px;
+    }
+
+    .newtab-sidebar {
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem);
+        top: 0.5rem;
+        bottom: 0.5rem;
+        left: 0.5rem;
+        padding: 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .newtab-sidebar,
+    .newtab-sidebar-backdrop,
+    .newtab-mobile-icon-button {
+        transition: none;
+    }
+}
+
 .icon-linear {
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
 }

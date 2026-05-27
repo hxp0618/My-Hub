@@ -47,7 +47,7 @@ interface LanguageModelCreateOptions {
   signal?: AbortSignal;
   topK?: number;
   temperature?: number;
-  initialPrompts?: any[];
+  initialPrompts?: unknown[];
   expectedInputs?: LanguageModelExpectedContent[];
   expectedOutputs?: LanguageModelExpectedOutput[];
 }
@@ -60,14 +60,14 @@ interface LanguageModelParams {
 }
 
 interface LanguageModelSession {
-  prompt(messages: any[], options?: { signal?: AbortSignal }): Promise<string>;
-  promptStreaming(messages: any[], options?: { signal?: AbortSignal }): AsyncIterable<string>;
+  prompt(messages: unknown[], options?: { signal?: AbortSignal }): Promise<string>;
+  promptStreaming(messages: unknown[], options?: { signal?: AbortSignal }): AsyncIterable<string>;
   destroy(): void;
   inputUsage: number;
   inputQuota: number;
   clone(options?: { signal?: AbortSignal }): Promise<LanguageModelSession>;
-  append(messages: any[]): Promise<void>;
-  measureInputUsage(options?: { responseConstraint?: any, omitResponseConstraintInput?: boolean }): Promise<{ totalTokens: number }>;
+  append(messages: unknown[]): Promise<void>;
+  measureInputUsage(options?: { responseConstraint?: unknown, omitResponseConstraintInput?: boolean }): Promise<{ totalTokens: number }>;
 }
 
 declare const LanguageModel: LanguageModel;

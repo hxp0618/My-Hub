@@ -28,7 +28,7 @@ class Logger {
   /**
    * Format log message with timestamp and prefix
    */
-  private format(level: LogLevel, ...args: any[]): any[] {
+  private format(level: LogLevel, ...args: unknown[]): unknown[] {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
     return [`${this.prefix} [${level}] ${timestamp}`, ...args];
   }
@@ -36,16 +36,16 @@ class Logger {
   /**
    * Debug level logging
    */
-  debug(...args: any[]): void {
+  debug(...args: unknown[]): void {
     if (isDev) {
-      console.log(...this.format(LogLevel.DEBUG, ...args));
+      console.debug(...this.format(LogLevel.DEBUG, ...args));
     }
   }
 
   /**
    * Info level logging
    */
-  info(...args: any[]): void {
+  info(...args: unknown[]): void {
     if (isDev) {
       console.info(...this.format(LogLevel.INFO, ...args));
     }
@@ -54,17 +54,19 @@ class Logger {
   /**
    * Warning level logging
    */
-  warn(...args: any[]): void {
+  warn(...args: unknown[]): void {
     if (isDev) {
       console.warn(...this.format(LogLevel.WARN, ...args));
     }
   }
 
   /**
-   * Error level logging (always logs even in production)
+   * Error level logging
    */
-  error(...args: any[]): void {
-    console.error(...this.format(LogLevel.ERROR, ...args));
+  error(...args: unknown[]): void {
+    if (isDev) {
+      console.error(...this.format(LogLevel.ERROR, ...args));
+    }
   }
 
   /**
@@ -88,7 +90,7 @@ class Logger {
   /**
    * Table logging (only in dev)
    */
-  table(data: any): void {
+  table(data: unknown): void {
     if (isDev) {
       console.table(data);
     }
@@ -111,11 +113,11 @@ export const createLogger = (prefix: string): Logger => {
  * Quick access functions using default logger
  */
 export const log = {
-  debug: (...args: any[]) => logger.debug(...args),
-  info: (...args: any[]) => logger.info(...args),
-  warn: (...args: any[]) => logger.warn(...args),
-  error: (...args: any[]) => logger.error(...args),
+  debug: (...args: unknown[]) => logger.debug(...args),
+  info: (...args: unknown[]) => logger.info(...args),
+  warn: (...args: unknown[]) => logger.warn(...args),
+  error: (...args: unknown[]) => logger.error(...args),
   group: (label: string) => logger.group(label),
   groupEnd: () => logger.groupEnd(),
-  table: (data: any) => logger.table(data),
+  table: (data: unknown) => logger.table(data),
 };

@@ -4,7 +4,14 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { HistoryEntry, RequestState, HttpMethod, HeaderEntry } from '../types/http';
+import {
+  HistoryEntry,
+  RequestState,
+  HttpMethod,
+  HeaderEntry,
+  sanitizeHttpHistoryEntry,
+  redactSensitiveHeaderEntriesForHistory,
+} from '../types/http';
 import {
   getHttpHistory,
   addHttpHistoryEntry,
@@ -12,8 +19,10 @@ import {
   clearHttpHistory,
 } from '../db/indexedDB';
 import { generateId } from '../utils/httpUtils';
+import { createLogger } from '../utils/logger';
 
 const MAX_HISTORY_ENTRIES = 10;
+const logger = createLogger('[useHttpHistory]');
 
 export interface UseHttpHistoryReturn {
   /** 历史记录列表 */
@@ -59,7 +68,7 @@ export function useHttpHistory(): UseHttpHistoryReturn {
       // 只保留最近的 MAX_HISTORY_ENTRIES 条
       setHistory(entries.slice(0, MAX_HISTORY_ENTRIES));
     } catch (error) {
-      console.error('Failed to load HTTP history:', error);
+      logger.error('Failed to load HTTP history', error);
       setHistory([]);
     } finally {
       setLoading(false);
@@ -86,10 +95,14 @@ export function useHttpHistory(): UseHttpHistoryReturn {
         time: number;
       }
     ): Promise<HistoryEntry> => {
+      const safeRequest = {
+        ...request,
+        headers: redactSensitiveHeaderEntriesForHistory(request.headers),
+      };
       const entry: HistoryEntry = {
         id: generateId(),
         timestamp: Date.now(),
-        request,
+        request: safeRequest,
         response,
       };
 
@@ -102,7 +115,7 @@ export function useHttpHistory(): UseHttpHistoryReturn {
           return newHistory.slice(0, MAX_HISTORY_ENTRIES);
         });
       } catch (error) {
-        console.error('Failed to add HTTP history entry:', error);
+        logger.error('Failed to add HTTP history entry', error);
       }
 
       return entry;
@@ -116,7 +129,7 @@ export function useHttpHistory(): UseHttpHistoryReturn {
       await removeHttpHistoryEntry(id);
       setHistory((prev) => prev.filter((entry) => entry.id !== id));
     } catch (error) {
-      console.error('Failed to remove HTTP history entry:', error);
+      logger.error('Failed to remove HTTP history entry', error);
     }
   }, []);
 
@@ -126,7 +139,7 @@ export function useHttpHistory(): UseHttpHistoryReturn {
       await clearHttpHistory();
       setHistory([]);
     } catch (error) {
-      console.error('Failed to clear HTTP history:', error);
+      logger.error('Failed to clear HTTP history', error);
     }
   }, []);
 
@@ -137,12 +150,16 @@ export function useHttpHistory(): UseHttpHistoryReturn {
       if (!entry) {
         return null;
       }
+      const sanitizedEntry = sanitizeHttpHistoryEntry(entry);
+      if (!sanitizedEntry) {
+        return null;
+      }
 
       return {
-        url: entry.request.url,
-        method: entry.request.method,
-        headers: entry.request.headers,
-        body: entry.request.body,
+        url: sanitizedEntry.request.url,
+        method: sanitizedEntry.request.method,
+        headers: sanitizedEntry.request.headers,
+        body: sanitizedEntry.request.body,
       };
     },
     [history]
@@ -222,11 +239,15 @@ export function restoreHistoryEntry(
   if (!entry) {
     return null;
   }
+  const sanitizedEntry = sanitizeHttpHistoryEntry(entry);
+  if (!sanitizedEntry) {
+    return null;
+  }
 
   return {
-    url: entry.request.url,
-    method: entry.request.method,
-    headers: entry.request.headers,
-    body: entry.request.body,
+    url: sanitizedEntry.request.url,
+    method: sanitizedEntry.request.method,
+    headers: sanitizedEntry.request.headers,
+    body: sanitizedEntry.request.body,
   };
 }

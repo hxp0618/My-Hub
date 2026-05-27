@@ -4,10 +4,17 @@ import TagInput from '../../../components/TagInput';
 import BookmarkTree from '../../../components/BookmarkTree';
 import { addBookmarkTag, getAllBookmarkTags } from '@src/db/indexedDB';
 import { sendMessage } from '@src/services/llmService';
+import { parseGeneratedTags } from '@src/lib/bookmarkTags';
 import { buildTagGenerationPrompt } from '@src/lib/tagGenerationPrompts';
 import { getBookmarkSuggestionSystemPrompt } from '@src/lib/bookmarkSuggestionPrompts';
+import { extractJsonString, unwrapCodeFence } from '@src/lib/llmUtils';
+import { sanitizeBookmarkSuggestionResult } from '@src/lib/bookmarkSuggestionResult';
 import { findFolderIdByTitle, simplifyBookmarkTree } from '@src/utils/bookmarkUtils';
 import type { ChatMessage } from '@src/types/llm';
+import { createLogger } from '@src/utils/logger';
+import { autoSuggestBookmark } from '@src/utils/storageManager';
+
+const logger = createLogger('[AddBookmarkForm]');
 
 interface AddBookmarkFormProps {
   initialUrl?: string;
@@ -54,39 +61,10 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
   }, [initialUrl, initialTitle]);
 
   const handleAutoSuggest = (currentTitle: string, currentUrl: string) => {
-    const autoSuggestEnabled = JSON.parse(localStorage.getItem('autoSuggestBookmarkInfo') || 'false');
+    const autoSuggestEnabled = autoSuggestBookmark.get();
     if (autoSuggestEnabled && currentTitle && currentUrl) {
       handleGenerateSuggestions(currentTitle, currentUrl);
     }
-  };
-
-  const extractJsonString = (text: string): string | null => {
-    if (!text) return null;
-    // 优先从 ```json \n ... \n ``` 中提取
-    const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    const candidate = fencedMatch ? fencedMatch[1] : text;
-    const trimmed = candidate.trim();
-    try {
-      JSON.parse(trimmed);
-      return trimmed;
-    } catch {}
-    // 回退：从文本中截取第一个 { 到最后一个 } 的子串尝试解析
-    const start = trimmed.indexOf('{');
-    const end = trimmed.lastIndexOf('}');
-    if (start !== -1 && end !== -1 && end > start) {
-      const slice = trimmed.slice(start, end + 1);
-      try {
-        JSON.parse(slice);
-        return slice;
-      } catch {}
-    }
-    return null;
-  };
-
-  const unwrapCodeFence = (text: string): string => {
-    if (!text) return '';
-    const fenced = text.match(/```(?:\w+)?\s*([\s\S]*?)```/);
-    return (fenced ? fenced[1] : text).trim();
   };
 
   const handleGenerateSuggestions = async (currentTitle: string, currentUrl: string) => {
@@ -122,29 +100,25 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
               if (!jsonStr) {
                 throw new Error(t('aiSuggestion.invalidJson'));
               }
-              const result = JSON.parse(jsonStr);
+              const result = sanitizeBookmarkSuggestionResult(JSON.parse(jsonStr));
               const { tags: suggestedTags, folder: suggestedFolder } = result;
 
-              if (suggestedTags && Array.isArray(suggestedTags)) {
-                setTags(suggestedTags);
-              }
+              setTags(suggestedTags);
 
               if (suggestedFolder) {
                 const folderId = findFolderIdByTitle(bookmarkTree, suggestedFolder);
                 if (folderId) {
                   setSelectedFolder(folderId);
                 } else {
-                  if (import.meta.env.DEV) {
-                    console.warn('Suggested folder not found. Using default.');
-                  }
+                  logger.warn('Suggested folder not found. Using default.');
                   setSelectedFolder(defaultFolderId);
                 }
               } else {
                 setSelectedFolder(defaultFolderId);
               }
               setStatusMessage(t('aiSuggestion.success'));
-            } catch (e) {
-              console.error('Failed to parse LLM response:', e);
+            } catch (error) {
+              logger.error('Failed to parse LLM response', error);
               setStatusMessage(t('aiSuggestion.parseError'));
               handleGenerateTags(); // Fallback to only generating tags
             }
@@ -152,8 +126,8 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
             setAbortController(null);
           },
           onError: (error: Error) => {
-            console.error('AI 建议生成失败:', error);
-            setStatusMessage(t('aiSuggestion.failed', { message: error.message }));
+            logger.error('AI suggestion generation failed', error);
+            setStatusMessage(t('aiSuggestion.error'));
             setIsGenerating(false);
             setAbortController(null);
           },
@@ -161,7 +135,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
         controller.signal
       );
     } catch (error) {
-      console.error('AI 建议生成出错:', error);
+      logger.error('AI suggestion request failed', error);
       setStatusMessage(t('aiSuggestion.error'));
       setIsGenerating(false);
       setAbortController(null);
@@ -211,12 +185,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
           onFinish: () => {
             const finalContent = unwrapCodeFence(generatedContent);
             if (finalContent) {
-              // 解析生成的标签
-              const generatedTags = finalContent
-                .trim()
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag.length > 0);
+              const generatedTags = parseGeneratedTags(finalContent);
 
               setTags(generatedTags);
               setStatusMessage(t('tagGeneration.successMessage', { count: generatedTags.length }));
@@ -227,8 +196,8 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
             setAbortController(null);
           },
           onError: (error: Error) => {
-            console.error('生成标签失败:', error);
-            setStatusMessage(t('bookmarks.tagGenerateError', { message: error.message }));
+            logger.error('Failed to generate tags', error);
+            setStatusMessage(t('bookmarks.tagGenerateRetry'));
             setIsGenerating(false);
             setAbortController(null);
           },
@@ -236,7 +205,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
         controller.signal
       );
     } catch (error) {
-      console.error('生成标签出错:', error);
+      logger.error('Tag generation request failed', error);
       setStatusMessage(t('bookmarks.tagGenerateRetry'));
       setIsGenerating(false);
       setAbortController(null);
@@ -278,7 +247,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
       }
 
     } catch (error) {
-      console.error('Error saving bookmark:', error);
+      logger.error('Error saving bookmark', error);
       setStatusMessage(t('bookmarks.addError'));
     }
   };

@@ -1,9 +1,12 @@
+import { isLanguageValue, StorageKey } from './storageManager';
+
 function getSavedLanguage(): string | null {
   try {
     if (typeof localStorage === 'undefined') {
       return null;
     }
-    return localStorage.getItem('language');
+    const savedLanguage = localStorage.getItem(StorageKey.LANGUAGE);
+    return isLanguageValue(savedLanguage) ? savedLanguage : null;
   } catch {
     return null;
   }

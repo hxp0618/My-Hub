@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useToastContext } from '../contexts/ToastContext';
 import { TagService } from '../services/tagService';
 import { TagInfo, TagSortBy, TagStatistics } from '../types/tags';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[useTagManagement]');
 
 export const useTagManagement = () => {
   const { t } = useTranslation();
@@ -24,7 +27,7 @@ export const useTagManagement = () => {
       setTags(tagData);
       setStatistics(stats);
     } catch (error) {
-      console.error('Failed to load tags:', error);
+      logger.error('Failed to load tags', error);
       toast.error(t('tags.loadError'));
     } finally {
       setLoading(false);
@@ -61,7 +64,7 @@ export const useTagManagement = () => {
         await loadTags();
         toast.success(t('tags.renameSuccess'));
       } catch (error) {
-        console.error('Failed to rename tag:', error);
+        logger.error('Failed to rename tag', error);
         toast.error(t('tags.renameError'));
       }
     },
@@ -75,7 +78,7 @@ export const useTagManagement = () => {
         await loadTags();
         toast.success(t('tags.deleteSuccess'));
       } catch (error) {
-        console.error('Failed to delete tag:', error);
+        logger.error('Failed to delete tag', error);
         toast.error(t('tags.deleteError'));
       }
     },
@@ -89,7 +92,7 @@ export const useTagManagement = () => {
         await loadTags();
         toast.success(t('tags.mergeSuccess'));
       } catch (error) {
-        console.error('Failed to merge tags:', error);
+        logger.error('Failed to merge tags', error);
         toast.error(t('tags.mergeError'));
       }
     },

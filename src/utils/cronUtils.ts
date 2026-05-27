@@ -15,6 +15,46 @@ import {
 /** 字段顺序 */
 const FIELD_ORDER: CronField[] = ['minute', 'hour', 'day', 'month', 'weekday'];
 
+function clampCronValue(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function parseStrictCronNumber(value: string | number): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+export function parseCronFieldInput(
+  value: string | number,
+  min: number,
+  max: number,
+  fallback: number
+): number {
+  const safeFallback = parseStrictCronNumber(fallback);
+  const fallbackValue = safeFallback === null
+    ? min
+    : clampCronValue(safeFallback, min, max);
+  const parsed = parseStrictCronNumber(value);
+
+  if (parsed === null) return fallbackValue;
+
+  // UI 输入可夹到字段范围内，避免生成超范围 Cron。
+  return clampCronValue(parsed, min, max);
+}
+
+function parseCronExpressionNumber(value: string, min: number, max: number): number | null {
+  const parsed = parseStrictCronNumber(value);
+  if (parsed === null || parsed < min || parsed > max) return null;
+  return parsed;
+}
+
 /**
  * 根据字段配置生成表达式片段
  * @param config 字段配置
@@ -82,9 +122,11 @@ export function parseFieldExpression(
   // 步进模式: start/interval
   if (trimmed.includes('/')) {
     const [startPart, intervalPart] = trimmed.split('/');
-    const stepStart = startPart === '*' ? metadata.min : parseInt(startPart, 10);
-    const stepInterval = parseInt(intervalPart, 10);
-    if (!isNaN(stepStart) && !isNaN(stepInterval) && stepInterval > 0) {
+    const stepStart = startPart === '*'
+      ? metadata.min
+      : parseCronExpressionNumber(startPart, metadata.min, metadata.max);
+    const stepInterval = parseCronExpressionNumber(intervalPart, 1, metadata.max - metadata.min + 1);
+    if (stepStart !== null && stepInterval !== null) {
       return {
         mode: 'step',
         stepStart,
@@ -96,9 +138,9 @@ export function parseFieldExpression(
   // 范围模式: start-end
   if (trimmed.includes('-') && !trimmed.includes(',')) {
     const [startPart, endPart] = trimmed.split('-');
-    const rangeStart = parseInt(startPart, 10);
-    const rangeEnd = parseInt(endPart, 10);
-    if (!isNaN(rangeStart) && !isNaN(rangeEnd)) {
+    const rangeStart = parseCronExpressionNumber(startPart, metadata.min, metadata.max);
+    const rangeEnd = parseCronExpressionNumber(endPart, metadata.min, metadata.max);
+    if (rangeStart !== null && rangeEnd !== null && rangeStart <= rangeEnd) {
       return {
         mode: 'range',
         rangeStart,
@@ -109,8 +151,8 @@ export function parseFieldExpression(
 
   // 指定模式: value1,value2,...
   if (trimmed.includes(',') || /^\d+$/.test(trimmed)) {
-    const values = trimmed.split(',').map(v => parseInt(v.trim(), 10));
-    if (values.every(v => !isNaN(v))) {
+    const values = trimmed.split(',').map(v => parseCronExpressionNumber(v, metadata.min, metadata.max));
+    if (values.every((v): v is number => v !== null)) {
       return {
         mode: 'specific',
         specificValues: values,
@@ -119,8 +161,8 @@ export function parseFieldExpression(
   }
 
   // 单个数值也视为指定模式
-  const singleValue = parseInt(trimmed, 10);
-  if (!isNaN(singleValue)) {
+  const singleValue = parseCronExpressionNumber(trimmed, metadata.min, metadata.max);
+  if (singleValue !== null) {
     return {
       mode: 'specific',
       specificValues: [singleValue],
@@ -171,10 +213,10 @@ export function validateCronExpression(expression: string): ValidationResult {
       isValid: true,
       description: generateDescription(expression),
     };
-  } catch (e) {
+  } catch {
     return {
       isValid: false,
-      error: e instanceof Error ? e.message : 'Invalid cron expression',
+      error: 'invalidExpression',
     };
   }
 }

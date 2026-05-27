@@ -1,20 +1,25 @@
 import { deleteBookmarkTag, deleteMultipleBookmarkTags, getBookmarkTag, addBookmarkTag, getAllSubscriptions, getSubscriptionNotificationConfig, getSubscriptionSettings } from '../../db/indexedDB';
-import { parseAlarmName, ALARM_NAME_PREFIX, getAlarmName } from '../../types/scheduledTask';
+import {
+  parseAlarmName,
+  ALARM_NAME_PREFIX,
+  getAlarmName,
+  setScheduledTaskExecutionError,
+  type ScheduledTaskExecutionErrorKey,
+} from '../../types/scheduledTask';
 import { Subscription, SubscriptionNotificationConfig } from '../../types/subscription';
 import { getRemainingDays } from '../../services/SubscriptionService';
 import { formatSubscriptionNotificationContent } from '../../utils/subscriptionNotificationContent';
 import { getEnabledSubscriptionNotificationChannels } from '../../utils/subscriptionNotificationChannels';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('[Background]');
 
 const debugLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.debug('[Background]', ...args);
-  }
+  logger.debug(...args);
 };
 
 const warnLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.warn('[Background]', ...args);
-  }
+  logger.warn(...args);
 };
 
 // 内存映射表：id -> url
@@ -48,7 +53,7 @@ const initializeMapping = async (): Promise<void> => {
 
     debugLog(`Initialized mapping with ${bookmarkIdToUrlMap.size} bookmarks`);
   } catch (error) {
-    console.error('Error initializing id->url mapping:', error);
+    logger.error('Error initializing id->url mapping', error);
   }
 };
 
@@ -77,7 +82,7 @@ const getAllBookmarkUrls = (node: chrome.bookmarks.BookmarkTreeNode): string[] =
 // 监听书签创建事件
 chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
   if (bookmark.url) {
-    debugLog('bookmark created, updating mapping', id, bookmark.url);
+    debugLog('bookmark created, updating mapping');
     // 更新内存映射表
     bookmarkIdToUrlMap.set(id, bookmark.url);
   }
@@ -85,7 +90,7 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
 
 // 监听书签删除事件
 chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
-  debugLog('bookmark removed, deleting from indexedDB', id);
+  debugLog('bookmark removed, deleting from indexedDB');
 
   // 检查是否为文件夹（url 为空表示文件夹）
   if (!removeInfo.node.url) {
@@ -96,7 +101,7 @@ chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
     if (bookmarkUrls.length > 0) {
       // 批量删除所有书签的标签数据
       deleteMultipleBookmarkTags(bookmarkUrls).catch(error => {
-        console.error('Error deleting multiple bookmark tags:', error);
+        logger.error('Error deleting multiple bookmark tags', error);
       });
     }
 
@@ -113,7 +118,7 @@ chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
   } else {
     // 单个书签删除 - 使用URL作为主键
     deleteBookmarkTag(removeInfo.node.url).catch(error => {
-      console.error('Error deleting bookmark tag:', error);
+      logger.error('Error deleting bookmark tag', error);
     });
 
     // 从映射表中移除
@@ -123,7 +128,7 @@ chrome.bookmarks.onRemoved.addListener((id, removeInfo) => {
 
 // 监听书签变更事件（处理URL变更）
 chrome.bookmarks.onChanged.addListener(async (id, changeInfo) => {
-  debugLog('bookmark changed', id, changeInfo);
+  debugLog('bookmark changed');
 
   // 检查是否为URL变更
   if (changeInfo.url) {
@@ -147,14 +152,14 @@ chrome.bookmarks.onChanged.addListener(async (id, changeInfo) => {
             tags: oldTagData.tags
           });
 
-          debugLog(`Migrated tag data from ${oldUrl} to ${changeInfo.url}`);
+          debugLog('Migrated tag data after bookmark URL changed');
         }
 
         // 更新映射表
         bookmarkIdToUrlMap.set(id, changeInfo.url);
       }
     } catch (error) {
-      console.error('Error migrating tag data on URL change:', error);
+      logger.error('Error migrating tag data on URL change', error);
     }
   }
 });
@@ -197,6 +202,7 @@ interface TaskExecutionRecord {
   executedAt: number;
   status: 'success' | 'failed';
   errorMessage?: string;
+  errorMessageKey?: ScheduledTaskExecutionErrorKey;
   targetKeyIds: string[];
   successCount: number;
   failedCount: number;
@@ -220,7 +226,7 @@ async function loadTasksFromStorage(): Promise<ScheduledTask[]> {
       return tasks;
     }
   } catch (e) {
-    console.error('Failed to load scheduled tasks:', e);
+    logger.error('Failed to load scheduled tasks', e);
   }
   return [];
 }
@@ -232,7 +238,7 @@ async function saveTasksToStorage(tasks: ScheduledTask[]): Promise<void> {
   try {
     await chrome.storage.local.set({ [STORAGE_KEY]: tasks });
   } catch (e) {
-    console.error('Failed to save scheduled tasks:', e);
+    logger.error('Failed to save scheduled tasks', e);
   }
 }
 
@@ -247,7 +253,7 @@ async function loadKeysFromStorage(): Promise<BarkKeyConfig[]> {
       return keys;
     }
   } catch (e) {
-    console.error('Failed to load Bark keys:', e);
+    logger.error('Failed to load Bark keys', e);
   }
   return [];
 }
@@ -278,9 +284,9 @@ async function saveExecutionRecord(record: TaskExecutionRecord): Promise<void> {
     }
     
     await chrome.storage.local.set({ [EXECUTION_HISTORY_KEY]: history });
-    debugLog('Execution record saved:', record.id);
+    debugLog('Execution record saved');
   } catch (e) {
-    console.error('Failed to save execution record:', e);
+    logger.error('Failed to save execution record', e);
   }
 }
 
@@ -290,7 +296,7 @@ async function saveExecutionRecord(record: TaskExecutionRecord): Promise<void> {
 async function sendBarkNotification(
   key: BarkKeyConfig,
   task: ScheduledTask
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; errorMessageKey?: ScheduledTaskExecutionErrorKey }> {
   try {
     let url = `${key.server}/${key.deviceKey}/${encodeURIComponent(task.title)}/${encodeURIComponent(task.body)}`;
 
@@ -311,18 +317,18 @@ async function sendBarkNotification(
     }
 
     // 避免在日志中输出完整 Bark URL，里面包含设备密钥和通知内容。
-    debugLog('Sending Bark notification', { keyId: key.id, label: key.label });
+    debugLog('Sending Bark notification');
     const response = await fetch(url);
     const data = await response.json();
 
     return {
       success: data.code === 200,
-      error: data.code !== 200 ? data.message : undefined,
+      errorMessageKey: data.code !== 200 ? 'sendFailed' : undefined,
     };
-  } catch (e) {
+  } catch {
     return {
       success: false,
-      error: (e as Error).message,
+      errorMessageKey: 'networkError',
     };
   }
 }
@@ -404,7 +410,7 @@ function parseSimpleCron(expression: string): { minute: number[]; hour: number[]
 function calculateNextExecutionTime(cronExpression: string): number | null {
   const cron = parseSimpleCron(cronExpression);
   if (!cron) {
-    console.error('Failed to parse cron expression:', cronExpression);
+    logger.error('Failed to parse cron expression');
     return null;
   }
 
@@ -445,14 +451,14 @@ function calculateNextExecutionTime(cronExpression: string): number | null {
  * 执行定时任务
  */
 async function executeScheduledTask(taskId: string): Promise<void> {
-  debugLog(`Executing scheduled task: ${taskId}`);
+  debugLog('Executing scheduled task');
 
   try {
     const tasks = await loadTasksFromStorage();
     const task = tasks.find(t => t.id === taskId);
 
     if (!task) {
-      console.error(`Task not found: ${taskId}`);
+      logger.error('Scheduled task was not found');
       return;
     }
 
@@ -460,7 +466,19 @@ async function executeScheduledTask(taskId: string): Promise<void> {
     const targetKeys = keys.filter(key => task.targetKeyIds.includes(key.id));
 
     if (targetKeys.length === 0) {
-      console.error(`No valid target keys found for task: ${taskId}`);
+      logger.error('No valid target keys found for scheduled task');
+      const executionRecord: TaskExecutionRecord = {
+        id: generateExecutionId(),
+        taskId,
+        executedAt: Date.now(),
+        status: 'failed',
+        targetKeyIds: task.targetKeyIds,
+        successCount: 0,
+        failedCount: 0,
+      };
+      setScheduledTaskExecutionError(executionRecord, 'noValidTargetKeys');
+      await saveExecutionRecord(executionRecord);
+
       // 标记任务失败
       const updatedTasks = tasks.map(t =>
         t.id === taskId ? { ...t, status: 'failed' as const, updatedAt: Date.now() } : t
@@ -485,7 +503,7 @@ async function executeScheduledTask(taskId: string): Promise<void> {
       }
     }
 
-    debugLog(`Task ${taskId} executed: success=${successCount}, failed=${failedCount}`);
+    debugLog(`Scheduled task executed: success=${successCount}, failed=${failedCount}`);
 
     // 保存执行历史记录
     const executionRecord: TaskExecutionRecord = {
@@ -498,17 +516,17 @@ async function executeScheduledTask(taskId: string): Promise<void> {
       failedCount,
     };
     
-    // 收集错误信息
-    const errors: string[] = [];
+    // 只保存稳定错误码，避免 Bark 服务端 message 或运行时异常进入历史记录。
+    let errorMessageKey: ScheduledTaskExecutionErrorKey | undefined;
     for (const result of results) {
       if (result.status === 'rejected') {
-        errors.push(result.reason?.message || 'Unknown error');
-      } else if (!result.value.success && result.value.error) {
-        errors.push(result.value.error);
+        errorMessageKey = 'sendFailed';
+      } else if (!result.value.success) {
+        errorMessageKey = result.value.errorMessageKey ?? 'sendFailed';
       }
     }
-    if (errors.length > 0) {
-      executionRecord.errorMessage = errors.join('; ');
+    if (errorMessageKey) {
+      setScheduledTaskExecutionError(executionRecord, errorMessageKey);
     }
     
     await saveExecutionRecord(executionRecord);
@@ -534,7 +552,7 @@ async function executeScheduledTask(taskId: string): Promise<void> {
             nextExecutionTime = nextTime;
             // 注册下次执行的 Alarm
             registerTaskAlarm(t.id, nextTime);
-            debugLog(`Scheduled next execution for task ${t.id} at ${new Date(nextTime).toISOString()}`);
+            debugLog(`Scheduled next execution for recurring task at ${new Date(nextTime).toISOString()}`);
           }
         }
         return {
@@ -549,7 +567,7 @@ async function executeScheduledTask(taskId: string): Promise<void> {
     await saveTasksToStorage(updatedTasks);
 
   } catch (error) {
-    console.error(`Failed to execute task ${taskId}:`, error);
+    logger.error('Failed to execute scheduled task', error);
   }
 }
 
@@ -562,7 +580,7 @@ function registerTaskAlarm(taskId: string, nextExecutionTime: number): void {
   const now = Date.now();
   const delay = Math.max(nextExecutionTime - now, minDelay);
 
-  debugLog(`Background: Registering alarm ${alarmName} for ${new Date(now + delay).toISOString()}`);
+  debugLog(`Background: Registering scheduled task alarm for ${new Date(now + delay).toISOString()}`);
 
   chrome.alarms.create(alarmName, {
     when: now + delay,
@@ -571,9 +589,9 @@ function registerTaskAlarm(taskId: string, nextExecutionTime: number): void {
   // 确认 alarm 已创建
   chrome.alarms.get(alarmName, (alarm) => {
     if (alarm) {
-      debugLog(`Alarm ${alarmName} confirmed created, scheduled for ${new Date(alarm.scheduledTime).toISOString()}`);
+      debugLog(`Scheduled task alarm confirmed created for ${new Date(alarm.scheduledTime).toISOString()}`);
     } else {
-      console.error(`Failed to create alarm ${alarmName}`);
+      logger.error('Failed to create alarm');
     }
   });
 }
@@ -583,7 +601,7 @@ function registerTaskAlarm(taskId: string, nextExecutionTime: number): void {
  */
 function cancelTaskAlarm(taskId: string): void {
   const alarmName = getAlarmName(taskId);
-  debugLog(`Background: Canceling alarm ${alarmName}`);
+  debugLog('Background: Canceling scheduled task alarm');
   chrome.alarms.clear(alarmName);
 }
 
@@ -610,7 +628,7 @@ async function restoreScheduledTasks(): Promise<void> {
       if (!task.nextExecutionTime || task.nextExecutionTime < now) {
         if (task.type === 'one-time') {
           // 一次性任务已过期，标记为完成
-          debugLog(`Task ${task.id} expired, marking as completed`);
+          debugLog('One-time task expired, marking as completed');
           taskToSave = { ...taskToSave, status: 'completed' as const, updatedAt: now };
           tasksUpdated = true;
           updatedTasks.push(taskToSave);
@@ -621,10 +639,10 @@ async function restoreScheduledTasks(): Promise<void> {
           if (nextTime) {
             taskToSave = { ...taskToSave, nextExecutionTime: nextTime, updatedAt: now };
             tasksUpdated = true;
-            debugLog(`Task ${task.id} next execution recalculated: ${new Date(nextTime).toISOString()}`);
+            debugLog(`Recurring task next execution recalculated: ${new Date(nextTime).toISOString()}`);
           } else {
             // 无法计算下次执行时间，跳过
-            warnLog(`Cannot calculate next execution time for task ${task.id}`);
+            warnLog('Cannot calculate next execution time for scheduled task');
             updatedTasks.push(taskToSave);
             continue;
           }
@@ -646,7 +664,7 @@ async function restoreScheduledTasks(): Promise<void> {
 
     debugLog('Scheduled tasks restored');
   } catch (error) {
-    console.error('Failed to restore scheduled tasks:', error);
+    logger.error('Failed to restore scheduled tasks', error);
   }
 }
 
@@ -683,18 +701,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // 监听 Alarm 触发事件
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  debugLog('Alarm triggered:', alarm.name, 'at', new Date().toISOString());
+  debugLog('Alarm triggered at', new Date().toISOString());
 
   // 检查是否为 Bark 定时任务
   if (alarm.name.startsWith(ALARM_NAME_PREFIX)) {
     const taskId = parseAlarmName(alarm.name);
-    debugLog('Parsed task ID:', taskId);
+    debugLog('Parsed scheduled task alarm');
     if (taskId) {
       await executeScheduledTask(taskId);
       
       // 列出当前所有 alarms
       const allAlarms = await chrome.alarms.getAll();
-      debugLog('Current alarms after execution:', allAlarms.map(a => ({ name: a.name, scheduledTime: new Date(a.scheduledTime).toISOString() })));
+      debugLog('Current alarm count after execution:', allAlarms.length);
     }
   }
 });
@@ -806,7 +824,7 @@ async function sendSubscriptionNotification(
         successChannels.push('telegram');
       }
     } catch (e) {
-      console.error('Telegram notification failed:', e);
+      logger.error('Telegram notification failed', e);
     }
   }
   
@@ -830,7 +848,7 @@ async function sendSubscriptionNotification(
         successChannels.push('email');
       }
     } catch (e) {
-      console.error('Email notification failed:', e);
+      logger.error('Email notification failed', e);
     }
   }
   
@@ -857,7 +875,7 @@ async function sendSubscriptionNotification(
         successChannels.push('webhook');
       }
     } catch (e) {
-      console.error('Webhook notification failed:', e);
+      logger.error('Webhook notification failed', e);
     }
   }
   
@@ -890,7 +908,7 @@ async function sendSubscriptionNotification(
         }
       }
     } catch (e) {
-      console.error('Bark notification failed:', e);
+      logger.error('Bark notification failed', e);
     }
   }
   
@@ -945,7 +963,7 @@ async function checkSubscriptionExpiry(): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('Failed to check subscription expiry:', error);
+    logger.error('Failed to check subscription expiry', error);
   }
 }
 

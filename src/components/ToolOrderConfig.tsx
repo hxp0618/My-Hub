@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolId, getToolMetadata } from '../types/tools';
 import { useToast } from '../hooks/useToast';
+import { parseDragIndex } from '../utils/dragIndex';
 
 interface ToolOrderConfigProps {
   toolOrder: ToolId[];
@@ -47,12 +48,15 @@ export const ToolOrderConfig: React.FC<ToolOrderConfigProps> = ({
   const handleDrop = useCallback(
     (e: React.DragEvent, toIndex: number) => {
       e.preventDefault();
-      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const fromIndex = parseDragIndex(e.dataTransfer.getData('text/plain'), orderedEnabledTools.length);
+      const targetIndex = Number.isInteger(toIndex) && toIndex >= 0 && toIndex < orderedEnabledTools.length
+        ? toIndex
+        : null;
 
-      if (!isNaN(fromIndex) && fromIndex !== toIndex) {
+      if (fromIndex !== null && targetIndex !== null && fromIndex !== targetIndex) {
         // 计算在完整 toolOrder 中的实际索引
         const fromToolId = orderedEnabledTools[fromIndex];
-        const toToolId = orderedEnabledTools[toIndex];
+        const toToolId = orderedEnabledTools[targetIndex];
         
         const actualFromIndex = toolOrder.indexOf(fromToolId);
         const actualToIndex = toolOrder.indexOf(toToolId);

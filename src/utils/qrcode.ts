@@ -6,6 +6,30 @@ import jsQR from 'jsqr';
 import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
 import type { QRCodeOptions, QRCodeImage } from '../types/qrcode';
+import { sanitizeQRCodeOptions } from '../types/qrcode';
+
+export function normalizeQRCodeContents(contents: string[]): string[] {
+  const seen = new Set<string>();
+
+  return contents.flatMap(content => {
+    const normalizedContent = content.trim();
+    if (!normalizedContent || seen.has(normalizedContent)) return [];
+    seen.add(normalizedContent);
+    return [normalizedContent];
+  });
+}
+
+export function createQRCodeFileName(content: string, index?: number): string {
+  const safeContent = content
+    .trim()
+    .slice(0, 40)
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 30) || 'content';
+  const indexPart = typeof index === 'number' ? `${index + 1}_` : '';
+
+  return `qrcode_${indexPart}${safeContent}.png`;
+}
 
 /**
  * 生成二维码 Data URL（增强版）
@@ -20,13 +44,15 @@ export async function generateQRCode(
   if (!content.trim()) return null;
 
   try {
+    const safeOptions = sanitizeQRCodeOptions(options);
+
     return await QRCode.toDataURL(content, {
-      width: options.size,
-      margin: options.margin,
-      errorCorrectionLevel: options.errorCorrectionLevel,
+      width: safeOptions.size,
+      margin: safeOptions.margin,
+      errorCorrectionLevel: safeOptions.errorCorrectionLevel,
       color: {
-        dark: options.foregroundColor,
-        light: options.backgroundColor,
+        dark: safeOptions.foregroundColor,
+        light: safeOptions.backgroundColor,
       },
     });
   } catch {
@@ -44,17 +70,18 @@ export async function generateBatchQRCodes(
   contents: string[],
   options: QRCodeOptions
 ): Promise<QRCodeImage[]> {
-  const nonEmptyContents = contents.filter(c => c.trim());
+  const nonEmptyContents = normalizeQRCodeContents(contents);
+  const safeOptions = sanitizeQRCodeOptions(options);
   const results: QRCodeImage[] = [];
 
   for (const content of nonEmptyContents) {
-    const dataUrl = await generateQRCode(content, options);
+    const dataUrl = await generateQRCode(content, safeOptions);
     if (dataUrl) {
       results.push({
         id: uuidv4(),
-        content: content.trim(),
+        content,
         dataUrl,
-        options: { ...options },
+        options: { ...safeOptions },
         createdAt: Date.now(),
         selected: false,
       });
@@ -105,7 +132,7 @@ export async function createZipFromImages(images: QRCodeImage[]): Promise<Blob> 
   images.forEach((image, index) => {
     // 从 data URL 提取 base64 数据
     const base64Data = image.dataUrl.split(',')[1];
-    const fileName = `qrcode_${index + 1}_${image.content.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+    const fileName = createQRCodeFileName(image.content, index);
     zip.file(fileName, base64Data, { base64: true });
   });
 

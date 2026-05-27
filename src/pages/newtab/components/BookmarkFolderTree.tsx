@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { EnhancedBookmark } from '../../../types/bookmarks';
 import { useTranslation } from 'react-i18next';
+import { createLogger } from '../../../utils/logger';
+import { folderState } from '../../../utils/storageManager';
+
+const logger = createLogger('[BookmarkFolderTree]');
 
 // =================================================================================
 // Hooks
 // =================================================================================
 
-const useClickOutside = (ref: React.RefObject<any>, handler: () => void) => {
+const useClickOutside = <T extends HTMLElement>(ref: React.RefObject<T | null>, handler: () => void) => {
     useEffect(() => {
       const listener = (event: MouseEvent | TouchEvent) => {
         if (!ref.current || ref.current.contains(event.target as Node)) {
@@ -151,11 +155,29 @@ interface FolderNodeProps {
     dragController: DragController;
 }
 
-type DraggedItem = {
+export type DraggedItem = {
   type: 'folder' | 'bookmark';
   id: string;
   parentId: string | null;
   title?: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+export const sanitizeDraggedItem = (value: unknown): DraggedItem | null => {
+  if (!isRecord(value)) return null;
+  if (value.type !== 'folder' && value.type !== 'bookmark') return null;
+  if (typeof value.id !== 'string' || value.id.trim() === '') return null;
+  if (value.parentId !== null && typeof value.parentId !== 'string') return null;
+
+  return {
+    type: value.type,
+    id: value.id,
+    parentId: value.parentId,
+    ...(typeof value.title === 'string' ? { title: value.title } : {}),
+  };
 };
 
 interface DragController {
@@ -188,30 +210,16 @@ const FolderNode: React.FC<FolderNodeProps> = ({
 
   const [modal, setModal] = useState<'create' | 'rename' | 'delete' | null>(null);
 
-  // 展开/收缩状态管理 - 默认展开第一级文件夹,并使用 localStorage 持久化
-  const storageKey = `folder-expanded-${node.id}`;
+  // 展开/收缩状态管理 - 默认展开第一级文件夹，并使用统一存储入口持久化
   const [isExpanded, setIsExpanded] = useState(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored !== null) {
-        return stored === 'true';
-      }
-    } catch (error) {
-      console.error('Error reading folder state from localStorage:', error);
-    }
-    // 默认展开第一级文件夹
-    return level === 0;
+    return folderState.get(node.id, level === 0);
   });
 
   // 持久化展开状态
   const toggleExpanded = () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
-    try {
-      localStorage.setItem(storageKey, String(newState));
-    } catch (error) {
-      console.error('Error saving folder state to localStorage:', error);
-    }
+    folderState.set(node.id, newState);
   };
 
   const handleCreateFolder = async (name: string) => {
@@ -434,10 +442,10 @@ export const BookmarkFolderTree: React.FC<BookmarkFolderTreeProps> = ({
         return null;
       }
       try {
-        const parsed = JSON.parse(raw) as DraggedItem;
-        return parsed;
+        const parsed: unknown = JSON.parse(raw);
+        return sanitizeDraggedItem(parsed);
       } catch (error) {
-        console.warn('[BookmarkFolderTree] Failed to parse drag payload:', error);
+        logger.warn('Failed to parse drag payload', error);
         return null;
       }
     },
@@ -529,7 +537,7 @@ export const BookmarkFolderTree: React.FC<BookmarkFolderTreeProps> = ({
           await moveFolder(payload.id, node.id);
           onDropComplete?.();
         } catch (error) {
-          console.error('[BookmarkFolderTree] Failed to move folder:', error);
+          logger.error('Failed to move folder', error);
         }
       } else if (payload.type === 'bookmark') {
         if (!moveBookmark || payload.parentId === node.id) {
@@ -539,7 +547,7 @@ export const BookmarkFolderTree: React.FC<BookmarkFolderTreeProps> = ({
           await moveBookmark(payload.id, node.id);
           onDropComplete?.();
         } catch (error) {
-          console.error('[BookmarkFolderTree] Failed to move bookmark:', error);
+          logger.error('Failed to move bookmark', error);
         }
       }
     },

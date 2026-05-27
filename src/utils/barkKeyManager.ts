@@ -3,7 +3,8 @@
  * 提供密钥配置的基础操作函数
  */
 
-import { BarkKeyConfig } from '../types/bark';
+import { BarkKeyConfig, sanitizeBarkKeys } from '../types/bark';
+import i18n from '../i18n';
 import { createLogger } from './logger';
 
 const barkKeyLogger = createLogger('[BarkKeyManager]');
@@ -29,7 +30,7 @@ export function generateKeyId(): string {
  */
 export function generateDefaultLabel(existingKeys: BarkKeyConfig[]): string {
   const count = existingKeys.length + 1;
-  return `设备 ${count}`;
+  return i18n.t('tools.barkNotifier.keys.defaultLabel', { count });
 }
 
 /**
@@ -55,6 +56,28 @@ const BARK_KEYS_STORAGE_KEY = 'bark_keys';
 const BARK_SELECTED_KEY_ID_STORAGE_KEY = 'bark_selected_key_id';
 const BARK_OLD_CONFIG_KEY = 'bark_config';
 
+const isNonEmptyString = (value: unknown): value is string => (
+  typeof value === 'string' && value.trim().length > 0
+);
+
+const parseOldConfig = (stored: string): OldBarkConfig | null => {
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const candidate = parsed as Partial<OldBarkConfig>;
+    if (!isNonEmptyString(candidate.deviceKey)) return null;
+
+    return {
+      server: isNonEmptyString(candidate.server) ? candidate.server : 'https://api.day.app',
+      deviceKey: candidate.deviceKey,
+    };
+  } catch (e) {
+    barkKeyLogger.error('Failed to parse old Bark config', e);
+    return null;
+  }
+};
+
 /**
  * 保存所有密钥配置到本地存储
  * 
@@ -63,10 +86,10 @@ const BARK_OLD_CONFIG_KEY = 'bark_config';
  */
 export function saveKeys(keys: BarkKeyConfig[]): void {
   try {
-    localStorage.setItem(BARK_KEYS_STORAGE_KEY, JSON.stringify(keys));
+    localStorage.setItem(BARK_KEYS_STORAGE_KEY, JSON.stringify(sanitizeBarkKeys(keys)));
   } catch (e) {
-    console.error('Failed to save Bark keys:', e);
-    throw new Error('保存失败，请重试');
+    barkKeyLogger.error('Failed to save Bark keys', e);
+    throw new Error('saveFailed');
   }
 }
 
@@ -82,17 +105,27 @@ export function loadKeys(): BarkKeyConfig[] {
     if (!stored) {
       return [];
     }
-    
-    const keys = JSON.parse(stored);
-    
+
+    const parsed: unknown = JSON.parse(stored);
+
     // 验证数据结构
-    if (!Array.isArray(keys)) {
+    if (!Array.isArray(parsed)) {
       throw new Error('Invalid data structure');
     }
-    
-    return keys;
+
+    const validKeys = sanitizeBarkKeys(parsed);
+    if (validKeys.length !== parsed.length) {
+      // 只保留结构完整的密钥项，避免局部脏数据污染管理器状态。
+      if (validKeys.length > 0) {
+        localStorage.setItem(BARK_KEYS_STORAGE_KEY, JSON.stringify(validKeys));
+      } else {
+        localStorage.removeItem(BARK_KEYS_STORAGE_KEY);
+      }
+    }
+
+    return validKeys;
   } catch (e) {
-    console.error('Failed to load Bark keys:', e);
+    barkKeyLogger.error('Failed to load Bark keys', e);
     // 数据损坏时清空并返回空数组
     localStorage.removeItem(BARK_KEYS_STORAGE_KEY);
     return [];
@@ -112,7 +145,7 @@ export function saveSelectedKeyId(keyId: string | null): void {
       localStorage.removeItem(BARK_SELECTED_KEY_ID_STORAGE_KEY);
     }
   } catch (e) {
-    console.error('Failed to save selected key ID:', e);
+    barkKeyLogger.error('Failed to save selected key ID', e);
   }
 }
 
@@ -125,7 +158,7 @@ export function loadSelectedKeyId(): string | null {
   try {
     return localStorage.getItem(BARK_SELECTED_KEY_ID_STORAGE_KEY);
   } catch (e) {
-    console.error('Failed to load selected key ID:', e);
+    barkKeyLogger.error('Failed to load selected key ID', e);
     return null;
   }
 }
@@ -145,36 +178,35 @@ interface OldBarkConfig {
  * 如果有旧配置，则迁移到新系统并保留旧配置
  */
 export function migrateOldConfig(): void {
-  const oldConfig = localStorage.getItem(BARK_OLD_CONFIG_KEY);
-  const existingKeys = localStorage.getItem(BARK_KEYS_STORAGE_KEY);
-  
-  // 如果已经有新配置，不需要迁移
-  if (existingKeys) {
-    return;
-  }
-  
-  // 如果有旧配置，迁移到新系统
-  if (oldConfig) {
-    try {
-      const { server, deviceKey }: OldBarkConfig = JSON.parse(oldConfig);
-      if (deviceKey) {
-        const migratedKey: BarkKeyConfig = {
-          id: generateKeyId(),
-          deviceKey,
-          server: server || 'https://api.day.app',
-          label: '默认设备',
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        
-        localStorage.setItem(BARK_KEYS_STORAGE_KEY, JSON.stringify([migratedKey]));
-        localStorage.setItem(BARK_SELECTED_KEY_ID_STORAGE_KEY, migratedKey.id);
-        
-        barkKeyLogger.debug('Migrated old Bark config to multi-key system');
-      }
-    } catch (e) {
-      console.error('Failed to migrate old Bark config:', e);
+  try {
+    const oldConfig = localStorage.getItem(BARK_OLD_CONFIG_KEY);
+    const existingKeys = localStorage.getItem(BARK_KEYS_STORAGE_KEY);
+
+    // 如果已经有新配置，不需要迁移
+    if (existingKeys || !oldConfig) {
+      return;
     }
+
+    const parsedOldConfig = parseOldConfig(oldConfig);
+    if (!parsedOldConfig) {
+      return;
+    }
+
+    const migratedKey: BarkKeyConfig = {
+      id: generateKeyId(),
+      deviceKey: parsedOldConfig.deviceKey,
+      server: parsedOldConfig.server,
+      label: i18n.t('tools.barkNotifier.keys.migratedDefaultLabel'),
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    localStorage.setItem(BARK_KEYS_STORAGE_KEY, JSON.stringify([migratedKey]));
+    localStorage.setItem(BARK_SELECTED_KEY_ID_STORAGE_KEY, migratedKey.id);
+
+    barkKeyLogger.debug('Migrated old Bark config to multi-key system');
+  } catch (e) {
+    barkKeyLogger.error('Failed to migrate old Bark config', e);
   }
 }
 

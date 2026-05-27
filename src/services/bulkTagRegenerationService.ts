@@ -1,4 +1,9 @@
-import { BulkRegenerationConfig, BulkRegenerationProgress, TagGenerationFailure } from '../types/tags';
+import {
+  BulkRegenerationConfig,
+  BulkRegenerationProgress,
+  TagGenerationFailure,
+  TagGenerationFailureReasonKey,
+} from '../types/tags';
 import { EnhancedBookmark } from '../types/bookmarks';
 import { TagService } from './tagService';
 import { sendMessage } from './llmService';
@@ -14,6 +19,24 @@ import { createLogger } from '../utils/logger';
 import i18n from '../i18n';
 
 const logger = createLogger('[BulkTagRegenerationService]');
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const getFailureReason = (error: unknown): TagGenerationFailureReasonKey => {
+  const message = getErrorMessage(error).toLowerCase();
+
+  if (message.includes('cancel')) return 'cancelled';
+  if (message.includes('429') || message.includes('rate limit')) return 'rateLimited';
+  if (message.includes('fetch') || message.includes('network')) return 'networkError';
+  if (message.includes('missingurl') || message.includes('no url')) return 'missingUrl';
+  if (message.includes('notagsgenerated') || message.includes('no tags')) return 'noTagsGenerated';
+  if (message.includes('parse')) return 'parseFailed';
+
+  return 'generationFailed';
+};
+
+const isRateLimitError = (error: unknown): boolean => getFailureReason(error) === 'rateLimited';
 
 export interface BulkRegenerationResult {
   total: number;
@@ -183,7 +206,7 @@ export class BulkTagRegenerationService {
             bookmarks.push(results[0] as EnhancedBookmark);
           }
         } catch (error) {
-          logger.warn(`Failed to fetch bookmark for URL ${failure.url}:`, error);
+          logger.warn('Failed to fetch bookmark for failed tag entry', error);
         }
       }
 
@@ -289,7 +312,7 @@ export class BulkTagRegenerationService {
           return { success: true };
         } catch (error) {
           // Check if it's a rate limit error
-          if (error instanceof Error && error.message.includes('429')) {
+          if (isRateLimitError(error)) {
             // Apply exponential backoff and retry
             await this.exponentialBackoff(1);
             try {
@@ -297,11 +320,11 @@ export class BulkTagRegenerationService {
               await this.handleGenerationSuccess(bookmark, tags);
               return { success: true };
             } catch (retryError) {
-              await this.handleGenerationFailure(bookmark, retryError as Error);
+              await this.handleGenerationFailure(bookmark, retryError);
               return { success: false };
             }
           } else {
-            await this.handleGenerationFailure(bookmark, error as Error);
+            await this.handleGenerationFailure(bookmark, error);
             return { success: false };
           }
         }
@@ -321,7 +344,7 @@ export class BulkTagRegenerationService {
     existingTags: string[]
   ): Promise<string[]> {
     if (!bookmark.url) {
-      throw new Error('Bookmark has no URL');
+      throw new Error('missingUrl');
     }
 
     const systemPrompt = buildTagGenerationPrompt(existingTags);
@@ -350,12 +373,12 @@ export class BulkTagRegenerationService {
                 .filter(tag => tag.length > 0);
 
               if (tags.length === 0) {
-                reject(new Error('No tags generated'));
+                reject(new Error('noTagsGenerated'));
               } else {
                 resolve(tags);
               }
             } catch (error) {
-              reject(new Error(`Failed to parse tags: ${error}`));
+              reject(new Error('parseFailed'));
             }
           },
           onError: (error: Error) => {
@@ -370,7 +393,7 @@ export class BulkTagRegenerationService {
 
   private async handleGenerationFailure(
     bookmark: EnhancedBookmark,
-    error: Error
+    error: unknown
   ): Promise<void> {
     if (!bookmark.url) return;
 
@@ -383,14 +406,17 @@ export class BulkTagRegenerationService {
       const failure: TagGenerationFailure = {
         url: bookmark.url,
         bookmarkId: bookmark.id,
-        failureReason: error.message,
+        failureReason: getFailureReason(error),
         failureTimestamp: existingFailure?.failureTimestamp || Date.now(),
         retryCount: (existingFailure?.retryCount || 0) + 1,
         lastRetryTimestamp: Date.now(),
       };
 
       await addTagGenerationFailure(failure);
-      logger.warn(`Tag generation failed for ${bookmark.title}: ${error.message}`);
+      logger.warn('Tag generation failed', {
+        reason: failure.failureReason,
+        retryCount: failure.retryCount,
+      });
     } catch (dbError) {
       logger.error('Failed to record tag generation failure:', dbError);
     }
@@ -409,7 +435,7 @@ export class BulkTagRegenerationService {
       // Remove any existing failure record
       await removeTagGenerationFailure(bookmark.url);
 
-      logger.info(`Successfully generated tags for ${bookmark.title}: ${tags.join(', ')}`);
+      logger.info('Successfully generated tags', { tagCount: tags.length });
     } catch (error) {
       logger.error('Failed to save generated tags:', error);
       throw error;

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RecommendationItem, WebCombo } from '../types';
 import { timeAgo } from '../utils';
-import { ItemCard } from './ItemCard';
+import { ItemCard, type ItemCardAction } from './ItemCard';
 import { Modal } from '../../../components/Modal';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import AddBookmarkForm from './AddBookmarkForm';
 import WebComboForm from './WebComboForm';
 import WebComboCard from './WebComboCard';
@@ -14,6 +15,7 @@ import { ToolId } from '../../../types/tools';
 import { SearchActionTarget } from '../../../types/searchActions';
 import { getAllBookmarkTags, addBookmarkTag } from '../../../db/indexedDB';
 import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
+import { parseGeneratedTags } from '../../../lib/bookmarkTags';
 import { sendMessage } from '../../../services/llmService';
 import { useToastContext } from '../../../contexts/ToastContext';
 import type { ChatMessage } from '../../../types/llm';
@@ -38,6 +40,15 @@ import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useTranslation } from 'react-i18next';
 import { createLogger } from '../../../utils/logger';
 import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
+import {
+  cardsPerRow as cardsPerRowStorage,
+  homeItemOrder,
+  noMoreDisplayed as noMoreDisplayedStorage,
+  parseCardsPerRowValue,
+  webCombos as webComboStorage,
+  type StorageValues,
+  StorageKey,
+} from '../../../utils/storageManager';
 
 const homePageLogger = createLogger('[HomePage]');
 type BrowsableSearchResultItem = Exclude<SearchResultItem, ToolSearchResultItem | ActionSearchResultItem>;
@@ -49,7 +60,7 @@ const isActionSearchResult = (item: SearchResultItem): item is ActionSearchResul
 interface SortableCardProps {
   id: string;
   item: RecommendationItem | BrowsableSearchResultItem;
-  actions: any[];
+  actions: ItemCardAction[];
 }
 
 const SortableCard: React.FC<SortableCardProps> = ({ id, item, actions }) => {
@@ -113,8 +124,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   const { t } = useTranslation();
   const toast = useToastContext();
   const [noMoreDisplayed, setNoMoreDisplayed] = useState<string[]>(() => {
-    const stored = localStorage.getItem('noMoreDisplayed');
-    return stored ? JSON.parse(stored) : [];
+    return noMoreDisplayedStorage.get();
   });
   const [searchTerm, setSearchTerm] = useState('');
   const { results: searchResults, loading: searchLoading } = useGlobalSearch(searchTerm);
@@ -130,15 +140,13 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   const [tagGenerationAbortController, setTagGenerationAbortController] = useState<AbortController | null>(null);
 
   // Cards per row setting
-  const [cardsPerRow, setCardsPerRow] = useState<number>(() => {
-    const saved = localStorage.getItem('cardsPerRow');
-    return saved ? parseInt(saved, 10) : 4;
+  const [cardsPerRow, setCardsPerRow] = useState<StorageValues[StorageKey.CARDS_PER_ROW]>(() => {
+    return cardsPerRowStorage.get();
   });
 
   // Item order state
   const [itemOrder, setItemOrder] = useState<string[]>(() => {
-    const stored = localStorage.getItem('homeItemOrder');
-    return stored ? JSON.parse(stored) : [];
+    return homeItemOrder.get();
   });
 
   // Drag and drop sensors
@@ -151,11 +159,11 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
 
   // Web Combo state
   const [webCombos, setWebCombos] = useState<WebCombo[]>(() => {
-    const stored = localStorage.getItem('webCombos');
-    return stored ? JSON.parse(stored) : [];
+    return webComboStorage.get();
   });
   const [isComboModalOpen, setIsComboModalOpen] = useState(false);
   const [editingCombo, setEditingCombo] = useState<WebCombo | null>(null);
+  const [comboToDelete, setComboToDelete] = useState<WebCombo | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(moreMenuRef, () => setShowMoreMenu(false));
@@ -200,21 +208,20 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('webCombos', JSON.stringify(webCombos));
+    webComboStorage.set(webCombos);
   }, [webCombos]);
 
   // Listen for cardsPerRow changes (from same tab or different tabs)
   useEffect(() => {
     const handleStorageChange = () => {
-      const saved = localStorage.getItem('cardsPerRow');
-      if (saved) {
-        setCardsPerRow(parseInt(saved, 10));
-      }
+      setCardsPerRow(cardsPerRowStorage.get());
     };
 
     const handleCustomEvent = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      setCardsPerRow(customEvent.detail);
+      const customEvent = e as CustomEvent<unknown>;
+      const newValue = parseCardsPerRowValue(customEvent.detail);
+      if (newValue === null) return;
+      setCardsPerRow(newValue);
     };
 
     // Listen for storage events (cross-tab)
@@ -258,14 +265,14 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
       const newItems = arrayMove(sortedAllItems, oldIndex, newIndex);
       const newOrder = newItems.map((item) => item.url);
       setItemOrder(newOrder);
-      localStorage.setItem('homeItemOrder', JSON.stringify(newOrder));
+      homeItemOrder.set(newOrder);
     }
   };
 
   const handleAddToNoMoreDisplayed = (url: string) => {
     const updatedList = [...noMoreDisplayed, url];
     setNoMoreDisplayed(updatedList);
-    localStorage.setItem('noMoreDisplayed', JSON.stringify(updatedList));
+    noMoreDisplayedStorage.set(updatedList);
   };
 
   const handleOpenBookmarkModal = (item: RecommendationItem | BrowsableSearchResultItem) => {
@@ -284,9 +291,16 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   };
 
   const handleDeleteCombo = (id: string) => {
-    if (window.confirm(t('home.deleteWebComboConfirm'))) {
-        setWebCombos(webCombos.filter(c => c.id !== id));
+    const combo = webCombos.find(c => c.id === id);
+    if (combo) {
+      setComboToDelete(combo);
     }
+  };
+
+  const handleConfirmDeleteCombo = () => {
+    if (!comboToDelete) return;
+    setWebCombos(webCombos.filter(c => c.id !== comboToDelete.id));
+    setComboToDelete(null);
   };
 
   const handleOpenCreateComboModal = () => {
@@ -336,16 +350,9 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
             generatedContent += chunk;
           },
           onFinish: async () => {
-            // 移除代码块标记
-            const unwrapped = generatedContent.replace(/```(?:\w+)?\s*([\s\S]*?)```/g, '$1').trim();
+            const generatedTags = parseGeneratedTags(generatedContent);
 
-            if (unwrapped) {
-              const generatedTags = unwrapped
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag.length > 0);
-
-              if (generatedTags.length > 0) {
+            if (generatedTags.length > 0) {
                 // Check if item is already a bookmark
                 const isBookmark = 'type' in item ? item.type === 'bookmark' : item.isBookmark;
 
@@ -368,7 +375,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                     // 刷新推荐列表以显示新标签
                     onRefresh?.();
                   } catch (error) {
-                    console.error('创建书签失败:', error);
+                    homePageLogger.error('Failed to create bookmark while saving generated tags', error);
                     toast.error(t('bookmarks.addError'));
                   }
                 } else {
@@ -382,10 +389,6 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                   // 刷新推荐列表以显示新标签
                   onRefresh?.();
                 }
-              } else {
-                setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));
-                toast.error(t('bookmarks.tagGenerateFailed'));
-              }
             } else {
               setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));
               toast.error(t('bookmarks.tagGenerateFailed'));
@@ -399,9 +402,9 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
             }, 2000);
           },
           onError: (error: Error) => {
-            console.error('生成标签失败:', error);
-            setGenerationStatusMessage(t('bookmarks.tagGenerateError', { message: error.message }));
-            toast.error(t('bookmarks.tagGenerateError', { message: error.message }));
+            homePageLogger.error('Failed to generate tags', error);
+            setGenerationStatusMessage(t('bookmarks.tagGenerateRetry'));
+            toast.error(t('bookmarks.tagGenerateRetry'));
             setIsGeneratingTags(false);
             setTagGenerationAbortController(null);
             setTimeout(() => {
@@ -413,7 +416,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
         controller.signal
       );
     } catch (error) {
-      console.error('生成标签出错:', error);
+      homePageLogger.error('Tag generation request failed', error);
       setGenerationStatusMessage(t('bookmarks.tagGenerateRetry'));
       toast.error(t('bookmarks.tagGenerateRetry'));
       setIsGeneratingTags(false);
@@ -527,9 +530,10 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
             <select
               value={cardsPerRow}
               onChange={(e) => {
-                const newValue = parseInt(e.target.value, 10);
+                const newValue = parseCardsPerRowValue(e.target.value);
+                if (newValue === null) return;
                 setCardsPerRow(newValue);
-                localStorage.setItem('cardsPerRow', newValue.toString());
+                cardsPerRowStorage.set(newValue);
                 window.dispatchEvent(new CustomEvent('cardsPerRowChanged', { detail: newValue }));
               }}
               className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer nb-text"
@@ -736,6 +740,16 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
             }}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!comboToDelete}
+        onClose={() => setComboToDelete(null)}
+        onConfirm={handleConfirmDeleteCombo}
+        title={t('actions.delete')}
+        message={t('home.deleteWebComboConfirm')}
+        confirmText={t('common.delete')}
+        danger
+      />
 
       {/* AI生成标签进度模态框 - 增强 Neo-Brutalism 风格 */}
       {tagGenerationItem && (

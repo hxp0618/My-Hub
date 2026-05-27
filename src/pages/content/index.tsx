@@ -1,5 +1,8 @@
 // Content script for extracting page content
 // Listens for messages from extension pages to extract and process page content
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('[Reading List]');
 
 /**
  * 智能提取页面主要内容
@@ -9,9 +12,7 @@ type ExtractContentResult =
   | { success: false; error: string };
 
 const debugLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.debug('[Reading List]', ...args);
-  }
+  logger.debug(...args);
 };
 
 function extractPageContent(): ExtractContentResult {
@@ -95,7 +96,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   result.success ? `(${result.html.length} chars)` : result.error);
       sendResponse(result);
     } catch (error) {
-      console.error('[Reading List] Extraction error:', error);
+      logger.error('Extraction error', error);
       sendResponse({
         success: false,
         error: (error as Error).message,

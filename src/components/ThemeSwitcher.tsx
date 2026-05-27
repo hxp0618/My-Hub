@@ -14,6 +14,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
   showDescriptions = false,
 }) => {
   const { theme, setTheme, getThemeMetadata } = useTheme();
+  const { t } = useTranslation();
   const [hoveredTheme, setHoveredTheme] = useState<Theme | null>(null);
 
   const themes: Theme[] = ['light', 'dark', 'system', 'eye-care'];
@@ -27,6 +28,8 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
       <div className="flex items-center gap-2">
         {themes.map((themeId) => {
           const metadata = getThemeMetadata(themeId);
+          const themeName = t(metadata.nameKey);
+          const themeDescription = t(metadata.descriptionKey);
           const isActive = theme === themeId;
           
           return (
@@ -40,8 +43,8 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
                 p-2 h-10 w-10 justify-center transition-all duration-200
                 ${isActive ? '' : 'hover:-translate-y-[1px]'}
               `}
-              title={metadata.description}
-              aria-label={metadata.name}
+              title={themeDescription}
+              aria-label={themeName}
             >
               <span className="material-symbols-outlined text-xl">
                 {metadata.icon}
@@ -58,6 +61,8 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {themes.map((themeId) => {
           const metadata = getThemeMetadata(themeId);
+          const themeName = t(metadata.nameKey);
+          const themeDescription = t(metadata.descriptionKey);
           const isActive = theme === themeId;
 
           return (
@@ -74,7 +79,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
                   : 'bg-[color:var(--nb-card)] shadow-[4px_4px_0px_0px_var(--nb-border)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px]'
                 }
               `}
-              aria-label={metadata.name}
+              aria-label={themeName}
               aria-pressed={isActive}
             >
               <span
@@ -86,13 +91,13 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
                 {metadata.icon}
               </span>
               {showLabels && (
-                <span className={`text-sm font-medium ${isActive ? 'text-[color:var(--nb-accent-yellow)]' : 'text-[color:var(--nb-text)]'}`}>
-                  {metadata.name}
+                <span className={`text-sm font-medium ${isActive ? 'nb-text' : 'text-[color:var(--nb-text)]'}`}>
+                  {themeName}
                 </span>
               )}
               {showDescriptions && (
                 <span className="text-xs nb-text-secondary mt-1 text-center">
-                  {metadata.description}
+                  {themeDescription}
                 </span>
               )}
             </button>
@@ -107,6 +112,8 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
     <div className="space-y-3">
       {themes.map((themeId) => {
         const metadata = getThemeMetadata(themeId);
+        const themeName = t(metadata.nameKey);
+        const themeDescription = t(metadata.descriptionKey);
         const isActive = theme === themeId;
         const isHovered = hoveredTheme === themeId;
 
@@ -124,7 +131,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
                 : 'nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-border)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px]'
               }
             `}
-            aria-label={metadata.name}
+            aria-label={themeName}
             aria-pressed={isActive}
           >
             <div
@@ -147,11 +154,11 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
 
             <div className="flex-1">
               <div className={`font-bold text-sm uppercase tracking-wide ${isActive ? 'nb-text' : 'nb-text'}`}>
-                {metadata.name}
+                {themeName}
               </div>
               {showDescriptions && (
                 <div className="text-sm nb-text-secondary mt-1">
-                  {metadata.description}
+                  {themeDescription}
                 </div>
               )}
             </div>

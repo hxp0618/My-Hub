@@ -5,20 +5,23 @@ import { EnhancedBookmark } from '../../../types/bookmarks';
 import { BookmarkFolderTree } from './BookmarkFolderTree';
 import { sendMessage } from '../../../services/llmService';
 import { getBookmarkOrganizationSystemPrompt } from '../../../lib/bookmarkOrganizationPrompts';
+import { parseGeneratedBookmarkTreeResponse } from '../../../lib/generatedBookmarkTree';
 import { extractFolderStructure, GeneratedNode, extractBookmarksForLlm } from '../utils';
-import { jsonrepair } from 'jsonrepair';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('[AutoOrganizeModal]');
 
 const debugLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.debug('[AutoOrganizeModal]', ...args);
-  }
+  logger.debug(...args);
 };
 
-const warnLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.warn('[AutoOrganizeModal]', ...args);
-  }
+const errorLog = (...args: unknown[]) => {
+  logger.error(...args);
 };
+
+const getErrorType = (error: unknown): string => (
+  error instanceof Error ? error.name : typeof error
+);
 
 let tempIdCounter = 0;
 // This function converts the LLM's raw tree to a display-friendly, editable tree
@@ -95,7 +98,7 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
     abortControllerRef.current = new AbortController();
 
     const bookmarksToOrganize = extractBookmarksForLlm(bookmarks);
-    debugLog(`handleGenerate: Found bookmarks to organize.`);
+    debugLog('handleGenerate: Found bookmarks to organize.', Object.keys(bookmarksToOrganize).length);
 
     if (Object.keys(bookmarksToOrganize).length === 0) {
         setError(t('organizeAiModal.noBookmarks'));
@@ -104,12 +107,12 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
     }
     
     const folderStructure = extractFolderStructure(bookmarks);
-    debugLog('handleGenerate: Extracted existing folder structure:', folderStructure);
+    debugLog('handleGenerate: Extracted existing folder structure.', folderStructure.length);
 
     const systemPrompt = getBookmarkOrganizationSystemPrompt(JSON.stringify(folderStructure, null, 2));
     const userPrompt = `Here is the list of my bookmarks. Please organize them for me:\n\n${JSON.stringify(bookmarksToOrganize, null, 2)}`;
     
-    debugLog('handleGenerate: Sending prompts to LLM:', "systemPrompt", systemPrompt, "userPrompt", userPrompt);
+    debugLog('handleGenerate: Sending prompts to LLM.');
 
     try {
         await sendMessage(
@@ -120,27 +123,25 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
             {
                 onUpdate: () => {}, // Not used in non-streaming mode
                 onFinish: (fullResponse) => {
-                    debugLog('handleGenerate: Received raw response from LLM:', fullResponse);
+                    debugLog('handleGenerate: Received response from LLM.', fullResponse?.length ?? 0);
                     if (!fullResponse) {
                         setError(t('organizeAiModal.emptyResponse'));
                         setIsLoading(false);
                         return;
                     }
                     try {
-                        const startIndex = fullResponse.indexOf('[');
-                        const endIndex = fullResponse.lastIndexOf(']');
-                        let jsonString = fullResponse;
+                        debugLog('handleGenerate: Attempting to parse generated tree.');
+                        const bookmarksMap = new Map<string, EnhancedBookmark>();
+                        const flattenAndMap = (nodes: EnhancedBookmark[]) => {
+                          for (const node of nodes) {
+                            if (node.url) bookmarksMap.set(node.id, node);
+                            if (node.children) flattenAndMap(node.children);
+                          }
+                        };
+                        flattenAndMap(bookmarks);
 
-                        if (startIndex !== -1 && endIndex !== -1) {
-                            jsonString = fullResponse.substring(startIndex, endIndex + 1);
-                        } else {
-                            warnLog("Could not find a clear JSON array, attempting to repair the whole string.");
-                        }
-                        
-                        debugLog('handleGenerate: Attempting to repair and parse JSON.');
-                        const repairedJson = jsonrepair(jsonString);
-                        const organizedTree = JSON.parse(repairedJson) as GeneratedNode[];
-                        debugLog('handleGenerate: Successfully parsed generated tree:', organizedTree);
+                        const organizedTree = parseGeneratedBookmarkTreeResponse(fullResponse, new Set(bookmarksMap.keys()));
+                        debugLog('handleGenerate: Successfully parsed generated tree.', organizedTree.length);
 
                         // Merge top-level folders that don't exist into "Bookmarks Bar"
                         const existingTopLevelFolders = folderStructure.map(f => f.title);
@@ -181,28 +182,18 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
                             finalTree.push(bookmarksBarNode);
                         }
 
-
-                        const bookmarksMap = new Map<string, EnhancedBookmark>();
-                        const flattenAndMap = (nodes: EnhancedBookmark[]) => {
-                          for (const node of nodes) {
-                            if (node.url) bookmarksMap.set(node.id, node);
-                            if (node.children) flattenAndMap(node.children);
-                          }
-                        };
-                        flattenAndMap(bookmarks);
-
                         tempIdCounter = 0; // Reset counter for unique IDs
                         setEditableGeneratedTree(mapRawTreeToDisplayTree(finalTree, '0', bookmarksMap));
-                    } catch (e) {
-                        console.error("handleGenerate: Failed to parse LLM response.", e);
+                    } catch (error) {
+                        errorLog('handleGenerate: Failed to parse LLM response.', { errorType: getErrorType(error) });
                         setError(t('errors.aiParseFailed.message'));
                     } finally {
                         setIsLoading(false);
                     }
                 },
                 onError: (err) => {
-                    console.error("handleGenerate: LLM Error callback:", err);
-                    setError(err.message || t('tools.common.unknownError'));
+                    errorLog('handleGenerate: LLM Error callback.', { errorType: getErrorType(err) });
+                    setError(t('organizeAiModal.generateError'));
                     setIsLoading(false);
                 },
             },
@@ -211,8 +202,8 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
         );
     } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-            console.error("handleGenerate: Failed to send message:", err);
-            setError((err as Error).message || t('tools.common.unknownError'));
+            errorLog('handleGenerate: Failed to send message.', { errorType: getErrorType(err) });
+            setError(t('organizeAiModal.generateError'));
             setIsLoading(false);
         }
     }
@@ -220,17 +211,17 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
   
   const handleApplyChanges = async () => {
     if (!editableGeneratedTree) return;
-    debugLog('handleApplyChanges: Starting to apply new structure...', JSON.stringify(editableGeneratedTree, null, 2));
+    debugLog('handleApplyChanges: Starting to apply new structure.', editableGeneratedTree.length);
     setIsLoading(true);
     setError(null);
     try {
         const rawTreeToApply = mapDisplayTreeToRawTree(editableGeneratedTree);
-        debugLog('handleApplyChanges: Mapped raw tree to apply:', JSON.stringify(rawTreeToApply, null, 2));
+        debugLog('handleApplyChanges: Mapped raw tree to apply.', rawTreeToApply.length);
         await applyBookmarkOrganization(rawTreeToApply);
         debugLog('handleApplyChanges: Successfully applied new structure.');
         onClose(); // No need to pass true, refresh is handled by the hook
     } catch (error) {
-        console.error("handleApplyChanges: Failed to apply new bookmark tree:", error);
+        errorLog('handleApplyChanges: Failed to apply new bookmark tree.', { errorType: getErrorType(error) });
         setError(t('organizeAiModal.applyError'));
     } finally {
         setIsLoading(false);

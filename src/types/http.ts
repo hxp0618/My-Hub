@@ -103,3 +103,130 @@ export interface JsonValidationResult {
   valid: boolean;
   error?: string;
 }
+
+const SENSITIVE_HTTP_HEADER_NAMES = new Set([
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'set-cookie',
+  'x-api-key',
+  'api-key',
+  'apikey',
+  'x-auth-token',
+  'x-csrf-token',
+  'x-xsrf-token',
+]);
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+export function isHttpMethodValue(value: unknown): value is HttpMethod {
+  return typeof value === 'string' && HTTP_METHODS.includes(value as HttpMethod);
+}
+
+export function sanitizeHeaderEntries(value: unknown): HeaderEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((header): HeaderEntry[] => {
+    if (
+      !isRecord(header) ||
+      typeof header.key !== 'string' ||
+      typeof header.value !== 'string' ||
+      typeof header.enabled !== 'boolean'
+    ) {
+      return [];
+    }
+
+    return [{
+      key: header.key,
+      value: header.value,
+      enabled: header.enabled,
+    }];
+  });
+}
+
+export function isSensitiveHttpHeaderName(value: string): boolean {
+  return SENSITIVE_HTTP_HEADER_NAMES.has(value.trim().toLowerCase());
+}
+
+export function redactSensitiveHeaderEntriesForHistory(headers: HeaderEntry[]): HeaderEntry[] {
+  return headers.map((header) => (
+    isSensitiveHttpHeaderName(header.key)
+      ? { ...header, value: '', enabled: false }
+      : header
+  ));
+}
+
+export function sanitizeHttpHistoryEntry(value: unknown): HistoryEntry | null {
+  if (!isRecord(value) || !isRecord(value.request)) {
+    return null;
+  }
+
+  const { id, timestamp, request, response } = value;
+  if (
+    typeof id !== 'string' ||
+    id.trim().length === 0 ||
+    typeof timestamp !== 'number' ||
+    !Number.isFinite(timestamp) ||
+    typeof request.url !== 'string' ||
+    request.url.trim().length === 0 ||
+    !isHttpMethodValue(request.method) ||
+    typeof request.body !== 'string'
+  ) {
+    return null;
+  }
+
+  const sanitized: HistoryEntry = {
+    id,
+    timestamp,
+    request: {
+      url: request.url,
+      method: request.method,
+      headers: redactSensitiveHeaderEntriesForHistory(sanitizeHeaderEntries(request.headers)),
+      body: request.body,
+    },
+  };
+
+  if (
+    isRecord(response) &&
+    typeof response.status === 'number' &&
+    Number.isFinite(response.status) &&
+    typeof response.statusText === 'string' &&
+    typeof response.time === 'number' &&
+    Number.isFinite(response.time)
+  ) {
+    sanitized.response = {
+      status: response.status,
+      statusText: response.statusText,
+      time: response.time,
+    };
+  }
+
+  return sanitized;
+}
+
+export function sanitizeHttpHistoryEntries(value: unknown, maxEntries = 10): HistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const limit = Number.isInteger(maxEntries) && maxEntries > 0 ? maxEntries : 10;
+  const seenIds = new Set<string>();
+  const entries: HistoryEntry[] = [];
+
+  for (const item of value) {
+    const entry = sanitizeHttpHistoryEntry(item);
+    if (!entry || seenIds.has(entry.id)) {
+      continue;
+    }
+    entries.push(entry);
+    seenIds.add(entry.id);
+  }
+
+  return entries
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, limit);
+}

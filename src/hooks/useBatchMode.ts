@@ -22,6 +22,8 @@ export interface BatchResult {
 export interface UseBatchModeOptions {
   /** 转换函数 */
   converter: (input: string) => string;
+  /** 展示给用户的稳定错误文案 */
+  getErrorMessage?: (error: unknown) => string;
   /** 分隔符，默认换行符 */
   separator?: string;
 }
@@ -64,7 +66,7 @@ export interface UseBatchModeReturn {
  * ```
  */
 export function useBatchMode(options: UseBatchModeOptions): UseBatchModeReturn {
-  const { converter, separator = '\n' } = options;
+  const { converter, getErrorMessage, separator = '\n' } = options;
 
   const [enabled, setEnabled] = useState(false);
   const [results, setResults] = useState<BatchResult[]>([]);
@@ -101,19 +103,18 @@ export function useBatchMode(options: UseBatchModeOptions): UseBatchModeReturn {
           success: true,
         };
       } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
         return {
           line: index + 1,
           input: line,
           output: null,
-          error: errorMessage,
+          error: getErrorMessage?.(e) ?? 'Conversion failed',
           success: false,
         };
       }
     });
 
     setResults(newResults);
-  }, [converter, separator]);
+  }, [converter, getErrorMessage, separator]);
 
   // 获取所有成功转换的结果（排除失败行，保留空行的空输出）
   const getSuccessfulResults = useCallback((): string => {

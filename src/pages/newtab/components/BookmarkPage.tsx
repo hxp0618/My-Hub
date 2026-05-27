@@ -1,22 +1,16 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useBookmarks } from '../hooks/useBookmarks';
+import { useBookmarkDisplay } from '../hooks/useBookmarkDisplay';
+import { useBookmarkOrganization } from '../hooks/useBookmarkOrganization';
+import { useBookmarkTagGeneration } from '../hooks/useBookmarkTagGeneration';
+import { useBulkTagRegeneration } from '../hooks/useBulkTagRegeneration';
 import { EnhancedBookmark } from '../../../types/bookmarks';
 import { SortOrder } from '../types';
 import { BookmarkFolderTree } from './BookmarkFolderTree';
-import TagInput from '../../../components/TagInput';
-import { ItemCard } from './ItemCard';
-import { formatDate } from '../utils';
-import BookmarkTree from '../../../components/BookmarkTree';
 import { SelectionActionBar, ActionItem } from '../../../components/SelectionActionBar';
 import { AutoOrganizeModal } from './AutoOrganizeModal';
 import { OrganizeBookmarksModal } from '../../../components/OrganizeBookmarksModal';
 import { OrganizeProgressModal } from '../../../components/OrganizeProgressModal';
-import { exportBookmarksToHTML } from '../../../lib/bookmarkExport';
-import { organizeBookmarksBatch, OrganizeProgress } from '../../../services/bookmarkOrganizeService';
-import UnifiedSearchBar from '../../../components/UnifiedSearchBar';
-import { getAllBookmarkTags } from '../../../db/indexedDB';
-import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
-import { sendMessage } from '../../../services/llmService';
 import { BookmarkTreeSkeleton } from '../../../components/SkeletonLoader';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -24,472 +18,27 @@ import { useToastContext } from '../../../contexts/ToastContext';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../../../components/Modal';
 import AddBookmarkForm from './AddBookmarkForm';
-import { findFolder, flattenBookmarks, getFaviconUrl } from '../../../utils/bookmarkUtils';
-import { getUrlHostname } from '../../../utils/favicon';
+import { BookmarkEditModal } from './BookmarkEditModal';
+import { BookmarkMainContent } from './BookmarkPageContent';
 import {
-  analyzeBookmarkHealth,
-  bookmarkMatchesHealthIssue,
-  BookmarkHealthIssue,
-  getDuplicateBookmarkUrls,
-} from '../../../utils/bookmarkHealth';
+  AddTagsModal,
+  DeduplicateModal,
+  MoveBookmarksModal,
+  ReorderConfirmModal,
+} from './BookmarkPageDialogs';
+import { findFolder } from '../../../utils/bookmarkUtils';
+import { BookmarkHealthIssue } from '../../../utils/bookmarkHealth';
 import { BulkTagRegenerationModal } from '../../../components/BulkTagRegenerationModal';
-import { FailedBookmarksIndicator } from '../../../components/FailedBookmarksIndicator';
-import { BulkTagRegenerationService } from '../../../services/bulkTagRegenerationService';
-import { BulkRegenerationProgress, BulkRegenerationConfig } from '../../../types/tags';
-import { getAllTagGenerationFailures } from '../../../db/indexedDB';
-import type { ChatMessage } from '../../../types/llm';
+import { createLogger } from '../../../utils/logger';
+import {
+  bookmarkSidebarCollapsed,
+  cardsPerRow as cardsPerRowStorage,
+  parseCardsPerRowValue,
+  type StorageValues,
+  StorageKey,
+} from '../../../utils/storageManager';
 
-const debugLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV) {
-    console.debug('[BookmarkPage]', ...args);
-  }
-};
-
-const ReorderConfirmModal: React.FC<{
-    onClose: () => void;
-    onConfirm: () => void;
-    sortOrderText: string;
-    isLoading: boolean;
-}> = ({ onClose, onConfirm, sortOrderText, isLoading }) => {
-    const { t } = useTranslation();
-    return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-lg p-8">
-                <h3 className="text-lg font-bold mb-4 nb-text">{t('bookmarks.reorderTitle')}</h3>
-                <p className="nb-text">{t('bookmarks.reorderMessage', { sortOrder: sortOrderText })}</p>
-                <p className="text-sm nb-text-secondary mt-2">{t('bookmarks.reorderWarning')}</p>
-                <div className="flex justify-end space-x-4 mt-8">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2" disabled={isLoading}>{t('common.cancel')}</button>
-                    <button onClick={onConfirm} className="nb-btn nb-btn-primary px-5 py-2" disabled={isLoading}>
-                        {isLoading ? t('common.loading') : t('common.confirm')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const DeduplicateModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    duplicates: { url: string; bookmarks: EnhancedBookmark[] }[];
-    onConfirm: (bookmarksToDelete: string[]) => void;
-}> = ({ isOpen, onClose, duplicates, onConfirm }) => {
-    const { t } = useTranslation();
-    const [selectedToKeep, setSelectedToKeep] = useState<Map<string, string>>(new Map());
-
-    // 初始化选择：默认保留最早添加的书签
-    React.useEffect(() => {
-        if (duplicates.length > 0 && selectedToKeep.size === 0) {
-            const initialSelection = new Map<string, string>();
-            duplicates.forEach(({ url, bookmarks }) => {
-                const oldest = bookmarks.reduce((prev, current) =>
-                    (prev.dateAdded || 0) < (current.dateAdded || 0) ? prev : current
-                );
-                initialSelection.set(url, oldest.id);
-            });
-            setSelectedToKeep(initialSelection);
-        }
-    }, [duplicates, selectedToKeep.size]);
-
-    const handleConfirm = () => {
-        const bookmarksToDelete: string[] = [];
-        duplicates.forEach(({ url, bookmarks }) => {
-            const keepId = selectedToKeep.get(url);
-            bookmarks.forEach(bookmark => {
-                if (bookmark.id !== keepId) {
-                    bookmarksToDelete.push(bookmark.id);
-                }
-            });
-        });
-        onConfirm(bookmarksToDelete);
-    };
-
-    if (!isOpen) return null;
-
-    if (duplicates.length === 0) {
-        return (
-            <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-                <div className="nb-card-static w-full max-w-2xl p-8">
-                    <h3 className="text-lg font-bold mb-4 nb-text">{t('bookmarks.deduplicateTitle')}</h3>
-                    <p className="nb-text-secondary mb-6">{t('bookmarks.noDuplicates')}</p>
-                    <div className="flex justify-end">
-                        <button onClick={onClose} className="nb-btn nb-btn-primary px-5 py-2">
-                            {t('common.close')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const totalDuplicates = duplicates.reduce((sum, { bookmarks }) => sum + bookmarks.length - 1, 0);
-
-    return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-4xl p-8 max-h-[80vh] overflow-y-auto">
-                <h3 className="text-lg font-bold mb-2 nb-text">{t('bookmarks.deduplicateTitle')}</h3>
-                <p className="nb-text-secondary mb-6">
-                    {t('bookmarks.deduplicateMessage', { count: totalDuplicates, groups: duplicates.length })}
-                </p>
-
-                <div className="space-y-6 mb-6">
-                    {duplicates.map(({ url, bookmarks }) => (
-                        <div key={url} className="nb-card-static p-4">
-                            <div className="font-medium mb-3 truncate nb-text" title={url}>{url}</div>
-                            <div className="space-y-2">
-                                {bookmarks.map(bookmark => (
-                                    <label
-                                        key={bookmark.id}
-                                        className="flex items-center gap-3 p-3 nb-bg-card border-2 border-[color:var(--nb-border)] cursor-pointer hover:bg-[color:var(--nb-bg)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] transition-all duration-150"
-                                    >
-                                        <input
-                                            type="radio"
-                                            name={`duplicate-${url}`}
-                                            checked={selectedToKeep.get(url) === bookmark.id}
-                                            onChange={() => {
-                                                const newSelection = new Map(selectedToKeep);
-                                                newSelection.set(url, bookmark.id);
-                                                setSelectedToKeep(newSelection);
-                                            }}
-                                            className="w-4 h-4 accent-[color:var(--nb-accent-yellow)]"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium truncate nb-text">{bookmark.title}</div>
-                                            <div className="text-sm nb-text-secondary">
-                                                {bookmark.dateAdded && new Date(bookmark.dateAdded).toLocaleDateString()}
-                                                {bookmark.parentId && ` • ${t('bookmarks.folder_label')}`}
-                                            </div>
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex justify-end space-x-4">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">
-                        {t('common.cancel')}
-                    </button>
-                    <button onClick={handleConfirm} className="nb-btn nb-btn-danger px-5 py-2">
-                        {t('bookmarks.deleteNDuplicates', { count: totalDuplicates })}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// =================================================================================
-// Helper Functions
-// =================================================================================
-// Note: findFolder, flattenBookmarks, and getFaviconUrl moved to utils/bookmarkUtils.ts
-
-
-// =================================================================================
-// Sub-components
-// =================================================================================
-
-const AddTagsModal: React.FC<{
-    onClose: () => void;
-    onSave: (tags: string[]) => void;
-}> = ({ onClose, onSave }) => {
-    const { t } = useTranslation();
-    const [tags, setTags] = useState<string[]>([]);
-
-    return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-lg p-8">
-                <h3 className="text-lg font-bold mb-6 nb-text">{t('bookmarks.addTags')}</h3>
-                <TagInput tags={tags} setTags={setTags} />
-                <div className="flex justify-end space-x-4 mt-8">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
-                    <button onClick={() => onSave(tags)} className="nb-btn nb-btn-primary px-5 py-2">{t('common.save')}</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const MoveBookmarksModal: React.FC<{
-    onClose: () => void;
-    onMove: (targetParentId: string) => void;
-}> = ({ onClose, onMove }) => {
-    const { t } = useTranslation();
-    const [targetId, setTargetId] = useState('1');
-    
-    return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-lg p-8">
-                <h3 className="text-lg font-bold mb-6 nb-text">{t('bookmarks.moveTo')}</h3>
-                <BookmarkTree selectedFolder={targetId} setSelectedFolder={setTargetId} />
-                <div className="flex justify-end space-x-4 mt-8">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
-                    <button onClick={() => onMove(targetId)} className="nb-btn nb-btn-primary px-5 py-2">{t('actions.move')}</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const BookmarkHealthOverview: React.FC<{
-  report: ReturnType<typeof analyzeBookmarkHealth>;
-  activeIssue: BookmarkHealthIssue | null;
-  onSelectIssue: (issue: BookmarkHealthIssue) => void;
-}> = ({ report, activeIssue, onSelectIssue }) => {
-  const { t } = useTranslation();
-  const scoreTone = report.score >= 85
-    ? 'bg-[color:var(--nb-accent-green)]'
-    : report.score >= 65
-      ? 'bg-[color:var(--nb-accent-yellow)]'
-      : 'bg-[color:var(--nb-accent-pink)]';
-  const cards = [
-    {
-      key: 'duplicates',
-      issue: 'duplicates' as const,
-      icon: 'content_copy',
-      value: report.duplicateItems,
-      label: t('bookmarks.health.duplicates'),
-      hint: t('bookmarks.health.duplicateGroups', { count: report.duplicateGroups }),
-      accent: 'bg-[color:var(--nb-accent-pink)]',
-    },
-    {
-      key: 'untagged',
-      issue: 'untagged' as const,
-      icon: 'label_off',
-      value: report.untagged,
-      label: t('bookmarks.health.untagged'),
-      hint: t('bookmarks.health.needTags'),
-      accent: 'bg-[color:var(--nb-accent-blue)]',
-    },
-    {
-      key: 'stale',
-      issue: 'stale' as const,
-      icon: 'schedule',
-      value: report.stale,
-      label: t('bookmarks.health.stale'),
-      hint: t('bookmarks.health.staleHint'),
-      accent: 'bg-[color:var(--nb-accent-yellow)]',
-    },
-    {
-      key: 'invalid',
-      issue: 'invalid' as const,
-      icon: 'link_off',
-      value: report.invalidUrls,
-      label: t('bookmarks.health.invalidUrls'),
-      hint: t('bookmarks.health.invalidHint'),
-      accent: 'bg-[color:var(--nb-accent-green)]',
-    },
-  ];
-
-  return (
-    <section className="px-8 mt-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-        <div className="nb-card-static p-4 min-w-[180px] flex items-center gap-4">
-          <div className={`w-12 h-12 flex items-center justify-center border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)] ${scoreTone}`}>
-            <span className="material-symbols-outlined nb-text">health_and_safety</span>
-          </div>
-          <div>
-            <div className="text-xs font-bold nb-text-secondary uppercase">{t('bookmarks.health.title')}</div>
-            <div className="text-2xl font-black nb-text">{report.score}</div>
-            <div className="text-xs nb-text-secondary">{t('bookmarks.health.total', { count: report.total })}</div>
-          </div>
-        </div>
-        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map(card => (
-            <button
-              key={card.key}
-              type="button"
-              onClick={() => onSelectIssue(card.issue)}
-              className={`nb-card-subtle p-4 flex items-start gap-3 text-left transition-all ${
-                activeIssue === card.issue ? 'shadow-[3px_3px_0px_0px_var(--nb-border)] translate-x-[-1px] translate-y-[-1px]' : ''
-              }`}
-            >
-              <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] ${card.accent}`}>
-                <span className="material-symbols-outlined nb-text text-lg">{card.icon}</span>
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl font-black nb-text leading-none">{card.value}</div>
-                <div className="text-sm font-bold nb-text mt-1">{card.label}</div>
-                <div className="text-xs nb-text-secondary mt-1 truncate" title={card.hint}>{card.hint}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const EditModal: React.FC<{
-    item: EnhancedBookmark;
-    onClose: () => void;
-    onSave: (id: string, newTitle: string, newUrl: string, newTags: string[], newParentId: string) => void;
-}> = ({ item, onClose, onSave }) => {
-    const { t } = useTranslation();
-    const [title, setTitle] = useState(item.title);
-    const [url, setUrl] = useState(item.url || '');
-    const [tags, setTags] = useState(item.tags || []);
-    const [parentId, setParentId] = useState(item.parentId || '1');
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [abortController, setAbortController] = useState<AbortController | null>(null);
-    const [statusMessage, setStatusMessage] = useState('');
-    const hasAutoSuggestedRef = useRef(false);
-
-    const unwrapCodeFence = (text: string): string => {
-        if (!text) return '';
-        const fenced = text.match(/```(?:\w+)?\s*([\s\S]*?)```/);
-        return (fenced ? fenced[1] : text).trim();
-    };
-
-    const handleGenerateTags = async () => {
-        if (!title || !url) {
-            setStatusMessage(t('bookmarks.fillTitleUrl'));
-            return;
-        }
-
-        setIsGenerating(true);
-        setStatusMessage(t('bookmarks.generatingTags'));
-
-        const controller = new AbortController();
-        setAbortController(controller);
-
-        try {
-            const existingBookmarkTags = await getAllBookmarkTags();
-            const allExistingTags = Array.from(new Set(
-                existingBookmarkTags.flatMap((bookmark: { tags: string[] }) => bookmark.tags)
-            ));
-
-            const systemPrompt = buildTagGenerationPrompt(allExistingTags);
-            const userMessage = t('tagGeneration.promptTemplate', { title, url });
-
-            const messages: ChatMessage[] = [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userMessage }
-            ];
-
-            let generatedContent = '';
-
-            await sendMessage(
-                messages,
-                {
-                    onUpdate: (chunk: string) => {
-                        generatedContent += chunk;
-                    },
-                    onFinish: () => {
-                        const finalContent = unwrapCodeFence(generatedContent);
-                        if (finalContent) {
-                            const generatedTags = finalContent
-                                .trim()
-                                .split(',')
-                                .map(tag => tag.trim())
-                                .filter(tag => tag.length > 0);
-                            setTags(generatedTags);
-                            setStatusMessage(t('tagGeneration.successMessage', { count: generatedTags.length }));
-                        } else {
-                            setStatusMessage(t('bookmarks.tagGenerateFailed'));
-                        }
-                        setIsGenerating(false);
-                        setAbortController(null);
-                    },
-                    onError: (error: Error) => {
-                        console.error('生成标签失败:', error);
-                        setStatusMessage(t('bookmarks.tagGenerateError', { message: error.message }));
-                        setIsGenerating(false);
-                        setAbortController(null);
-                    },
-                },
-                controller.signal
-            );
-        } catch (error) {
-            console.error('生成标签出错:', error);
-            setStatusMessage(t('bookmarks.tagGenerateRetry'));
-            setIsGenerating(false);
-            setAbortController(null);
-        }
-    };
-
-    const handleCancelGeneration = () => {
-        if (abortController) {
-            abortController.abort();
-            setAbortController(null);
-            setIsGenerating(false);
-            setStatusMessage(t('bookmarks.tagGenerateCancelled'));
-        }
-    };
-
-    // 打开弹窗时，若开启自动建议，则自动生成标签（与 AddBookmarkForm 保持一致）
-    useEffect(() => {
-        const autoSuggestEnabled = JSON.parse(localStorage.getItem('autoSuggestBookmarkInfo') || 'false');
-        if (autoSuggestEnabled && title && url && !hasAutoSuggestedRef.current) {
-            hasAutoSuggestedRef.current = true;
-            handleGenerateTags();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const handleSave = () => {
-        onSave(item.id, title, url, tags, parentId);
-        onClose();
-    };
-    
-    return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-lg p-8">
-                <h3 className="text-lg font-bold mb-6 nb-text">{t('bookmarks.editBookmark')}</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.title_label')}</label>
-                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="nb-input w-full mt-1"/>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.url_label')}</label>
-                        <input type="text" value={url} onChange={e => setUrl(e.target.value)} className="nb-input w-full mt-1"/>
-                    </div>
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.tags_label')}</label>
-                        {isGenerating ? (
-                            <button
-                                onClick={handleCancelGeneration}
-                                className="nb-btn nb-btn-danger px-3 py-1 text-xs"
-                            >
-                                {t('bookmarks.cancel_generate')}
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => handleGenerateTags()}
-                                disabled={!title || !url}
-                                className="nb-btn nb-btn-primary px-3 py-1 text-xs"
-                            >
-                                {t('bookmarks.generateAI')}
-                            </button>
-                        )}
-                    </div>
-                    <TagInput tags={tags} setTags={setTags} />
-                    {statusMessage && (
-                        <p className="mt-2 text-xs nb-text-secondary">{statusMessage}</p>
-                    )}
-                </div>
-                    <div>
-                        <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.folder_label')}</label>
-                        <BookmarkTree selectedFolder={parentId} setSelectedFolder={setParentId} />
-                    </div>
-                </div>
-                <div className="flex justify-end space-x-4 mt-8">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
-                    <button onClick={handleSave} className="nb-btn nb-btn-primary px-5 py-2">{t('common.save')}</button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-
-// =================================================================================
-// Main Component
-// =================================================================================
+const logger = createLogger('[BookmarkPage]');
 
 export const BookmarkPage: React.FC = () => {
   const { t } = useTranslation();
@@ -532,9 +81,8 @@ export const BookmarkPage: React.FC = () => {
   useClickOutside(moreMenuRef, () => setShowMoreMenu(false));
 
   // Cards per row setting (global)
-  const [cardsPerRow, setCardsPerRow] = useState<number>(() => {
-    const saved = localStorage.getItem('cardsPerRow');
-    return saved ? parseInt(saved, 10) : 4;
+  const [cardsPerRow, setCardsPerRow] = useState<StorageValues[StorageKey.CARDS_PER_ROW]>(() => {
+    return cardsPerRowStorage.get();
   });
   const [isAddBookmarkModalOpen, setIsAddBookmarkModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -545,67 +93,47 @@ export const BookmarkPage: React.FC = () => {
   const organizeMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(organizeMenuRef, () => setOrganizeMenuOpen(false));
 
-  // 文件夹栏折叠状态 - 使用 localStorage 持久化
+  // 文件夹栏折叠状态 - 使用统一存储入口，避免脏配置影响布局。
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    try {
-      const stored = localStorage.getItem('bookmark-sidebar-collapsed');
-      return stored === 'true';
-    } catch (error) {
-      return false;
-    }
+    return bookmarkSidebarCollapsed.get();
   });
 
   const toggleSidebar = () => {
     const newState = !isSidebarCollapsed;
     setIsSidebarCollapsed(newState);
-    try {
-      localStorage.setItem('bookmark-sidebar-collapsed', String(newState));
-    } catch (error) {
-      console.error('Error saving sidebar state:', error);
-    }
+    bookmarkSidebarCollapsed.set(newState);
   };
 
   // Listen for global cardsPerRow changes
   useEffect(() => {
     const handleCustomEvent = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      setCardsPerRow(customEvent.detail);
+      const customEvent = e as CustomEvent<unknown>;
+      const newValue = parseCardsPerRowValue(customEvent.detail);
+      if (newValue === null) return;
+      setCardsPerRow(newValue);
     };
 
     window.addEventListener('cardsPerRowChanged', handleCustomEvent);
     return () => window.removeEventListener('cardsPerRowChanged', handleCustomEvent);
   }, []);
 
-  // Get grid columns class based on cardsPerRow
-  const getGridClass = () => {
-    const baseClass = 'grid gap-6 transition-all duration-300';
-    switch (cardsPerRow) {
-      case 2:
-        return `${baseClass} grid-cols-1 md:grid-cols-2`;
-      case 3:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3`;
-      case 4:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`;
-      case 5:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5`;
-      case 6:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6`;
-      default:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`;
-    }
-  };
-
-  // AI整理书签相关状态
-  const [isOrganizeModalOpen, setIsOrganizeModalOpen] = useState(false);
-  const [isOrganizeProgressModalOpen, setIsOrganizeProgressModalOpen] = useState(false);
-  const [organizeProgress, setOrganizeProgress] = useState<OrganizeProgress>({
-    currentBatch: 0,
-    totalBatches: 0,
-    processedCount: 0,
-    totalCount: 0,
-    currentStatus: ''
+  const {
+    isOrganizeModalOpen,
+    isOrganizeProgressModalOpen,
+    organizeProgress,
+    organizeAbortController,
+    isOrganizeAbortConfirmOpen,
+    openOrganizeModal,
+    closeOrganizeModal,
+    handleOrganizeConfirm,
+    handleOrganizeProgressClose,
+    handleConfirmOrganizeAbort,
+    closeOrganizeAbortConfirm,
+  } = useBookmarkOrganization({
+    bookmarks,
+    applyBookmarkOrganizationBatch,
+    refreshBookmarks,
   });
-  const [organizeAbortController, setOrganizeAbortController] = useState<AbortController | null>(null);
 
   // 去重相关状态
   const [isDeduplicateModalOpen, setIsDeduplicateModalOpen] = useState(false);
@@ -614,225 +142,51 @@ export const BookmarkPage: React.FC = () => {
     bookmarks: EnhancedBookmark[];
   }[]>([]);
 
-  // AI生成标签相关状态
-  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
-  const [tagGenerationItem, setTagGenerationItem] = useState<EnhancedBookmark | null>(null);
-  const [generationStatusMessage, setGenerationStatusMessage] = useState('');
-  const [tagGenerationAbortController, setTagGenerationAbortController] = useState<AbortController | null>(null);
+  const {
+    isGeneratingTags,
+    currentTagGenerationTitle,
+    generationStatusMessage,
+    generateTags,
+    cancelTagGeneration,
+  } = useBookmarkTagGeneration();
 
-  // 批量重新生成标签相关状态
-  const [isBulkRegenerationModalOpen, setIsBulkRegenerationModalOpen] = useState(false);
-  const [bulkRegenerationProgress, setBulkRegenerationProgress] = useState<BulkRegenerationProgress>({
-    total: 0,
-    processed: 0,
-    successful: 0,
-    failed: 0,
-    status: 'idle',
-  });
-  const [bulkRegenerationService, setBulkRegenerationService] = useState<BulkTagRegenerationService | null>(null);
-  const [failureCount, setFailureCount] = useState(0);
+  const {
+    failureCount,
+    isBulkRegenerationModalOpen,
+    bulkRegenerationProgress,
+    handleRegenerateAllTags,
+    handleRetryFailedTags,
+    handleCancelBulkRegeneration,
+    handleCompleteBulkRegeneration,
+  } = useBulkTagRegeneration(refreshBookmarks);
   const [activeHealthIssue, setActiveHealthIssue] = useState<BookmarkHealthIssue | null>(null);
-  const healthReport = useMemo(() => analyzeBookmarkHealth(bookmarks), [bookmarks]);
+  const {
+    selectedFolder,
+    healthReport,
+    bookmarksToDisplay,
+  } = useBookmarkDisplay({
+    bookmarks,
+    selectedFolderId,
+    searchTerm,
+    activeHealthIssue,
+    sortOrder,
+  });
 
-  // AI生成标签处理函数
-  const handleGenerateTags = React.useCallback(async (item: EnhancedBookmark) => {
-    if (!item.title || !item.url) {
-      toast.error(t('bookmarks.fillTitleUrl'));
-      return;
-    }
-
-    setTagGenerationItem(item);
-    setIsGeneratingTags(true);
-    setGenerationStatusMessage(t('bookmarks.generatingTags'));
-
-    const controller = new AbortController();
-    setTagGenerationAbortController(controller);
-
-    try {
-      const existingBookmarkTags = await getAllBookmarkTags();
-      const allExistingTags = Array.from(new Set(
-        existingBookmarkTags.flatMap((bookmark: { tags: string[] }) => bookmark.tags)
-      ));
-
-      const systemPrompt = buildTagGenerationPrompt(allExistingTags);
-      const userMessage = t('tagGeneration.promptTemplate', { title: item.title, url: item.url });
-
-      const messages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
-      ];
-
-      let generatedContent = '';
-
-      await sendMessage(
-        messages,
-        {
-          onUpdate: (chunk: string) => {
-            generatedContent += chunk;
-          },
-          onFinish: async () => {
-            // 移除代码块标记
-            const unwrapped = generatedContent.replace(/```(?:\w+)?\s*([\s\S]*?)```/g, '$1').trim();
-
-            if (unwrapped) {
-              const generatedTags = unwrapped
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag.length > 0);
-
-              if (generatedTags.length > 0) {
-                // 更新书签标签
-                await updateBookmarkTags(item.id, generatedTags);
-                setGenerationStatusMessage(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
-                toast.success(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
-              } else {
-                setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));
-                toast.error(t('bookmarks.tagGenerateFailed'));
-              }
-            } else {
-              setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));
-              toast.error(t('bookmarks.tagGenerateFailed'));
-            }
-
-            setIsGeneratingTags(false);
-            setTagGenerationAbortController(null);
-            setTimeout(() => {
-              setTagGenerationItem(null);
-              setGenerationStatusMessage('');
-            }, 2000);
-          },
-          onError: (error: Error) => {
-            console.error('生成标签失败:', error);
-            setGenerationStatusMessage(t('bookmarks.tagGenerateError', { message: error.message }));
-            toast.error(t('bookmarks.tagGenerateError', { message: error.message }));
-            setIsGeneratingTags(false);
-            setTagGenerationAbortController(null);
-            setTimeout(() => {
-              setTagGenerationItem(null);
-              setGenerationStatusMessage('');
-            }, 2000);
-          },
-        },
-        controller.signal
-      );
-    } catch (error) {
-      console.error('生成标签出错:', error);
-      setGenerationStatusMessage(t('bookmarks.tagGenerateRetry'));
-      toast.error(t('bookmarks.tagGenerateRetry'));
-      setIsGeneratingTags(false);
-      setTagGenerationAbortController(null);
-      setTimeout(() => {
-        setTagGenerationItem(null);
-        setGenerationStatusMessage('');
-      }, 2000);
-    }
-  }, [t, toast, updateBookmarkTags]);
-
-  const handleCancelTagGeneration = () => {
-    if (tagGenerationAbortController) {
-      tagGenerationAbortController.abort();
-      setTagGenerationAbortController(null);
-      setIsGeneratingTags(false);
-      setGenerationStatusMessage(t('bookmarks.tagGenerateCancelled'));
-      setTimeout(() => {
-        setTagGenerationItem(null);
-        setGenerationStatusMessage('');
-      }, 1000);
-    }
-  };
-
-  // 加载失败计数
-  useEffect(() => {
-    const loadFailureCount = async () => {
-      try {
-        const failures = await getAllTagGenerationFailures();
-        setFailureCount(failures.length);
-      } catch (error) {
-        console.error('Failed to load failure count:', error);
-      }
-    };
-    loadFailureCount();
-  }, []);
-
-  // 批量重新生成所有标签
-  const handleRegenerateAllTags = async () => {
-    const config: BulkRegenerationConfig = {
-      batchSize: 5,
-      delayBetweenBatches: 1000,
-      maxRetries: 3,
-      previewMode: false,
-    };
-
-    const service = new BulkTagRegenerationService(config);
-    setBulkRegenerationService(service);
-    setIsBulkRegenerationModalOpen(true);
-
-    try {
-      await service.regenerateAllTags((progress) => {
-        setBulkRegenerationProgress(progress);
-      });
-
-      // 刷新失败计数
-      const failures = await getAllTagGenerationFailures();
-      setFailureCount(failures.length);
-
-      // 刷新书签列表
-      refreshBookmarks();
-    } catch (error) {
-      console.error('Bulk regeneration error:', error);
-      toast.error(t('bookmarks.bulkRegenerationError'));
-    }
-  };
-
-  // 重试失败的标签
-  const handleRetryFailedTags = async () => {
-    const config: BulkRegenerationConfig = {
-      batchSize: 5,
-      delayBetweenBatches: 1000,
-      maxRetries: 3,
-      previewMode: false,
-    };
-
-    const service = new BulkTagRegenerationService(config);
-    setBulkRegenerationService(service);
-    setIsBulkRegenerationModalOpen(true);
-
-    try {
-      await service.retryFailedTags((progress) => {
-        setBulkRegenerationProgress(progress);
-      });
-
-      // 刷新失败计数
-      const failures = await getAllTagGenerationFailures();
-      setFailureCount(failures.length);
-
-      // 刷新书签列表
-      refreshBookmarks();
-    } catch (error) {
-      console.error('Retry failed tags error:', error);
-      toast.error(t('bookmarks.retryFailedError'));
-    }
-  };
-
-  // 取消批量重新生成
-  const handleCancelBulkRegeneration = () => {
-    if (bulkRegenerationService) {
-      bulkRegenerationService.cancel();
-    }
-  };
-
-  // 完成批量重新生成
-  const handleCompleteBulkRegeneration = () => {
-    setIsBulkRegenerationModalOpen(false);
-    setBulkRegenerationService(null);
-    setBulkRegenerationProgress({
-      total: 0,
-      processed: 0,
-      successful: 0,
-      failed: 0,
-      status: 'idle',
+  const handleGenerateTags = useCallback((item: EnhancedBookmark) => {
+    void generateTags({
+      title: item.title,
+      url: item.url,
+      displayTitle: item.title,
+      onTagsGenerated: generatedTags => updateBookmarkTags(item.id, generatedTags),
+      successMessage: generatedTags => t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }),
+      emptyMessage: t('bookmarks.tagGenerateFailed'),
+      unexpectedErrorMessage: t('bookmarks.tagGenerateRetry'),
+      onValidationError: message => toast.error(message),
+      onSuccess: (_generatedTags, message) => toast.success(message),
+      onEmpty: message => toast.error(message),
+      onError: (_error, message) => toast.error(message),
     });
-  };
+  }, [generateTags, t, toast, updateBookmarkTags]);
 
   const buildDragPayload = (bookmark: EnhancedBookmark) => ({
     type: 'bookmark' as const,
@@ -914,96 +268,15 @@ export const BookmarkPage: React.FC = () => {
       setIsDeduplicateModalOpen(false);
       setDuplicateBookmarks([]);
     } catch (error) {
-      console.error('Error deduplicating bookmarks:', error);
+      logger.error('Error deduplicating bookmarks', error);
       toast.error(t('bookmarks.deduplicateError'));
     }
-  };
-
-  // AI整理书签处理函数
-  const handleOrganizeConfirm = async (action: 'export' | 'organize') => {
-    debugLog('用户确认AI整理操作:', action);
-    setIsOrganizeModalOpen(false);
-    
-    if (action === 'export') {
-      debugLog('执行导出书签操作');
-      exportBookmarksToHTML(bookmarks);
-      return; // 导出后直接返回
-    }
-    
-    // 开始整理流程
-    debugLog('开始AI整理书签流程');
-    setIsOrganizeProgressModalOpen(true);
-    
-    const controller = new AbortController();
-    setOrganizeAbortController(controller);
-
-    debugLog('开始AI整理书签流程', { bookmarkCount: bookmarks.length });
-    
-    try {
-      await organizeBookmarksBatch(
-        bookmarks,
-        bookmarks,
-        (progress: OrganizeProgress) => {
-          debugLog('整理进度更新:', progress);
-          setOrganizeProgress(progress);
-        },
-        applyBookmarkOrganizationBatch,
-        controller.signal
-      );
-      
-      debugLog('AI整理书签完成或中止');
-      
-      // 刷新书签数据
-      await refreshBookmarks();
-      
-      // 如果操作不是被中止的，那么就显示完成
-      if (!controller.signal.aborted) {
-        setOrganizeProgress(prev => ({ ...prev, currentStatus: t('organizeProgress.done') }));
-      }
-      
-    } catch (error) {
-      console.error('[BookmarkPage] AI整理书签失败:', error);
-      setOrganizeProgress(prev => ({ 
-        ...prev, 
-        currentStatus: `${t('organizeAiModal.applyError')}: ${error instanceof Error ? error.message : t('tools.common.unknownError')}` 
-      }));
-    } finally {
-      setOrganizeAbortController(null);
-    }
-  };
-
-  const handleOrganizeProgressClose = () => {
-    debugLog('关闭整理进度对话框');
-    if (organizeAbortController) {
-      if (window.confirm(t('organizeProgress.confirmAbort'))) {
-        debugLog('用户确认中止，取消整理操作');
-        organizeAbortController.abort();
-        setOrganizeAbortController(null);
-      } else {
-        debugLog('用户取消中止操作');
-        return; // 如果用户取消，则不关闭对话框
-      }
-    }
-    setIsOrganizeProgressModalOpen(false);
-    setOrganizeProgress({
-      currentBatch: 0,
-      totalBatches: 0,
-      processedCount: 0,
-      totalCount: 0,
-      currentStatus: ''
-    });
-    // 强制刷新一下数据，以防有部分应用的结果
-    refreshBookmarks();
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const [key, order] = e.target.value.split('-') as [SortOrder['key'], SortOrder['order']];
     updateSortOrder({ key, order });
   };
-
-  const selectedFolder = useMemo(() => findFolder(bookmarks, selectedFolderId), [bookmarks, selectedFolderId]);
-  const allBookmarksFlat = useMemo(() => flattenBookmarks(bookmarks), [bookmarks]);
-  const duplicateBookmarkUrls = useMemo(() => getDuplicateBookmarkUrls(allBookmarksFlat), [allBookmarksFlat]);
 
   // 保存删除前的滚动位置
   const scrollPositionRef = useRef<number>(0);
@@ -1075,24 +348,6 @@ export const BookmarkPage: React.FC = () => {
 
   }, [lastDeletedBookmarkId, deletedBookmarkContext, loading, clearLastDeletedBookmarkId]);
   
-  const searchResults = useMemo(() => {
-    if (!searchTerm) return [];
-    const term = searchTerm.toLowerCase();
-    return allBookmarksFlat.filter(
-      item =>
-        item.title.toLowerCase().includes(term) ||
-        (item.url && item.url.toLowerCase().includes(term)) ||
-        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(term)))
-    );
-  }, [searchTerm, allBookmarksFlat]);
-
-  const healthFilteredBookmarks = useMemo(() => {
-    if (!activeHealthIssue) return [];
-    return allBookmarksFlat.filter(item =>
-      bookmarkMatchesHealthIssue(item, activeHealthIssue, duplicateBookmarkUrls)
-    );
-  }, [activeHealthIssue, allBookmarksFlat, duplicateBookmarkUrls]);
-
   const handleSelectHealthIssue = useCallback((issue: BookmarkHealthIssue) => {
     setActiveHealthIssue(current => current === issue ? null : issue);
     setSearchTerm('');
@@ -1188,43 +443,9 @@ export const BookmarkPage: React.FC = () => {
     },
   ];
   const activeHealthTitle = activeHealthIssue ? t(`bookmarks.health.filters.${activeHealthIssue}`) : null;
-
-  const bookmarksToDisplay = useMemo(() => {
-    if (activeHealthIssue) {
-      return healthFilteredBookmarks.sort((a, b) => {
-        const aVal = a[sortOrder.key] || 0;
-        const bVal = b[sortOrder.key] || 0;
-
-        if (aVal < bVal) {
-          return sortOrder.order === 'asc' ? -1 : 1;
-        }
-        if (aVal > bVal) {
-          return sortOrder.order === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    if (searchTerm) {
-      return searchResults;
-    }
-    if (selectedFolder) {
-      const flatBookmarks = flattenBookmarks(selectedFolder.children || []);
-      // Re-sort the flattened bookmarks
-      return flatBookmarks.sort((a, b) => {
-        const aVal = a[sortOrder.key] || 0;
-        const bVal = b[sortOrder.key] || 0;
-
-        if (aVal < bVal) {
-          return sortOrder.order === 'asc' ? -1 : 1;
-        }
-        if (aVal > bVal) {
-          return sortOrder.order === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return [];
-  }, [activeHealthIssue, healthFilteredBookmarks, searchTerm, searchResults, selectedFolder, sortOrder]);
+  const headerTitle = isMultiSelectMode
+    ? t('bookmarks.selectedCount', { count: selectedBookmarkIds.length })
+    : activeHealthTitle || (searchTerm ? t('bookmarks.searchResults', { term: searchTerm }) : selectedFolder?.title || t('bookmarks.title'));
 
   const bookmarkActions = useCallback((item: EnhancedBookmark) => [
     {
@@ -1279,8 +500,7 @@ export const BookmarkPage: React.FC = () => {
                                 </div>
                                 <div
                                     onClick={() => {
-                                        debugLog('用户点击AI整理书签');
-                                        setIsOrganizeModalOpen(true);
+                                        openOrganizeModal();
                                         setOrganizeMenuOpen(false);
                                     }}
                                     className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
@@ -1307,181 +527,46 @@ export const BookmarkPage: React.FC = () => {
         )}
       </aside>
       
-      <main className="flex-1 h-full overflow-y-auto pr-6">
-        <header className="sticky top-0 z-5 flex items-center justify-between nb-bg nb-border nb-shadow py-4 px-6 rounded-b-[8px]">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleSidebar}
-              className="nb-btn nb-btn-ghost p-2 rounded-md"
-              title={isSidebarCollapsed ? t('bookmarks.expand') : t('bookmarks.collapse')}
-            >
-              <span className="material-symbols-outlined icon-linear text-lg">
-                {isSidebarCollapsed ? 'menu_open' : 'menu'}
-              </span>
-            </button>
-            <h2 className="text-xl font-bold nb-text">
-              {isMultiSelectMode
-                ? t('bookmarks.selectedCount', { count: selectedBookmarkIds.length })
-                : activeHealthTitle || (searchTerm ? t('bookmarks.searchResults', { term: searchTerm }) : selectedFolder?.title || t('bookmarks.title'))}
-            </h2>
-            {activeHealthIssue && (
-              <button
-                type="button"
-                onClick={() => setActiveHealthIssue(null)}
-                className="nb-btn nb-btn-ghost px-3 py-1 text-xs"
-              >
-                {t('bookmarks.health.clearFilter')}
-              </button>
-            )}
-            <FailedBookmarksIndicator failureCount={failureCount} onRetryClick={handleRetryFailedTags} />
-          </div>
-          <div className="flex items-center space-x-4">
-            {!isMultiSelectMode && (
-              <button
-                onClick={() => setIsAddBookmarkModalOpen(true)}
-                className="nb-btn nb-btn-primary flex items-center gap-2 px-4 py-2"
-              >
-                <span className="material-symbols-outlined icon-linear text-lg">add</span>
-                <span className="font-medium">{t('history.addBookmark')}</span>
-              </button>
-            )}
-            <div className="w-64">
-                <UnifiedSearchBar
-                    mode="bookmark"
-                    value={searchTerm}
-                    onChange={(value) => {
-                      setSearchTerm(value);
-                      setActiveHealthIssue(null);
-                    }}
-                    placeholder={t('bookmarks.searchPlaceholder')}
-                    loading={loading}
-                />
-            </div>
-            <div className="relative">
-                <select
-                    value={`${sortOrder.key}-${sortOrder.order}`}
-                    onChange={handleSortChange}
-                    className="nb-input px-4 py-2 appearance-none cursor-pointer"
-                >
-                    <option value="dateAdded-desc">{t('bookmarks.sortByDateAddedDesc')}</option>
-                    <option value="dateAdded-asc">{t('bookmarks.sortByDateAddedAsc')}</option>
-                    <option value="dateLastUsed-desc">{t('bookmarks.sortByDateLastUsedDesc')}</option>
-                    <option value="dateLastUsed-asc">{t('bookmarks.sortByDateLastUsedAsc')}</option>
-                    <option value="title-asc">{t('bookmarks.sortByNameAsc')}</option>
-                    <option value="title-desc">{t('bookmarks.sortByNameDesc')}</option>
-                </select>
-            </div>
-            {/* Neo-Brutalism 风格网格选择器 */}
-            <div className="nb-card-static flex items-center space-x-2 px-3 py-2">
-              <span className="material-symbols-outlined icon-linear text-sm text-[color:var(--nb-text)]">grid_view</span>
-              <select
-                value={cardsPerRow}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
-                  setCardsPerRow(newValue);
-                  localStorage.setItem('cardsPerRow', newValue.toString());
-                  window.dispatchEvent(new CustomEvent('cardsPerRowChanged', { detail: newValue }));
-                }}
-                className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer text-[color:var(--nb-text)]"
-              >
-                <option value="2">{t('settings.cardsPerRowOption', { count: 2 })}</option>
-                <option value="3">{t('settings.cardsPerRowOption', { count: 3 })}</option>
-                <option value="4">{t('settings.cardsPerRowOption', { count: 4 })}</option>
-                <option value="5">{t('settings.cardsPerRowOption', { count: 5 })}</option>
-                <option value="6">{t('settings.cardsPerRowOption', { count: 6 })}</option>
-              </select>
-            </div>
-            <div className="relative" ref={moreMenuRef}>
-                <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="nb-btn nb-btn-ghost p-2 rounded-full">
-                    <span className="material-symbols-outlined icon-linear text-lg">more_vert</span>
-                </button>
-                {showMoreMenu && (
-                    <div className="nb-dropdown absolute right-0 mt-2 w-56 z-10">
-                        <div className="py-1">
-                            <div
-                                onClick={() => {
-                                    toggleMultiSelectMode();
-                                    setShowMoreMenu(false);
-                                }}
-                                className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
-                            >
-                                <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">checklist</span>
-                                {t('bookmarks.select')}
-                            </div>
-                            <div
-                                onClick={() => {
-                                    handleRegenerateAllTags();
-                                    setShowMoreMenu(false);
-                                }}
-                                className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
-                            >
-                                <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">refresh</span>
-                                {t('bookmarks.regenerateAllTags')}
-                            </div>
-                            <div
-                                onClick={handleStartDeduplicate}
-                                className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
-                            >
-                                <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">content_copy</span>
-                                {t('bookmarks.deduplicate')}
-                            </div>
-                            <div
-                                onClick={() => {
-                                    setShowReorderConfirm(true);
-                                    setShowMoreMenu(false);
-                                }}
-                                className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
-                            >
-                                <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">sort</span>
-                                {t('bookmarks.updateChromeOrder')}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-          </div>
-        </header>
-
-        <BookmarkHealthOverview
-          report={healthReport}
-          activeIssue={activeHealthIssue}
-          onSelectIssue={handleSelectHealthIssue}
-        />
-
-        <div className={`mt-8 ${getGridClass()} px-8`}>
-            {bookmarksToDisplay.length > 0 ? bookmarksToDisplay.map(item => {
-              const dateToDisplay = sortOrder.key === 'dateLastUsed' ? item.dateLastUsed : item.dateAdded;
-
-              return (
-                <ItemCard
-                    key={item.id}
-                    href={item.url!}
-                    title={item.title}
-                    hostname={getUrlHostname(item.url)}
-                    faviconUrl={getFaviconUrl(item.url!)}
-                    tags={item.tags}
-                    actions={bookmarkActions(item)}
-                    timeLabel={dateToDisplay ? formatDate(dateToDisplay) : undefined}
-                    isMultiSelectMode={isMultiSelectMode}
-                    isSelected={selectedBookmarkIds.includes(item.id)}
-                    onSelect={() => toggleBookmarkSelection(item.id)}
-                    dragProps={{
-                      draggable: !isMultiSelectMode,
-                      onDragStart: (event: React.DragEvent<HTMLDivElement>) => handleBookmarkDragStart(event, item),
-                      onDragEnd: handleBookmarkDragEnd,
-                    }}
-                />
-              );
-            }) : (
-                <p className="text-center nb-text-secondary pt-10 col-span-full">
-                    {searchTerm ? t('bookmarks.noResults') : t('bookmarks.emptyFolder')}
-                </p>
-            )}
-        </div>
-      </main>
+      <BookmarkMainContent
+        headerTitle={headerTitle}
+        isSidebarCollapsed={isSidebarCollapsed}
+        isMultiSelectMode={isMultiSelectMode}
+        searchTerm={searchTerm}
+        loading={loading}
+        sortOrder={sortOrder}
+        cardsPerRow={cardsPerRow}
+        showMoreMenu={showMoreMenu}
+        moreMenuRef={moreMenuRef}
+        activeHealthIssue={activeHealthIssue}
+        failureCount={failureCount}
+        healthReport={healthReport}
+        bookmarksToDisplay={bookmarksToDisplay}
+        selectedBookmarkIds={selectedBookmarkIds}
+        getBookmarkActions={bookmarkActions}
+        onToggleSidebar={toggleSidebar}
+        onClearHealthIssue={() => setActiveHealthIssue(null)}
+        onRetryFailedTags={handleRetryFailedTags}
+        onAddBookmark={() => setIsAddBookmarkModalOpen(true)}
+        onSearchTermChange={(value) => {
+          setSearchTerm(value);
+          setActiveHealthIssue(null);
+        }}
+        onSortChange={handleSortChange}
+        onCardsPerRowChange={setCardsPerRow}
+        onToggleMoreMenu={() => setShowMoreMenu(!showMoreMenu)}
+        onCloseMoreMenu={() => setShowMoreMenu(false)}
+        onToggleMultiSelectMode={toggleMultiSelectMode}
+        onRegenerateAllTags={handleRegenerateAllTags}
+        onStartDeduplicate={handleStartDeduplicate}
+        onOpenReorderConfirm={() => setShowReorderConfirm(true)}
+        onSelectHealthIssue={handleSelectHealthIssue}
+        onToggleBookmarkSelection={toggleBookmarkSelection}
+        onBookmarkDragStart={handleBookmarkDragStart}
+        onBookmarkDragEnd={handleBookmarkDragEnd}
+      />
 
       {editingItem && (
-        <EditModal 
+        <BookmarkEditModal
             item={editingItem} 
             onClose={() => setEditingItem(null)} 
             onSave={handleSaveEdit}
@@ -1527,10 +612,7 @@ export const BookmarkPage: React.FC = () => {
 
       {isOrganizeModalOpen && (
         <OrganizeBookmarksModal
-          onClose={() => {
-            debugLog('用户关闭AI整理确认对话框');
-            setIsOrganizeModalOpen(false);
-          }}
+          onClose={closeOrganizeModal}
           onConfirm={handleOrganizeConfirm}
           isLoading={isOrganizeProgressModalOpen}
         />
@@ -1546,9 +628,23 @@ export const BookmarkPage: React.FC = () => {
           processedCount={organizeProgress.processedCount}
           totalCount={organizeProgress.totalCount}
           currentStatus={organizeProgress.currentStatus}
-          canClose={organizeAbortController === null && organizeProgress.currentStatus.includes('完成')}
+          canClose={
+            organizeAbortController === null &&
+            (organizeProgress.totalCount === 0 || organizeProgress.processedCount >= organizeProgress.totalCount)
+          }
         />
       )}
+
+      <ConfirmDialog
+        isOpen={isOrganizeAbortConfirmOpen}
+        onClose={closeOrganizeAbortConfirm}
+        onConfirm={handleConfirmOrganizeAbort}
+        title={t('organizeProgress.title')}
+        message={t('organizeProgress.confirmAbort')}
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        danger={true}
+      />
 
       <SelectionActionBar
         selectionCount={selectedBookmarkIds.length}
@@ -1609,11 +705,11 @@ export const BookmarkPage: React.FC = () => {
       />
 
       {/* AI生成标签进度模态框 - Neo-Brutalism 风格 */}
-      {tagGenerationItem && (
+      {currentTagGenerationTitle && (
         <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 transition-colors">
           <div className="nb-card-static w-full max-w-md p-8">
             <h3 className="text-lg font-bold mb-4 nb-text">{t('bookmarks.generatingTags')}</h3>
-            <p className="nb-text-secondary mb-4">{tagGenerationItem.title}</p>
+            <p className="nb-text-secondary mb-4">{currentTagGenerationTitle}</p>
             <div className="flex items-center justify-center py-6">
               {isGeneratingTags ? (
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>
@@ -1625,7 +721,7 @@ export const BookmarkPage: React.FC = () => {
             <div className="flex justify-end space-x-4">
               {isGeneratingTags && (
                 <button
-                  onClick={handleCancelTagGeneration}
+                  onClick={cancelTagGeneration}
                   className="nb-btn nb-btn-secondary px-5 py-2"
                 >
                   {t('common.cancel')}

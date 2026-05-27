@@ -24,6 +24,15 @@ export interface BarkNotificationOptions {
   group?: string; // 消息分组
 }
 
+/** Bark 通知发送失败原因，用于界面层按当前语言展示稳定提示 */
+export const BARK_NOTIFICATION_ERROR_KEYS = [
+  'sendFailed',
+  'networkError',
+  'unknownError',
+] as const;
+
+export type BarkNotificationErrorKey = typeof BARK_NOTIFICATION_ERROR_KEYS[number];
+
 /**
  * Bark 通知历史记录项
  */
@@ -34,6 +43,7 @@ export interface BarkNotificationRecord {
   timestamp: number;
   status: 'success' | 'failed';
   errorMessage?: string;
+  errorMessageKey?: BarkNotificationErrorKey;
   options?: BarkNotificationOptions;
 }
 
@@ -126,3 +136,101 @@ export interface ValidationResult {
   valid: boolean;
   error?: string;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+const isNonEmptyString = (value: unknown): value is string => (
+  typeof value === 'string' && value.trim().length > 0
+);
+
+const isTimestamp = (value: unknown): value is number => (
+  typeof value === 'number' && Number.isFinite(value)
+);
+
+const isBarkNotificationErrorKey = (value: unknown): value is BarkNotificationErrorKey => (
+  typeof value === 'string' && BARK_NOTIFICATION_ERROR_KEYS.includes(value as BarkNotificationErrorKey)
+);
+
+export const isBarkKeyConfig = (
+  value: unknown,
+  options: { allowEmptyDeviceKey?: boolean } = {}
+): value is BarkKeyConfig => {
+  if (!isRecord(value)) return false;
+
+  const hasUsableDeviceKey = options.allowEmptyDeviceKey
+    ? typeof value.deviceKey === 'string'
+    : isNonEmptyString(value.deviceKey);
+
+  return (
+    isNonEmptyString(value.id) &&
+    hasUsableDeviceKey &&
+    isNonEmptyString(value.server) &&
+    typeof value.label === 'string' &&
+    isTimestamp(value.createdAt) &&
+    isTimestamp(value.updatedAt)
+  );
+};
+
+export const sanitizeBarkKeys = (
+  value: unknown,
+  options: { allowEmptyDeviceKey?: boolean } = {}
+): BarkKeyConfig[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((key): key is BarkKeyConfig => isBarkKeyConfig(key, options));
+};
+
+export const sanitizeBarkNotificationOptions = (
+  value: unknown
+): BarkNotificationOptions | undefined => {
+  if (!isRecord(value)) return undefined;
+
+  const options: BarkNotificationOptions = {};
+  if (typeof value.sound === 'string') options.sound = value.sound;
+  if (typeof value.icon === 'string') options.icon = value.icon;
+  if (typeof value.group === 'string') options.group = value.group;
+
+  return Object.keys(options).length > 0 ? options : undefined;
+};
+
+export const sanitizeBarkHistoryRecords = (value: unknown): BarkNotificationRecord[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item): BarkNotificationRecord[] => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      typeof item.title !== 'string' ||
+      typeof item.body !== 'string' ||
+      typeof item.timestamp !== 'number' ||
+      !Number.isFinite(item.timestamp) ||
+      (item.status !== 'success' && item.status !== 'failed')
+    ) {
+      return [];
+    }
+
+    const record: BarkNotificationRecord = {
+      id: item.id,
+      title: item.title,
+      body: item.body,
+      timestamp: item.timestamp,
+      status: item.status,
+    };
+
+    if (typeof item.errorMessage === 'string') {
+      record.errorMessage = item.errorMessage;
+    }
+
+    if (isBarkNotificationErrorKey(item.errorMessageKey)) {
+      record.errorMessageKey = item.errorMessageKey;
+    }
+
+    const options = sanitizeBarkNotificationOptions(item.options);
+    if (options) {
+      record.options = options;
+    }
+
+    return [record];
+  });
+};

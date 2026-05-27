@@ -25,6 +25,21 @@ interface GeneratedResult {
   timestamp?: Date;
 }
 
+export const parseIntegerInput = (value: string, fallback: number): number => {
+  const trimmedValue = value.trim();
+  if (!/^-?\d+$/.test(trimmedValue)) return fallback;
+
+  const parsedValue = Number(trimmedValue);
+  return Number.isSafeInteger(parsedValue) ? parsedValue : fallback;
+};
+
+export const parseClampedIntegerInput = (
+  value: string,
+  min: number,
+  max: number,
+  fallback: number
+): number => Math.min(max, Math.max(min, parseIntegerInput(value, fallback)));
+
 /**
  * 随机生成器工具组件
  */
@@ -215,7 +230,7 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
               min={1}
               max={64}
               value={nanoidLength}
-              onChange={e => setNanoidLength(Math.min(64, Math.max(1, parseInt(e.target.value) || 21)))}
+              onChange={e => setNanoidLength(parseClampedIntegerInput(e.target.value, 1, 64, 21))}
               className="nb-input w-20 text-sm"
             />
           </div>
@@ -231,7 +246,7 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
                 min={1}
                 max={256}
                 value={stringLength}
-                onChange={e => setStringLength(Math.min(256, Math.max(1, parseInt(e.target.value) || 16)))}
+                onChange={e => setStringLength(parseClampedIntegerInput(e.target.value, 1, 256, 16))}
                 className="nb-input w-20 text-sm"
               />
             </div>
@@ -288,7 +303,7 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
                 <input
                   type="number"
                   value={numberMin}
-                  onChange={e => setNumberMin(parseInt(e.target.value) || 0)}
+                  onChange={e => setNumberMin(parseIntegerInput(e.target.value, 0))}
                   className="nb-input w-28 text-sm"
                 />
               </div>
@@ -297,7 +312,7 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
                 <input
                   type="number"
                   value={numberMax}
-                  onChange={e => setNumberMax(parseInt(e.target.value) || 100)}
+                  onChange={e => setNumberMax(parseIntegerInput(e.target.value, 100))}
                   className="nb-input w-28 text-sm"
                 />
               </div>
@@ -373,7 +388,7 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
                 min={1}
                 max={100}
                 value={count}
-                onChange={e => setCount(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
+                onChange={e => setCount(parseClampedIntegerInput(e.target.value, 1, 100, 1))}
                 className="nb-input w-20 text-sm"
               />
             </div>

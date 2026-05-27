@@ -9,6 +9,23 @@ export type ScheduledTaskType = 'one-time' | 'recurring';
 /** 任务状态 */
 export type ScheduledTaskStatus = 'active' | 'paused' | 'completed' | 'failed';
 
+/** 执行失败原因，用于界面层按当前语言展示稳定提示 */
+export const SCHEDULED_TASK_EXECUTION_ERROR_KEYS = [
+  'noValidTargetKeys',
+  'sendFailed',
+  'networkError',
+  'unknownError',
+] as const;
+
+export type ScheduledTaskExecutionErrorKey = typeof SCHEDULED_TASK_EXECUTION_ERROR_KEYS[number];
+
+export const SCHEDULED_TASK_EXECUTION_ERROR_MESSAGES: Record<ScheduledTaskExecutionErrorKey, string> = {
+  noValidTargetKeys: 'No valid target keys found',
+  sendFailed: 'Send failed',
+  networkError: 'Network error',
+  unknownError: 'Unknown error',
+};
+
 /** 通知选项 */
 export interface ScheduledTaskOptions {
   sound?: string;   // 响铃声音，空字符串表示静音
@@ -48,10 +65,19 @@ export interface TaskExecutionRecord {
   executedAt: number;              // 执行时间戳（毫秒）
   status: 'success' | 'failed';    // 执行状态
   errorMessage?: string;           // 错误信息（失败时）
+  errorMessageKey?: ScheduledTaskExecutionErrorKey; // 本地化错误提示 key
   targetKeyIds: string[];          // 目标设备密钥 ID 列表
   successCount: number;            // 成功发送数量
   failedCount: number;             // 失败发送数量
 }
+
+export const setScheduledTaskExecutionError = (
+  record: TaskExecutionRecord,
+  errorMessageKey: ScheduledTaskExecutionErrorKey
+): void => {
+  record.errorMessageKey = errorMessageKey;
+  record.errorMessage = SCHEDULED_TASK_EXECUTION_ERROR_MESSAGES[errorMessageKey];
+};
 
 /** 任务创建参数 */
 export interface CreateTaskParams {

@@ -5,6 +5,9 @@ import {
   MENU_CUSTOMIZATION_STORAGE_KEY,
   getValidMenuCustomization,
 } from '../types/menu';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[useMenuCustomization]');
 
 export interface UseMenuCustomizationReturn {
   customization: MenuCustomization;
@@ -25,7 +28,7 @@ function loadCustomization(): MenuCustomization {
       return getValidMenuCustomization(parsed);
     }
   } catch (error) {
-    console.warn('Failed to load menu customization from localStorage:', error);
+    logger.warn('Failed to load menu customization from localStorage', error);
   }
   return {};
 }
@@ -33,10 +36,11 @@ function loadCustomization(): MenuCustomization {
 // 保存自定义配置到 localStorage 并触发事件
 function saveCustomization(customization: MenuCustomization): void {
   try {
-    localStorage.setItem(MENU_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(customization));
-    window.dispatchEvent(new CustomEvent(MENU_CUSTOMIZATION_CHANGE_EVENT, { detail: customization }));
+    const validCustomization = getValidMenuCustomization(customization);
+    localStorage.setItem(MENU_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(validCustomization));
+    window.dispatchEvent(new CustomEvent(MENU_CUSTOMIZATION_CHANGE_EVENT, { detail: validCustomization }));
   } catch (error) {
-    console.error('Failed to save menu customization to localStorage:', error);
+    logger.error('Failed to save menu customization to localStorage', error);
   }
 }
 
@@ -52,7 +56,7 @@ export function useMenuCustomization(): UseMenuCustomizationReturn {
     };
 
     const handleCustomizationChange = (e: CustomEvent<MenuCustomization>) => {
-      setCustomizationState(e.detail);
+      setCustomizationState(getValidMenuCustomization(e.detail));
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -68,16 +72,18 @@ export function useMenuCustomization(): UseMenuCustomizationReturn {
   const setItemIcon = useCallback((itemId: MenuItemId, icon: string | undefined) => {
     setCustomizationState((prev) => {
       const newCustomization = { ...prev };
+      const customIcon = icon?.trim();
       
       // 如果图标为空，删除该项
-      if (!icon) {
+      if (!customIcon) {
         delete newCustomization[itemId];
       } else {
-        newCustomization[itemId] = { customIcon: icon };
+        newCustomization[itemId] = { customIcon };
       }
       
-      saveCustomization(newCustomization);
-      return newCustomization;
+      const validCustomization = getValidMenuCustomization(newCustomization);
+      saveCustomization(validCustomization);
+      return validCustomization;
     });
   }, []);
 

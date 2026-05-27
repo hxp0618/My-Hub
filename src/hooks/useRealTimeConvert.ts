@@ -8,6 +8,8 @@ export interface UseRealTimeConvertOptions {
   debounceMs?: number;
   /** 错误回调（手动转换时使用） */
   onError?: (error: Error) => void;
+  /** 展示给用户的稳定错误文案 */
+  getErrorMessage?: (error: unknown) => string;
   /** 自动转换时是否静默错误，默认 true */
   silentError?: boolean;
   /** 初始输入值 */
@@ -83,6 +85,7 @@ export function useRealTimeConvert(
   const {
     debounceMs = 300,
     onError,
+    getErrorMessage,
     silentError = true,
     initialInput = '',
   } = options;
@@ -105,14 +108,14 @@ export function useRealTimeConvert(
       const result = converterRef.current(value);
       return result;
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
       if (!silent) {
+        const errorMessage = getErrorMessage?.(e) ?? 'Conversion failed';
         setError(errorMessage);
-        onError?.(e instanceof Error ? e : new Error(errorMessage));
+        onError?.(e instanceof Error ? e : new Error('Conversion failed'));
       }
       return null;
     }
-  }, [onError]);
+  }, [getErrorMessage, onError]);
 
   // 创建防抖的自动转换函数
   const debouncedAutoConvert = useMemo(

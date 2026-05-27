@@ -34,10 +34,27 @@ export interface EncryptedData {
   ciphertext: string;
 }
 
+export const CRYPTO_SERVICE_ERROR_CODES = [
+  'emptyPlaintext',
+  'emptyEncryptedText',
+  'emptyPassword',
+  'unsupportedAlgorithm',
+  'encryptFailed',
+  'decryptFailed',
+] as const;
+
+export type CryptoServiceErrorCode = typeof CRYPTO_SERVICE_ERROR_CODES[number];
+
 /**
  * 加密输出格式分隔符
  */
 const SEPARATOR = ':';
+
+const isCryptoServiceErrorCode = (value: unknown): value is CryptoServiceErrorCode => (
+  typeof value === 'string' && CRYPTO_SERVICE_ERROR_CODES.includes(value as CryptoServiceErrorCode)
+);
+
+const createCryptoServiceError = (code: CryptoServiceErrorCode) => new Error(code);
 
 /**
  * 获取 CryptoJS 加密模式
@@ -104,11 +121,11 @@ export class CryptoService {
     const { algorithm, mode = 'CBC', password } = options;
 
     if (!plaintext) {
-      throw new Error('Plaintext cannot be empty');
+      throw createCryptoServiceError('emptyPlaintext');
     }
 
     if (!password) {
-      throw new Error('Password cannot be empty');
+      throw createCryptoServiceError('emptyPassword');
     }
 
     let ciphertext: string;
@@ -141,10 +158,14 @@ export class CryptoService {
         }
 
         default:
-          throw new Error(`Unsupported algorithm: ${algorithm}`);
+          throw createCryptoServiceError('unsupportedAlgorithm');
       }
     } catch (e) {
-      throw new Error(`Encryption failed: ${e instanceof Error ? e.message : String(e)}`);
+      if (e instanceof Error && isCryptoServiceErrorCode(e.message)) {
+        throw e;
+      }
+
+      throw createCryptoServiceError('encryptFailed');
     }
 
     // 只返回纯密文，不包含算法标识
@@ -167,11 +188,11 @@ export class CryptoService {
    */
   static decrypt(encryptedText: string, password: string, options?: { algorithm?: Algorithm; mode?: AESMode }): string {
     if (!encryptedText) {
-      throw new Error('Encrypted text cannot be empty');
+      throw createCryptoServiceError('emptyEncryptedText');
     }
 
     if (!password) {
-      throw new Error('Password cannot be empty');
+      throw createCryptoServiceError('emptyPassword');
     }
 
     // 先尝试解析旧格式（带算法前缀）
@@ -210,19 +231,20 @@ export class CryptoService {
         }
 
         default:
-          throw new Error(`Unsupported algorithm: ${algorithm}`);
+          throw createCryptoServiceError('unsupportedAlgorithm');
       }
 
       if (!decrypted) {
-        throw new Error('Decryption failed: Invalid password or corrupted data');
+        throw createCryptoServiceError('decryptFailed');
       }
 
       return decrypted;
     } catch (e) {
-      if (e instanceof Error && e.message.includes('Decryption failed')) {
+      if (e instanceof Error && isCryptoServiceErrorCode(e.message)) {
         throw e;
       }
-      throw new Error(`Decryption failed: ${e instanceof Error ? e.message : String(e)}`);
+
+      throw createCryptoServiceError('decryptFailed');
     }
   }
 

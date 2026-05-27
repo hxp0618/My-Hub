@@ -252,13 +252,15 @@ describe('Format Converter Property Tests', () => {
       const result = convert('{invalid json}', 'json', 'yaml');
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
-      expect(result.error?.message).toBeTruthy();
+      expect(result.error?.message).toBe('convertError');
+      expect(result.error?.message).not.toMatch(/Unexpected|position|invalid json/i);
     });
 
     it('should return error for invalid TOML input', () => {
       const result = convert('[invalid\ntoml = ', 'toml', 'json');
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+      expect(result.error?.message).toBe('convertError');
     });
   });
 

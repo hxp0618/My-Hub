@@ -20,7 +20,11 @@ export interface HSL {
  * HEX 转 RGB
  */
 export const hexToRgb = (hex: string): RGB | null => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const normalizedHex = hex.trim().replace(/^#/, '');
+  const expandedHex = normalizedHex.length === 3
+    ? normalizedHex.split('').map(char => `${char}${char}`).join('')
+    : normalizedHex;
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(expandedHex);
   if (!result) return null;
   return {
     r: parseInt(result[1], 16),
@@ -112,11 +116,12 @@ export const hslToRgb = (hsl: HSL): RGB => {
  * 解析 RGB 字符串
  */
 export const parseRgbString = (str: string): RGB | null => {
-  const match = str.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
+  const normalized = str.trim().replace(/^rgb\(\s*/i, '').replace(/\s*\)$/, '');
+  const match = normalized.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
   if (!match) return null;
-  const r = parseInt(match[1]);
-  const g = parseInt(match[2]);
-  const b = parseInt(match[3]);
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
   if (r > 255 || g > 255 || b > 255) return null;
   return { r, g, b };
 };
@@ -125,11 +130,12 @@ export const parseRgbString = (str: string): RGB | null => {
  * 解析 HSL 字符串
  */
 export const parseHslString = (str: string): HSL | null => {
-  const match = str.match(/^(\d{1,3})\s*,\s*(\d{1,3})%?\s*,\s*(\d{1,3})%?$/);
+  const normalized = str.trim().replace(/^hsl\(\s*/i, '').replace(/\s*\)$/, '');
+  const match = normalized.match(/^(\d{1,3})\s*,\s*(\d{1,3})%?\s*,\s*(\d{1,3})%?$/);
   if (!match) return null;
-  const h = parseInt(match[1]);
-  const s = parseInt(match[2]);
-  const l = parseInt(match[3]);
+  const h = parseInt(match[1], 10);
+  const s = parseInt(match[2], 10);
+  const l = parseInt(match[3], 10);
   if (h > 360 || s > 100 || l > 100) return null;
   return { h, s, l };
 };
@@ -153,6 +159,7 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
   const updateFromHex = useCallback((value: string) => {
     const parsed = hexToRgb(value);
     if (parsed) {
+      setHex(rgbToHex(parsed));
       setRgb(parsed);
       setHsl(rgbToHsl(parsed));
       setError(null);
@@ -180,7 +187,8 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
   const handleHexChange = (value: string) => {
     setHex(value);
     setActiveInput('hex');
-    if (value.length >= 6) {
+    const normalizedLength = value.trim().replace(/^#/, '').length;
+    if (normalizedLength === 3 || normalizedLength === 6) {
       updateFromHex(value);
     }
   };
@@ -343,7 +351,7 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
                 max={255}
                 value={rgb[channel]}
                 onChange={e => {
-                  const newRgb = { ...rgb, [channel]: parseInt(e.target.value) };
+                  const newRgb = { ...rgb, [channel]: parseInt(e.target.value, 10) };
                   setRgb(newRgb);
                   setActiveInput('rgb');
                   updateFromRgb(newRgb);

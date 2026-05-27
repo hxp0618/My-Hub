@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { HistoryItem, Device } from '../types';
 import { startOfDay, format } from 'date-fns';
 import { getFaviconUrl } from '../../../utils/favicon';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('[useEnhancedHistory]');
 
 export function useEnhancedHistory() {
   const [allHistory, setAllHistory] = useState<HistoryItem[]>([]);
@@ -25,7 +28,7 @@ export function useEnhancedHistory() {
 
   const fetchHistory = useCallback(async () => {
     if (!chrome.history) {
-      console.error('Chrome History API not available');
+      logger.error('Chrome History API not available');
       setIsLoading(false);
       return;
     }
@@ -97,7 +100,7 @@ export function useEnhancedHistory() {
         setAvailableDates(Array.from(dateKeys).sort().reverse());
       }
     } catch (error) {
-      console.error('Failed to fetch history items:', error);
+      logger.error('Failed to fetch history items', error);
       setAllHistory([]);
     } finally {
       setIsLoading(false);
@@ -139,7 +142,7 @@ export function useEnhancedHistory() {
       await chrome.history.deleteUrl({ url });
       await fetchHistory(); // Refetch after deletion
     } catch (error) {
-      console.error(`Error deleting history for url: ${url}`, error);
+      logger.error('Error deleting history for URL', error);
     }
   };
 
@@ -149,7 +152,7 @@ export function useEnhancedHistory() {
       await chrome.history.deleteRange({ startTime, endTime });
       await fetchHistory(); // Refetch after deletion
     } catch (error) {
-      console.error(`Error deleting history for range: ${startTime} - ${endTime}`, error);
+      logger.error('Error deleting history for range', error);
     }
   };
 

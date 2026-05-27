@@ -1,38 +1,41 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[ThemeContext]');
 
 export type Theme = 'light' | 'dark' | 'system' | 'eye-care';
 export type EffectiveTheme = 'light' | 'dark' | 'eye-care';
 
 export interface ThemeMetadata {
   id: Theme;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   icon: string;
 }
 
 export const THEME_METADATA: Record<Theme, ThemeMetadata> = {
   light: {
     id: 'light',
-    name: '浅色模式',
-    description: '明亮清爽的界面，适合白天使用',
+    nameKey: 'settings.themeLight',
+    descriptionKey: 'settings.themeLightDesc',
     icon: 'light_mode',
   },
   dark: {
     id: 'dark',
-    name: '深色模式',
-    description: '深色背景，降低眼睛疲劳，适合夜间使用',
+    nameKey: 'settings.themeDark',
+    descriptionKey: 'settings.themeDarkDesc',
     icon: 'dark_mode',
   },
   system: {
     id: 'system',
-    name: '跟随系统',
-    description: '自动跟随系统主题设置',
+    nameKey: 'settings.themeSystem',
+    descriptionKey: 'settings.themeSystemDesc',
     icon: 'brightness_auto',
   },
   'eye-care': {
     id: 'eye-care',
-    name: '护眼模式',
-    description: '暖色调背景，减少蓝光，保护视力',
+    nameKey: 'settings.themeEyeCare',
+    descriptionKey: 'settings.themeEyeCareDesc',
     icon: 'visibility',
   },
 };
@@ -49,13 +52,28 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const VALID_THEMES: Theme[] = ['light', 'dark', 'system', 'eye-care'];
+export const DEFAULT_BRIGHTNESS = 1.0;
+export const MIN_BRIGHTNESS = 0.5;
+export const MAX_BRIGHTNESS = 1.0;
 
 const isValidTheme = (value: string): value is Theme => {
   return VALID_THEMES.includes(value as Theme);
 };
 
-const isValidBrightness = (value: number): boolean => {
-  return typeof value === 'number' && value >= 0.5 && value <= 1.0;
+const isValidBrightness = (value: unknown): value is number => {
+  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_BRIGHTNESS && value <= MAX_BRIGHTNESS;
+};
+
+export const parseStoredBrightness = (stored: string | null): number => {
+  if (stored === null) return DEFAULT_BRIGHTNESS;
+
+  const value = Number(stored);
+  return isValidBrightness(value) ? value : DEFAULT_BRIGHTNESS;
+};
+
+export const sanitizeBrightnessInput = (value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_BRIGHTNESS;
+  return Math.max(MIN_BRIGHTNESS, Math.min(MAX_BRIGHTNESS, value));
 };
 
 export const useTheme = () => {
@@ -74,24 +92,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return stored;
       }
     } catch (error) {
-      console.error('Error reading theme from localStorage:', error);
+      logger.error('Error reading theme from localStorage', error);
     }
     return 'system';
   });
 
   const [brightness, setBrightnessState] = useState<number>(() => {
     try {
-      const stored = localStorage.getItem('brightness');
-      if (stored) {
-        const value = parseFloat(stored);
-        if (isValidBrightness(value)) {
-          return value;
-        }
-      }
+      return parseStoredBrightness(localStorage.getItem('brightness'));
     } catch (error) {
-      console.error('Error reading brightness from localStorage:', error);
+      logger.error('Error reading brightness from localStorage', error);
     }
-    return 1.0;
+    return DEFAULT_BRIGHTNESS;
   });
 
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
@@ -157,7 +169,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // 应用亮度到 document
   useEffect(() => {
     const root = document.documentElement;
-    if (brightness < 1.0) {
+    if (brightness < MAX_BRIGHTNESS) {
       root.style.filter = `brightness(${brightness})`;
     } else {
       root.style.filter = '';
@@ -169,17 +181,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem('theme', newTheme);
     } catch (error) {
-      console.error('Error saving theme to localStorage:', error);
+      logger.error('Error saving theme to localStorage', error);
     }
   };
 
   const setBrightness = (newBrightness: number) => {
-    const clampedValue = Math.max(0.5, Math.min(1.0, newBrightness));
+    const clampedValue = sanitizeBrightnessInput(newBrightness);
     setBrightnessState(clampedValue);
     try {
       localStorage.setItem('brightness', clampedValue.toString());
     } catch (error) {
-      console.error('Error saving brightness to localStorage:', error);
+      logger.error('Error saving brightness to localStorage', error);
     }
   };
 
@@ -202,4 +214,3 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </ThemeContext.Provider>
   );
 };
-

@@ -7,6 +7,12 @@ import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 export type LoremMode = 'paragraphs' | 'words';
 export type LoremLanguage = 'latin' | 'chinese';
 
+const LOREM_MIN_COUNT = 1;
+const LOREM_MAX_COUNTS: Record<LoremMode, number> = {
+  paragraphs: 20,
+  words: 500,
+};
+
 const LOREM_WORDS = [
   'lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit',
   'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore',
@@ -19,6 +25,18 @@ const CHINESE_WORDS = [
   '秋收', '冬藏', '闰余', '成岁', '律吕', '调阳', '云腾', '致雨', '露结', '为霜',
   '金生', '丽水', '玉出', '昆冈', '剑号', '巨阙', '珠称', '夜光', '果珍', '李柰',
 ];
+
+export const getLoremMaxCount = (mode: LoremMode): number => LOREM_MAX_COUNTS[mode];
+
+export const parseLoremCountInput = (value: string, mode: LoremMode, fallback = LOREM_MIN_COUNT): number => {
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) return fallback;
+
+  const parsedValue = Number(trimmedValue);
+  if (!Number.isSafeInteger(parsedValue)) return fallback;
+
+  return Math.min(getLoremMaxCount(mode), Math.max(LOREM_MIN_COUNT, parsedValue));
+};
 
 /**
  * 生成 Lorem Ipsum 文本
@@ -71,13 +89,18 @@ export const LoremIpsumTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
     setOutput(generateLoremIpsum(mode, count, language));
   }, [mode, count, language]);
 
+  const handleModeChange = (nextMode: LoremMode) => {
+    setMode(nextMode);
+    setCount(prevCount => Math.min(prevCount, getLoremMaxCount(nextMode)));
+  };
+
   return (
     <ToolCard tool={TOOL_METADATA[ToolId.LOREM_IPSUM]} isExpanded={isExpanded} onToggleExpand={onToggleExpand}>
       <div className="h-full flex flex-col gap-4">
         <div className="flex items-center gap-4 flex-wrap flex-shrink-0">
           <div className="flex items-center gap-2">
             <label className="text-sm nb-text-secondary">{t('tools.loremIpsum.mode')}:</label>
-            <select value={mode} onChange={e => setMode(e.target.value as LoremMode)}
+            <select value={mode} onChange={e => handleModeChange(e.target.value as LoremMode)}
               className="nb-input text-sm">
               <option value="paragraphs">{t('tools.loremIpsum.paragraphs')}</option>
               <option value="words">{t('tools.loremIpsum.words')}</option>
@@ -85,8 +108,8 @@ export const LoremIpsumTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm nb-text-secondary">{t('tools.loremIpsum.count')}:</label>
-            <input type="number" min={1} max={mode === 'paragraphs' ? 20 : 500} value={count}
-              onChange={e => setCount(Math.max(1, parseInt(e.target.value) || 1))}
+            <input type="number" min={LOREM_MIN_COUNT} max={getLoremMaxCount(mode)} value={count}
+              onChange={e => setCount(parseLoremCountInput(e.target.value, mode, count))}
               className="nb-input w-20 text-sm" />
           </div>
           <div className="flex items-center gap-2">

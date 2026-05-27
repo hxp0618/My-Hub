@@ -12,6 +12,12 @@ import {
 } from '../../../db/indexedDB';
 import { ToolManagementModal } from '../../../components/ToolManagementModal';
 import { useToolOrder } from '../../../hooks/useToolOrder';
+import { createLogger } from '../../../utils/logger';
+import { parseDragIndex } from '../../../utils/dragIndex';
+
+const logger = createLogger('[ToolsPage]');
+
+export const parseToolDragIndex = parseDragIndex;
 
 const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType<ToolComponentProps>>> = {
   [ToolId.JSON_FORMATTER]: lazy(() =>
@@ -144,7 +150,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
           await setLastSelectedTool(initialTool);
         }
       } catch (error) {
-        console.error('Failed to load tool config:', error);
+        logger.error('Failed to load tool config', error);
       }
     };
 
@@ -161,7 +167,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
       await setToolConfig(newConfig);
       await saveToolOrder(newOrder);
     } catch (error) {
-      console.error('Failed to persist tool config:', error);
+      logger.error('Failed to persist tool config', error);
     }
     setConfig(newConfig);
     setToolOrder(newOrder);
@@ -179,8 +185,8 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
   const handleSelectTool = useCallback((toolId: ToolId) => {
     setSelectedTool(toolId);
     setRecentToolId(toolId);
-    setLastSelectedTool(toolId).catch(error => console.error('Failed to save last selected tool:', error));
-    incrementToolUsageCount(toolId).catch(error => console.error('Failed to record tool usage:', error));
+    setLastSelectedTool(toolId).catch(error => logger.error('Failed to save last selected tool', error));
+    incrementToolUsageCount(toolId).catch(error => logger.error('Failed to record tool usage', error));
   }, []);
 
   useEffect(() => {
@@ -238,12 +244,18 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
   const handleDrop = useCallback(
     (e: React.DragEvent, toIndex: number) => {
       e.preventDefault();
-      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const fromIndex = parseToolDragIndex(
+        e.dataTransfer.getData('text/plain'),
+        orderedEnabledTools.length,
+      );
+      const targetIndex = Number.isInteger(toIndex) && toIndex >= 0 && toIndex < orderedEnabledTools.length
+        ? toIndex
+        : null;
 
-      if (!isNaN(fromIndex) && fromIndex !== toIndex) {
+      if (fromIndex !== null && targetIndex !== null && fromIndex !== targetIndex) {
         // 计算在完整 toolOrder 中的实际索引
         const fromToolId = orderedEnabledTools[fromIndex];
-        const toToolId = orderedEnabledTools[toIndex];
+        const toToolId = orderedEnabledTools[targetIndex];
 
         const actualFromIndex = toolOrder.indexOf(fromToolId);
         const actualToIndex = toolOrder.indexOf(toToolId);

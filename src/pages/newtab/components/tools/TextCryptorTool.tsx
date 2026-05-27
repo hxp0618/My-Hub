@@ -70,9 +70,10 @@ export const TextCryptorTool: React.FC<ToolComponentProps> = ({
         setError('');
         addToHistory(textInput);
       }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      setError(errorMessage);
+    } catch {
+      setError(t(mode === 'encrypt'
+        ? 'tools.textCryptor.encryptError'
+        : 'tools.textCryptor.decryptError'));
       setOutput('');
     }
   }, [textInput, password, mode, algorithm, aesMode, t, addToHistory]);

@@ -18,6 +18,11 @@ import { useMenuCustomization } from '../../hooks/useMenuCustomization';
 import { MENU_ITEMS } from '../../types/menu';
 import { ToolId } from '../../types/tools';
 import { SearchActionTarget } from '../../types/searchActions';
+import {
+  MAX_SIDEBAR_WIDTH,
+  MIN_SIDEBAR_WIDTH,
+  sidebarWidth as sidebarWidthStorage,
+} from '../../utils/storageManager';
 
 // =================================================================================
 // Main Component
@@ -36,6 +41,8 @@ export default function Newtab() {
   const [page, setPage] = useState<Page>('home');
   const [requestedToolId, setRequestedToolId] = useState<ToolId | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
   // 自定义 hook，用于获取"历史上的今天"的推荐内容
   const { recommendations, timeRange, refreshRecommendations } = useMomentInHistory();
   // 自定义 hook，用于获取菜单顺序和自定义配置
@@ -43,30 +50,39 @@ export default function Newtab() {
   const { getItemIcon } = useMenuCustomization();
 
   // 侧边栏宽度管理
-  const MIN_SIDEBAR_WIDTH = 200;
-  const MAX_SIDEBAR_WIDTH = 400;
-  const DEFAULT_SIDEBAR_WIDTH = 256; // w-64 = 256px
-
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('sidebarWidth');
-    return saved ? parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH;
+    return sidebarWidthStorage.get();
   });
 
   const [isResizing, setIsResizing] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleOpenTool = (toolId: ToolId) => {
     setRequestedToolId(toolId);
     setPage('tools');
+    setIsMobileSidebarOpen(false);
   };
 
   const handleOpenAction = (target: SearchActionTarget) => {
     if (target.kind === 'settings') {
       setIsSettingsOpen(true);
+      setIsMobileSidebarOpen(false);
       return;
     }
 
     setPage(target.page);
+    setIsMobileSidebarOpen(false);
+  };
+
+  const handleNavigate = (targetPage: Page) => {
+    setPage(targetPage);
+    setIsMobileSidebarOpen(false);
+  };
+
+  const handleOpenSettings = () => {
+    setIsSettingsOpen(true);
+    setIsMobileSidebarOpen(false);
   };
 
   // 处理拖拽开始
@@ -83,7 +99,7 @@ export default function Newtab() {
       const newWidth = e.clientX;
       if (newWidth >= MIN_SIDEBAR_WIDTH && newWidth <= MAX_SIDEBAR_WIDTH) {
         setSidebarWidth(newWidth);
-        localStorage.setItem('sidebarWidth', newWidth.toString());
+        sidebarWidthStorage.set(newWidth);
       }
     };
 
@@ -105,6 +121,53 @@ export default function Newtab() {
       document.body.style.userSelect = '';
     };
   }, [isResizing]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    if (isMobileSidebarOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.classList.add('newtab-mobile-nav-open');
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.classList.remove('newtab-mobile-nav-open');
+    };
+  }, [isMobileSidebarOpen]);
+
+  useEffect(() => {
+    const updateCompactLayout = () => {
+      const shellWidth = shellRef.current?.clientWidth || window.innerWidth;
+      const nextIsCompactLayout = shellWidth <= 900;
+
+      setIsCompactLayout(nextIsCompactLayout);
+      if (!nextIsCompactLayout) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    updateCompactLayout();
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined' && shellRef.current
+      ? new ResizeObserver(updateCompactLayout)
+      : null;
+
+    if (shellRef.current) {
+      resizeObserver?.observe(shellRef.current);
+    }
+
+    window.addEventListener('resize', updateCompactLayout);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateCompactLayout);
+    };
+  }, []);
 
   const renderPageContent = () => {
     switch (page) {
@@ -158,12 +221,57 @@ export default function Newtab() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <div className="flex h-screen nb-bg nb-bg-grid nb-text">
+        <div
+          ref={shellRef}
+          className={`newtab-shell flex h-screen nb-bg nb-bg-grid nb-text ${
+            isCompactLayout ? 'mobile-layout' : ''
+          }`}
+        >
+          <header className="newtab-mobile-bar nb-card-static nb-bg-halftone">
+            <button
+              type="button"
+              className="newtab-mobile-icon-button"
+              aria-label={t(isMobileSidebarOpen ? 'sidebar.closeNavigation' : 'sidebar.openNavigation')}
+              aria-expanded={isMobileSidebarOpen}
+              aria-controls="newtab-sidebar"
+              onClick={() => setIsMobileSidebarOpen((open) => !open)}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">
+                {isMobileSidebarOpen ? 'close' : 'menu'}
+              </span>
+            </button>
+            <div className="newtab-mobile-title">
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">
+                {getItemIcon(page, MENU_ITEMS[page].icon)}
+              </span>
+              <span>{t(MENU_ITEMS[page].labelKey)}</span>
+            </div>
+            <button
+              type="button"
+              className="newtab-mobile-icon-button"
+              aria-label={t('sidebar.settings')}
+              onClick={handleOpenSettings}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">settings</span>
+            </button>
+          </header>
+
+          <button
+            type="button"
+            className={`newtab-sidebar-backdrop ${isMobileSidebarOpen ? 'is-visible' : ''}`}
+            aria-label={t('sidebar.closeNavigation')}
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+
           {/* 侧边栏 */}
           <aside
+            id="newtab-sidebar"
             ref={sidebarRef}
+            aria-label={t('sidebar.navigation')}
             style={{ width: `${sidebarWidth}px` }}
-            className="nb-card-static nb-bg-halftone p-8 flex flex-col relative flex-shrink-0 transition-none m-4 mr-0 rounded-none overflow-hidden"
+            className={`newtab-sidebar nb-card-static nb-bg-halftone p-8 flex flex-col relative flex-shrink-0 transition-none m-4 mr-0 rounded-none overflow-hidden ${
+              isMobileSidebarOpen ? 'mobile-open' : ''
+            }`}
           >
             {/* 装饰元素 - 增强版 */}
             {/* 浮动粉色圆形 */}
@@ -201,7 +309,7 @@ export default function Newtab() {
                         href="#"
                         onClick={(e) => {
                           e.preventDefault();
-                          setPage(itemId as Page);
+                          handleNavigate(itemId as Page);
                         }}
                       >
                         <span className="material-symbols-outlined text-xl">{displayIcon}</span>
@@ -219,7 +327,7 @@ export default function Newtab() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  setIsSettingsOpen(true);
+                  handleOpenSettings();
                 }}
                 className="nb-nav-item"
               >
@@ -240,9 +348,9 @@ export default function Newtab() {
           </aside>
 
           {/* 主内容区域 */}
-          <main className="flex-1 overflow-hidden nb-bg p-4">
+          <main className="newtab-main flex-1 overflow-hidden nb-bg p-4">
             <div className="h-full flex flex-col gap-4">
-              <div className="flex-1 nb-card-static p-8 rounded-none nb-bg-halftone overflow-auto">
+              <div className="newtab-content-card flex-1 nb-card-static p-8 rounded-none nb-bg-halftone overflow-auto">
                 {renderPageContent()}
               </div>
             </div>

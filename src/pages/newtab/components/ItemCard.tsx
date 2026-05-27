@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { getTagClassName } from '../../../utils/tagColorUtils';
 
-interface Action {
+export interface ItemCardAction {
   label: string;
   icon: string;
   onClick: () => void;
@@ -24,7 +24,7 @@ interface ItemCardProps {
 
   // 功能模块
   tags?: string[];         // 书签标签
-  actions?: Action[];      // 操作菜单项
+  actions?: ItemCardAction[];      // 操作菜单项
 
   // 标签生成失败状态
   hasTagGenerationFailure?: boolean;
@@ -37,7 +37,7 @@ interface ItemCardProps {
 
   // 拖拽相关
   isDraggable?: boolean;
-  dragHandleProps?: any;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
   dragProps?: React.HTMLAttributes<HTMLDivElement>;
   isDragging?: boolean;
 }

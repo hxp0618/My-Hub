@@ -48,14 +48,14 @@ export interface DetectionResult {
 /**
  * 解析 JSON 字符串
  */
-export function parseJson(input: string): any {
+export function parseJson(input: string): unknown {
   return JSON.parse(input);
 }
 
 /**
  * 解析 YAML 字符串
  */
-export function parseYaml(input: string): any {
+export function parseYaml(input: string): unknown {
   return YAML.parse(input);
 }
 
@@ -63,21 +63,21 @@ export function parseYaml(input: string): any {
 /**
  * 解析 TOML 字符串
  */
-export function parseToml(input: string): any {
+export function parseToml(input: string): unknown {
   return TOML.parse(input);
 }
 
 /**
  * 序列化为 JSON 字符串
  */
-export function stringifyJson(data: any, indent: number = 2): string {
+export function stringifyJson(data: unknown, indent: number = 2): string {
   return JSON.stringify(data, null, indent);
 }
 
 /**
  * 序列化为 YAML 字符串
  */
-export function stringifyYaml(data: any, indent: number = 2): string {
+export function stringifyYaml(data: unknown, indent: number = 2): string {
   return YAML.stringify(data, { indent });
 }
 
@@ -87,7 +87,7 @@ export function stringifyYaml(data: any, indent: number = 2): string {
  * - 将 undefined 移除
  * - 处理顶层数组
  */
-function prepareForToml(data: any): any {
+function prepareForToml(data: unknown): unknown {
   if (data === null || data === undefined) {
     return '';
   }
@@ -97,7 +97,7 @@ function prepareForToml(data: any): any {
   }
   
   if (typeof data === 'object' && data !== null) {
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       if (value !== undefined) {
         result[key] = prepareForToml(value);
@@ -112,9 +112,9 @@ function prepareForToml(data: any): any {
 /**
  * 序列化为 TOML 字符串
  */
-export function stringifyToml(data: any): string {
+export function stringifyToml(data: unknown): string {
   // 处理顶层数组
-  let processedData = data;
+  let processedData: unknown = data;
   if (Array.isArray(data)) {
     processedData = { items: data };
   }
@@ -175,7 +175,7 @@ export function convert(
   
   try {
     // 解析输入
-    let data: any;
+    let data: unknown;
     switch (sourceFormat) {
       case 'json':
         data = parseJson(input);
@@ -204,14 +204,14 @@ export function convert(
     
     return { success: true, output };
   } catch (e) {
-    const error = e as Error;
+    const error = e instanceof Error ? e : new Error('Conversion failed');
     const lineInfo = extractLineInfo(error, input);
     
     return {
       success: false,
       output: '',
       error: {
-        message: error.message,
+        message: 'convertError',
         ...lineInfo,
       },
     };

@@ -21,6 +21,21 @@ function formatDateTime(timestamp: number): string {
   return new Date(timestamp).toLocaleString();
 }
 
+function getExecutionErrorMessage(
+  record: TaskExecutionRecord,
+  t: (key: string) => string
+): string | undefined {
+  if (record.errorMessageKey) {
+    return t(`tools.barkNotifier.scheduled.messages.${record.errorMessageKey}`);
+  }
+
+  if (record.errorMessage) {
+    return t('tools.barkNotifier.scheduled.messages.unknownError');
+  }
+
+  return undefined;
+}
+
 /**
  * 执行历史模态框
  */
@@ -51,54 +66,58 @@ export const ExecutionHistoryModal: React.FC<ExecutionHistoryModalProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            {records.map((record) => (
-              <div
-                key={record.id}
-                className="nb-card-static p-4 space-y-2"
-              >
-                {/* 执行时间和状态 */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm nb-text font-medium">
-                    {formatDateTime(record.executedAt)}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full nb-border ${
-                      record.status === 'success'
-                        ? 'bg-[var(--nb-accent-green)]'
-                        : 'bg-[var(--nb-accent-pink)]'
-                    }`}
-                  >
-                    {record.status === 'success'
-                      ? t('tools.barkNotifier.scheduled.status.success')
-                      : t('tools.barkNotifier.scheduled.status.failed')}
-                  </span>
-                </div>
+            {records.map((record) => {
+              const errorMessage = getExecutionErrorMessage(record, t);
 
-                {/* 发送统计 */}
-                <div className="flex items-center gap-4 text-xs nb-text-secondary">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm" style={{ color: 'var(--nb-accent-green)' }}>
-                      check_circle
+              return (
+                <div
+                  key={record.id}
+                  className="nb-card-static p-4 space-y-2"
+                >
+                  {/* 执行时间和状态 */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm nb-text font-medium">
+                      {formatDateTime(record.executedAt)}
                     </span>
-                    {t('tools.barkNotifier.scheduled.successCount', { count: record.successCount })}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm" style={{ color: 'var(--nb-accent-pink)' }}>
-                      cancel
+                    <span
+                      className={`px-2 py-0.5 text-xs font-medium rounded-full nb-border ${
+                        record.status === 'success'
+                          ? 'bg-[var(--nb-accent-green)]'
+                          : 'bg-[var(--nb-accent-pink)]'
+                      }`}
+                    >
+                      {record.status === 'success'
+                        ? t('tools.barkNotifier.scheduled.status.success')
+                        : t('tools.barkNotifier.scheduled.status.failed')}
                     </span>
-                    {t('tools.barkNotifier.scheduled.failedCount', { count: record.failedCount })}
-                  </span>
-                </div>
-
-                {/* 错误信息 */}
-                {record.errorMessage && (
-                  <div className="text-xs p-2 rounded-lg bg-[var(--nb-accent-pink)] bg-opacity-20">
-                    <span className="font-medium">{t('tools.barkNotifier.scheduled.errorMessage')}:</span>{' '}
-                    {record.errorMessage}
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* 发送统计 */}
+                  <div className="flex items-center gap-4 text-xs nb-text-secondary">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm" style={{ color: 'var(--nb-accent-green)' }}>
+                        check_circle
+                      </span>
+                      {t('tools.barkNotifier.scheduled.successCount', { count: record.successCount })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm" style={{ color: 'var(--nb-accent-pink)' }}>
+                        cancel
+                      </span>
+                      {t('tools.barkNotifier.scheduled.failedCount', { count: record.failedCount })}
+                    </span>
+                  </div>
+
+                  {/* 错误信息 */}
+                  {errorMessage && (
+                    <div className="text-xs p-2 rounded-lg bg-[var(--nb-accent-pink)] bg-opacity-20">
+                      <span className="font-medium">{t('tools.barkNotifier.scheduled.errorMessage')}:</span>{' '}
+                      {errorMessage}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

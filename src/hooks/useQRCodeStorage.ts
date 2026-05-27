@@ -4,9 +4,70 @@
 import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { QRCodeImage, ScanImage, QRCodeOptions } from '../types/qrcode';
-import { QRCODE_STORAGE_KEYS } from '../types/qrcode';
+import { QRCODE_STORAGE_KEYS, sanitizeQRCodeOptions } from '../types/qrcode';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[useQRCodeStorage]');
 
 // ============ 纯函数（可测试） ============
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+const isDataImageUrl = (value: unknown): value is string => (
+  typeof value === 'string' && value.startsWith('data:image/')
+);
+
+export const sanitizeQRCodeImages = (value: unknown): QRCodeImage[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item): QRCodeImage[] => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      typeof item.content !== 'string' ||
+      !isDataImageUrl(item.dataUrl) ||
+      typeof item.createdAt !== 'number' ||
+      !Number.isFinite(item.createdAt)
+    ) {
+      return [];
+    }
+
+    return [{
+      id: item.id,
+      content: item.content,
+      dataUrl: item.dataUrl,
+      options: sanitizeQRCodeOptions(item.options),
+      createdAt: item.createdAt,
+      selected: typeof item.selected === 'boolean' ? item.selected : false,
+    }];
+  });
+};
+
+export const sanitizeScanImages = (value: unknown): ScanImage[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item): ScanImage[] => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== 'string' ||
+      !isDataImageUrl(item.originalDataUrl) ||
+      !(typeof item.decodedContent === 'string' || item.decodedContent === null) ||
+      typeof item.createdAt !== 'number' ||
+      !Number.isFinite(item.createdAt)
+    ) {
+      return [];
+    }
+
+    return [{
+      id: item.id,
+      originalDataUrl: item.originalDataUrl,
+      decodedContent: item.decodedContent,
+      createdAt: item.createdAt,
+    }];
+  });
+};
 
 /**
  * 保存图片列表到 Session Storage
@@ -14,8 +75,8 @@ import { QRCODE_STORAGE_KEYS } from '../types/qrcode';
 export function saveImagesToSession(images: QRCodeImage[]): void {
   try {
     sessionStorage.setItem(QRCODE_STORAGE_KEYS.GENERATED_IMAGES, JSON.stringify(images));
-  } catch {
-    console.error('Failed to save images to session storage');
+  } catch (error) {
+    logger.error('Failed to save images to session storage', error);
   }
 }
 
@@ -25,7 +86,7 @@ export function saveImagesToSession(images: QRCodeImage[]): void {
 export function loadImagesFromSession(): QRCodeImage[] {
   try {
     const data = sessionStorage.getItem(QRCODE_STORAGE_KEYS.GENERATED_IMAGES);
-    return data ? JSON.parse(data) : [];
+    return data ? sanitizeQRCodeImages(JSON.parse(data)) : [];
   } catch {
     return [];
   }
@@ -44,8 +105,8 @@ export function clearSessionImages(): void {
 export function saveScanImagesToSession(images: ScanImage[]): void {
   try {
     sessionStorage.setItem(QRCODE_STORAGE_KEYS.SCAN_IMAGES, JSON.stringify(images));
-  } catch {
-    console.error('Failed to save scan images to session storage');
+  } catch (error) {
+    logger.error('Failed to save scan images to session storage', error);
   }
 }
 
@@ -55,7 +116,7 @@ export function saveScanImagesToSession(images: ScanImage[]): void {
 export function loadScanImagesFromSession(): ScanImage[] {
   try {
     const data = sessionStorage.getItem(QRCODE_STORAGE_KEYS.SCAN_IMAGES);
-    return data ? JSON.parse(data) : [];
+    return data ? sanitizeScanImages(JSON.parse(data)) : [];
   } catch {
     return [];
   }

@@ -141,7 +141,7 @@ export const HashCalculatorTool: React.FC<ToolComponentProps> = ({
               {t('tools.hashCalculator.result')}
               {result && (
                 <span className="ml-2 text-xs nb-text-secondary font-normal">
-                  ({result.length} chars)
+                  ({t('tools.hashCalculator.lengthLabel', { count: result.length })})
                 </span>
               )}
             </label>

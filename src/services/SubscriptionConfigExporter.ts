@@ -11,6 +11,8 @@ import {
   SubscriptionCycle,
   SubscriptionType,
   DEFAULT_NOTIFICATION_CONFIG,
+  NotificationChannel,
+  SubscriptionStatus,
 } from '../types/subscription';
 import {
   getAllSubscriptions,
@@ -43,6 +45,11 @@ export type ImportValidationIssueCode =
   | 'invalidExpiryDate'
   | 'invalidReminderDays'
   | 'invalidEnabledState'
+  | 'invalidSubscriptionStatus'
+  | 'invalidNotificationChannels'
+  | 'invalidCreatedAt'
+  | 'invalidUpdatedAt'
+  | 'invalidOptionalText'
   | 'invalidNotificationConfigFormat'
   | 'missingTelegramConfig'
   | 'missingEmailConfig'
@@ -50,7 +57,10 @@ export type ImportValidationIssueCode =
   | 'missingBarkConfig'
   | 'invalidSettingsFormat'
   | 'invalidLunarSetting'
-  | 'invalidDefaultReminderDays';
+  | 'invalidDefaultReminderDays'
+  | 'invalidDailyReminder'
+  | 'invalidPageSize'
+  | 'importFailed';
 
 export interface ImportValidationIssue {
   code: ImportValidationIssueCode;
@@ -91,6 +101,27 @@ const VALID_CYCLES: SubscriptionCycle[] = ['monthly', 'quarterly', 'semi-annual'
  */
 const VALID_TYPES: SubscriptionType[] = ['video', 'music', 'cloud', 'software', 'domain', 'server', 'other'];
 
+const VALID_STATUSES: SubscriptionStatus[] = ['active', 'disabled', 'expired'];
+
+const VALID_NOTIFICATION_CHANNELS: NotificationChannel[] = ['telegram', 'email', 'webhook', 'bark'];
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+const isFiniteNumber = (value: unknown): value is number => (
+  typeof value === 'number' && Number.isFinite(value)
+);
+
+const isValidOptionalText = (value: unknown): boolean => (
+  value === undefined || typeof value === 'string'
+);
+
+const isValidNotificationChannels = (value: unknown): value is NotificationChannel[] => (
+  Array.isArray(value) &&
+  value.every(channel => VALID_NOTIFICATION_CHANNELS.includes(channel as NotificationChannel))
+);
+
 /**
  * 验证订阅数据是否有效
  */
@@ -99,13 +130,13 @@ function validateSubscription(sub: unknown, index: number): { errors: string[]; 
   const issues: ImportValidationIssue[] = [];
   const number = index + 1;
   
-  if (!sub || typeof sub !== 'object') {
+  if (!isRecord(sub)) {
     errors.push(`订阅 #${number}: 无效的数据格式`);
     issues.push({ code: 'invalidSubscriptionFormat', values: { number } });
     return { errors, issues };
   }
   
-  const s = sub as Record<string, unknown>;
+  const s = sub;
   
   // 验证必需字段
   if (typeof s.name !== 'string' || s.name.trim().length === 0) {
@@ -123,12 +154,12 @@ function validateSubscription(sub: unknown, index: number): { errors: string[]; 
     issues.push({ code: 'invalidSubscriptionCycle', values: { number, value: String(s.cycle) } });
   }
   
-  if (typeof s.expiryDate !== 'number' || isNaN(s.expiryDate)) {
+  if (!isFiniteNumber(s.expiryDate)) {
     errors.push(`订阅 #${number}: 无效的到期日期`);
     issues.push({ code: 'invalidExpiryDate', values: { number } });
   }
   
-  if (typeof s.reminderDays !== 'number' || s.reminderDays < 0) {
+  if (!isFiniteNumber(s.reminderDays) || s.reminderDays < 0) {
     errors.push(`订阅 #${number}: 无效的提醒天数`);
     issues.push({ code: 'invalidReminderDays', values: { number } });
   }
@@ -136,6 +167,31 @@ function validateSubscription(sub: unknown, index: number): { errors: string[]; 
   if (typeof s.isEnabled !== 'boolean') {
     errors.push(`订阅 #${number}: 无效的启用状态`);
     issues.push({ code: 'invalidEnabledState', values: { number } });
+  }
+
+  if (!VALID_STATUSES.includes(s.status as SubscriptionStatus)) {
+    errors.push(`订阅 #${number}: 无效的订阅状态 "${s.status}"`);
+    issues.push({ code: 'invalidSubscriptionStatus', values: { number, value: String(s.status) } });
+  }
+
+  if (!isValidNotificationChannels(s.notificationChannels)) {
+    errors.push(`订阅 #${number}: 无效的通知渠道`);
+    issues.push({ code: 'invalidNotificationChannels', values: { number } });
+  }
+
+  if (s.createdAt !== undefined && !isFiniteNumber(s.createdAt)) {
+    errors.push(`订阅 #${number}: 无效的创建时间`);
+    issues.push({ code: 'invalidCreatedAt', values: { number } });
+  }
+
+  if (s.updatedAt !== undefined && !isFiniteNumber(s.updatedAt)) {
+    errors.push(`订阅 #${number}: 无效的更新时间`);
+    issues.push({ code: 'invalidUpdatedAt', values: { number } });
+  }
+
+  if (!isValidOptionalText(s.customType) || !isValidOptionalText(s.url) || !isValidOptionalText(s.notes)) {
+    errors.push(`订阅 #${number}: 可选文本字段格式无效`);
+    issues.push({ code: 'invalidOptionalText', values: { number } });
   }
   
   return { errors, issues };
@@ -200,9 +256,19 @@ function validateSettings(settings: unknown): { errors: string[]; issues: Import
     issues.push({ code: 'invalidLunarSetting' });
   }
   
-  if (typeof s.defaultReminderDays !== 'number' || s.defaultReminderDays < 0) {
+  if (!isFiniteNumber(s.defaultReminderDays) || s.defaultReminderDays < 0) {
     errors.push('设置: 无效的默认提醒天数');
     issues.push({ code: 'invalidDefaultReminderDays' });
+  }
+
+  if (typeof s.dailyReminder !== 'boolean') {
+    errors.push('设置: 无效的每日提醒设置');
+    issues.push({ code: 'invalidDailyReminder' });
+  }
+
+  if (!isFiniteNumber(s.pageSize) || s.pageSize <= 0) {
+    errors.push('设置: 无效的分页数量');
+    issues.push({ code: 'invalidPageSize' });
   }
   
   return { errors, issues };
@@ -452,8 +518,8 @@ class SubscriptionConfigExporter {
         success: false,
         importedCount: 0,
         skippedCount: 0,
-        errors: [error instanceof Error ? error.message : '导入失败'],
-        issues: [],
+        errors: ['导入失败'],
+        issues: [{ code: 'importFailed' }],
       };
     }
   }

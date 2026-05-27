@@ -18,6 +18,84 @@ type SendMessageOptions = {
     stream?: boolean;
 };
 
+export type LLMServiceErrorCode =
+    | 'promptApiUnavailable'
+    | 'geminiUnavailable'
+    | 'apiRequestFailed'
+    | 'streamUnavailable'
+    | 'invalidResponse'
+    | 'networkError'
+    | 'unknownError';
+
+export class LLMServiceError extends Error {
+    code: LLMServiceErrorCode;
+    status?: number;
+
+    constructor(code: LLMServiceErrorCode, options: { status?: number } = {}) {
+        super(i18n.t(`llmService.errors.${code}`, options));
+        this.name = 'LLMServiceError';
+        this.code = code;
+        this.status = options.status;
+    }
+}
+
+export interface SseChunkParseResult {
+    contents: string[];
+    invalidPayloads: string[];
+    done: boolean;
+    buffer: string;
+}
+
+const getDeltaContent = (value: unknown): string | null => {
+    if (!value || typeof value !== 'object') return null;
+    const choices = (value as { choices?: unknown }).choices;
+    if (!Array.isArray(choices)) return null;
+    const firstChoice = choices[0];
+    if (!firstChoice || typeof firstChoice !== 'object') return null;
+    const delta = (firstChoice as { delta?: unknown }).delta;
+    if (!delta || typeof delta !== 'object') return null;
+    const content = (delta as { content?: unknown }).content;
+    return typeof content === 'string' ? content : null;
+};
+
+export const parseSseChunk = (
+    chunk: string,
+    previousBuffer = '',
+    flush = false
+): SseChunkParseResult => {
+    const combined = previousBuffer + chunk;
+    const lines = combined.split(/\r?\n/);
+    const hasTrailingNewline = /\r?\n$/.test(combined);
+    const buffer = flush || hasTrailingNewline ? '' : (lines.pop() ?? '');
+    const completeLines = lines;
+    const contents: string[] = [];
+    const invalidPayloads: string[] = [];
+    let done = false;
+
+    for (const rawLine of completeLines) {
+        const line = rawLine.trim();
+        if (!line.startsWith('data:')) continue;
+
+        const dataStr = line.slice(5).trim();
+        if (!dataStr) continue;
+        if (dataStr === '[DONE]') {
+            done = true;
+            continue;
+        }
+
+        try {
+            const content = getDeltaContent(JSON.parse(dataStr));
+            if (content) {
+                contents.push(content);
+            }
+        } catch {
+            invalidPayloads.push(dataStr);
+        }
+    }
+
+    return { contents, invalidPayloads, done, buffer };
+};
+
 const getPromptApiSessionOptions = (): LanguageModelCreateOptions => {
     const currentLanguage = i18n.language.split('-')[0].toLowerCase();
     const outputLanguage = SUPPORTED_PROMPT_API_OUTPUT_LANGUAGES.includes(
@@ -46,6 +124,14 @@ const getSafeSettingsForLog = (settings: ReturnType<typeof getLLMSettings>) => (
     ),
 });
 
+const toLLMServiceError = (error: unknown): LLMServiceError => {
+    if (error instanceof LLMServiceError) return error;
+    if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
+        return new LLMServiceError('networkError');
+    }
+    return new LLMServiceError('unknownError');
+};
+
 async function tryGeminiNano(
     messages: ChatMessage[],
     callbacks: SendMessageCallbacks,
@@ -53,16 +139,16 @@ async function tryGeminiNano(
     options: SendMessageOptions
 ) {
     if (typeof LanguageModel === 'undefined' || typeof LanguageModel.availability !== 'function') {
-        throw new Error('Prompt API entry point not available.');
+        throw new LLMServiceError('promptApiUnavailable');
     }
     const promptApiOptions = getPromptApiSessionOptions();
     const availability = await LanguageModel.availability(promptApiOptions);
     if (availability !== 'available') {
-        throw new Error(`Gemini Nano is not available. State: ${availability}`);
+        throw new LLMServiceError('geminiUnavailable');
     }
 
     logger.info('[GeminiNano] Using Gemini Nano (Prompt API).');
-    logger.debug('[GeminiNano] Input messages:', JSON.stringify(messages, null, 2));
+    logger.debug('[GeminiNano] Input message count:', messages.length);
 
     const session = await LanguageModel.create(promptApiOptions);
 
@@ -76,7 +162,7 @@ async function tryGeminiNano(
             callbacks.onFinish();
         } else {
             const result = await session.prompt(messages, { signal: abortSignal });
-            logger.info('[GeminiNano][NonStream] result:', result);
+            logger.info('[GeminiNano][NonStream] result received', { length: result.length });
             callbacks.onFinish(result);
         }
     } finally {
@@ -105,7 +191,7 @@ export async function sendMessage(
           await tryGeminiNano(messages, callbacks, abortSignal, options);
           return; // Gemini Nano succeeded, so we're done.
       } catch (error) {
-          logger.warn('Gemini Nano failed, falling back to configured LLM.', error);
+          logger.warn('Gemini Nano failed, falling back to configured LLM.', toLLMServiceError(error).code);
           // Fall through to the cloud LLM logic below.
       }
   }
@@ -147,8 +233,10 @@ export async function sendMessage(
   };
 
   logger.info('[Cloud] Using provider:', settings.selectedProvider, 'baseUrl:', baseUrl, 'model:', model);
-  logger.debug('[Cloud] Input messages:', JSON.stringify(messages, null, 2));
-  logger.debug('[Cloud] Request body:', JSON.stringify(requestBody, null, 2));
+  logger.debug('[Cloud] Request summary:', {
+    messageCount: messages.length,
+    stream: options.stream,
+  });
 
 
   try {
@@ -163,17 +251,35 @@ export async function sendMessage(
     });
 
     if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`HTTP error ${response.status}: ${errorBody}`);
+        await response.text().catch(() => '');
+        throw new LLMServiceError('apiRequestFailed', { status: response.status });
     }
 
     if (options.stream) {
         if (!response.body) {
-            throw new Error('Response body is null');
+            throw new LLMServiceError('streamUnavailable');
         }
         
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
+        let streamBuffer = '';
+
+        const applyParsedStreamChunk = (parsed: SseChunkParseResult): boolean => {
+            streamBuffer = parsed.buffer;
+            if (parsed.invalidPayloads.length > 0) {
+                logger.error('Error parsing stream data chunk', { count: parsed.invalidPayloads.length });
+            }
+            for (const content of parsed.contents) {
+                logger.debug('[Cloud][Stream] content chunk received', { length: content.length });
+                callbacks.onUpdate(content);
+            }
+            if (parsed.done) {
+                logger.info('Stream finished (DONE marker).');
+                callbacks.onFinish();
+                return true;
+            }
+            return false;
+        };
 
         const processStream = async () => {
           while (true) {
@@ -184,42 +290,29 @@ export async function sendMessage(
 
             const { done, value } = await reader.read();
             if (done) {
+              const parsed = parseSseChunk('', streamBuffer, true);
+              if (applyParsedStreamChunk(parsed)) {
+                return;
+              }
               logger.info('Stream finished.');
               callbacks.onFinish();
               break;
             }
 
             const chunk = decoder.decode(value, { stream: true });
-            logger.debug('[Cloud][Stream] raw chunk:', chunk);
-            const lines = chunk.split('\n').filter(line => line.trim());
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.substring(6);
-                    if (dataStr === '[DONE]') {
-                        logger.info('Stream finished (DONE marker).');
-                        callbacks.onFinish();
-                        return;
-                    }
-                    try {
-                        const data = JSON.parse(dataStr);
-                        const content = data.choices[0]?.delta?.content;
-                        if (content) {
-                            logger.debug('[Cloud][Stream] content:', content);
-                            callbacks.onUpdate(content);
-                        }
-                    } catch (error) {
-                        logger.error('Error parsing stream data chunk:', error, 'Chunk:', dataStr);
-                    }
-                }
+            logger.debug('[Cloud][Stream] chunk received', { length: chunk.length });
+            const parsed = parseSseChunk(chunk, streamBuffer);
+            if (applyParsedStreamChunk(parsed)) {
+                return;
             }
           }
         };
 
         processStream().catch(err => {
             if (!abortSignal?.aborted) {
-                logger.error('Stream processing error:', err);
-                callbacks.onError(err);
+                const normalizedError = toLLMServiceError(err);
+                logger.error('Stream processing error:', normalizedError.code);
+                callbacks.onError(normalizedError);
             } else {
                 logger.info('Stream processing aborted as expected.');
                 // 确保在中止时也能正常结束
@@ -229,9 +322,11 @@ export async function sendMessage(
     } else {
         // Handle non-streaming response
         const data = await response.json();
-        logger.info('Received non-streamed response:', data);
-        const content = data.choices?.[0]?.message?.content || '';
-        logger.info('[Cloud][NonStream] content:', content);
+        const content = data?.choices?.[0]?.message?.content;
+        if (typeof content !== 'string') {
+            throw new LLMServiceError('invalidResponse');
+        }
+        logger.info('[Cloud][NonStream] content received', { length: content.length });
         callbacks.onFinish(content);
     }
   } catch (error) {
@@ -240,7 +335,8 @@ export async function sendMessage(
         // Don't call onError for user-initiated aborts
         return;
     }
-    logger.error('Fetch request failed:', error);
-    callbacks.onError(error as Error);
+    const normalizedError = toLLMServiceError(error);
+    logger.error('Fetch request failed:', normalizedError.code);
+    callbacks.onError(normalizedError);
   }
 }

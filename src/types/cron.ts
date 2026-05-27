@@ -5,6 +5,13 @@
 /** Cron 时间字段类型 */
 export type CronField = 'minute' | 'hour' | 'day' | 'month' | 'weekday';
 
+/** Cron 类型层错误码 */
+export const CRON_TYPE_ERROR_CODES = [
+  'unknownCronField',
+] as const;
+
+export type CronTypeErrorCode = typeof CRON_TYPE_ERROR_CODES[number];
+
 /** 字段配置模式 */
 export type FieldMode = 'every' | 'range' | 'step' | 'specific';
 
@@ -127,7 +134,7 @@ export const CRON_TEMPLATES: CronTemplate[] = [
 export function getFieldMetadata(field: CronField): FieldMetadata {
   const metadata = FIELD_METADATA.find(m => m.key === field);
   if (!metadata) {
-    throw new Error(`Unknown cron field: ${field}`);
+    throw new Error('unknownCronField');
   }
   return metadata;
 }

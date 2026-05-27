@@ -1,8 +1,42 @@
 import { LLMSettings, ProviderConfig } from '../types/llm';
 import { PROVIDERS, ProviderKey } from '../data/models';
 import { StorageKey } from '../utils/storageManager';
+import { createLogger } from '../utils/logger';
 
 const SETTINGS_KEY = StorageKey.LLM_SETTINGS;
+const logger = createLogger('[llmUtils]');
+
+const errorLog = (...args: unknown[]) => {
+  logger.error(...args);
+};
+
+export type LLMConnectionErrorCode =
+  | 'invalidProvider'
+  | 'emptyApiUrl'
+  | 'emptyApiKey'
+  | 'emptyModel'
+  | 'apiRequestFailed'
+  | 'invalidResponse'
+  | 'networkError';
+
+export class LLMConnectionError extends Error {
+  code: LLMConnectionErrorCode;
+  status?: number;
+  details?: string;
+
+  constructor(code: LLMConnectionErrorCode, options: { status?: number; details?: string } = {}) {
+    super(code);
+    this.name = 'LLMConnectionError';
+    this.code = code;
+    this.status = options.status;
+    this.details = options.details;
+  }
+}
+
+const truncateErrorDetails = (details: string): string => {
+  const normalized = details.replace(/\s+/g, ' ').trim();
+  return normalized.length > 160 ? `${normalized.slice(0, 157)}...` : normalized;
+};
 
 // 初始化默认设置
 function getDefaultSettings(): LLMSettings {
@@ -75,7 +109,7 @@ export function getLLMSettings(): LLMSettings {
         providers: mergedProviders,
       };
     } catch (error) {
-      console.error('Failed to parse LLM settings:', error);
+      errorLog('Failed to parse LLM settings:', error);
       return getDefaultSettings();
     }
   }
@@ -125,21 +159,21 @@ export async function testLLMConnection(settings: LLMSettings): Promise<void> {
   } else {
     const provider = PROVIDERS[settings.selectedProvider as ProviderKey];
     if (!provider) {
-      throw new Error('未选择有效的服务商');
+      throw new LLMConnectionError('invalidProvider');
     }
     baseUrl = provider.baseUrl;
   }
 
   if (!baseUrl) {
-    throw new Error('API URL 不能为空');
+    throw new LLMConnectionError('emptyApiUrl');
   }
 
   if (!apiKey) {
-    throw new Error('API Key 不能为空');
+    throw new LLMConnectionError('emptyApiKey');
   }
 
   if (!model) {
-    throw new Error('模型不能为空');
+    throw new LLMConnectionError('emptyModel');
   }
 
   try {
@@ -151,7 +185,7 @@ export async function testLLMConnection(settings: LLMSettings): Promise<void> {
       },
       body: JSON.stringify({
         model: model,
-        messages: [{ role: 'user', content: '测试连接' }],
+        messages: [{ role: 'user', content: 'Connection test' }],
         max_tokens: 10,
         stream: false,
       }),
@@ -159,17 +193,20 @@ export async function testLLMConnection(settings: LLMSettings): Promise<void> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`API 请求失败: ${response.status} - ${errorText}`);
+      throw new LLMConnectionError('apiRequestFailed', {
+        status: response.status,
+        details: truncateErrorDetails(errorText),
+      });
     }
 
     // 如果请求成功，说明连接正常
     const result = await response.json();
     if (!result.choices || result.choices.length === 0) {
-      throw new Error('API 响应格式异常');
+      throw new LLMConnectionError('invalidResponse');
     }
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('网络连接失败，请检查 API URL 是否正确');
+      throw new LLMConnectionError('networkError');
     }
     throw error;
   }

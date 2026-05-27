@@ -19,6 +19,7 @@ import {
   validateCronExpression,
   getNextExecutions,
   formatDateTime,
+  parseCronFieldInput,
 } from '../../../../../utils/cronUtils';
 
 interface CronConfigPanelProps {
@@ -146,7 +147,7 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                 min={min}
                 max={max}
                 value={config.rangeStart ?? min}
-                onChange={e => updateRange(parseInt(e.target.value) || min)}
+                onChange={e => updateRange(parseCronFieldInput(e.target.value, min, max, config.rangeStart ?? min))}
                 className="w-14 px-2 py-1 text-xs nb-input"
               />
               <span className="nb-text">-</span>
@@ -155,7 +156,7 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                 min={min}
                 max={max}
                 value={config.rangeEnd ?? max}
-                onChange={e => updateRange(undefined, parseInt(e.target.value) || max)}
+                onChange={e => updateRange(undefined, parseCronFieldInput(e.target.value, min, max, config.rangeEnd ?? max))}
                 className="w-14 px-2 py-1 text-xs nb-input"
               />
             </div>
@@ -180,7 +181,7 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                 min={min}
                 max={max}
                 value={config.stepStart ?? min}
-                onChange={e => updateStep(parseInt(e.target.value) || min)}
+                onChange={e => updateStep(parseCronFieldInput(e.target.value, min, max, config.stepStart ?? min))}
                 className="w-14 px-2 py-1 text-xs nb-input"
               />
               <span className="text-xs nb-text-secondary">/{t('tools.cronBuilder.stepInterval')}:</span>
@@ -189,7 +190,7 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                 min={1}
                 max={max - min + 1}
                 value={config.stepInterval ?? 1}
-                onChange={e => updateStep(undefined, parseInt(e.target.value) || 1)}
+                onChange={e => updateStep(undefined, parseCronFieldInput(e.target.value, 1, max - min + 1, config.stepInterval ?? 1))}
                 className="w-14 px-2 py-1 text-xs nb-input"
               />
             </div>

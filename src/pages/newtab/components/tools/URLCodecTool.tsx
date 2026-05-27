@@ -33,6 +33,12 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
     return (text: string) => decodeURIComponent(text);
   }, [mode, encodeMethod]);
 
+  const getConversionErrorMessage = useCallback(() => (
+    mode === 'encode'
+      ? t('tools.urlCodec.encodeError')
+      : t('tools.urlCodec.decodeError')
+  ), [mode, t]);
+
   // 实时转换 Hook
   const {
     input,
@@ -45,6 +51,7 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
     setOutput,
   } = useRealTimeConvert(converter, {
     debounceMs: 300,
+    getErrorMessage: getConversionErrorMessage,
     silentError: true,
   });
 
@@ -56,6 +63,7 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
   // 批量模式 Hook
   const batchMode = useBatchMode({
     converter,
+    getErrorMessage: getConversionErrorMessage,
   });
 
   // 处理历史记录选择

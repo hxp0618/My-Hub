@@ -12,8 +12,10 @@ import {
   historyItemMatchesSearchCommand,
   parseGlobalSearchCommand,
 } from '../utils/searchCommands';
+import { createLogger } from '../utils/logger';
 
 const SEARCH_DEBOUNCE_TIME = 300; // ms
+const logger = createLogger('[useGlobalSearch]');
 
 export const useGlobalSearch = (searchTerm: string) => {
   const [results, setResults] = useState<SearchResultItem[]>([]);
@@ -106,7 +108,7 @@ export const useGlobalSearch = (searchTerm: string) => {
             }))
         )
         .catch(err => {
-          console.error('History search failed:', err);
+          logger.error('History search failed', err);
           return []; // 返回空数组，继续搜索书签
         }) : Promise.resolve([]);
 
@@ -119,7 +121,7 @@ export const useGlobalSearch = (searchTerm: string) => {
             .map(bookmark => ({ ...bookmark, type: 'bookmark' as const }));
           resolve(bookmarkResults);
         } catch (err) {
-          console.error('Bookmark search failed:', err);
+          logger.error('Bookmark search failed', err);
           resolve([]); // 返回空数组
         }
       });
@@ -137,7 +139,7 @@ export const useGlobalSearch = (searchTerm: string) => {
         // 合并并排序结果（这里简单合并，可以根据需求增加排序逻辑）
         setResults(totalResults);
       } catch (error) {
-        console.error('Error during global search:', error);
+        logger.error('Error during global search', error);
         setError(i18n.t('search.searchFailed'));
         setResults([]);
       } finally {

@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { RecommendationItem } from '../types';
 import { getAllBookmarkTags } from '../../../db/indexedDB';
 import { getFaviconUrl } from '../../../utils/favicon';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('[useMomentInHistory]');
 
 export function useMomentInHistory() {
   const { t } = useTranslation();
@@ -14,7 +17,7 @@ export function useMomentInHistory() {
 
   const getRecommendations = useCallback(async () => {
     if (!chrome || !chrome.history) {
-      console.error(
+      logger.error(
         'Chrome History API is not available. Please ensure the extension is loaded correctly and has the "history" permission.',
       );
       return;
@@ -53,7 +56,7 @@ export function useMomentInHistory() {
           flatten(bookmarkTreeNodes);
           return { urls, bookmarkMap };
         } catch (error) {
-          console.error('Error getting bookmark data:', error);
+          logger.error('Error getting bookmark data', error);
           return { urls: new Set(), bookmarkMap: new Map() };
         }
       };

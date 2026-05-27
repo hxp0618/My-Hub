@@ -20,9 +20,22 @@ import {
 import { SortOrder, WebCombo } from '../pages/newtab/types';
 import { BookmarkTag } from '../types/bookmarks';
 import { LLMSettings } from '../types/llm';
-import { BarkKeyConfig, BarkNotificationRecord } from '../types/bark';
+import {
+  BarkKeyConfig,
+  BarkNotificationRecord,
+  sanitizeBarkHistoryRecords,
+  sanitizeBarkKeys,
+} from '../types/bark';
 import { ToolConfig, ToolId } from '../types/tools';
-import { MenuItemId, MenuCustomization, isValidMenuOrder, isValidMenuCustomization, MENU_ORDER_STORAGE_KEY, MENU_CUSTOMIZATION_STORAGE_KEY } from '../types/menu';
+import {
+  MenuItemId,
+  MenuCustomization,
+  isValidMenuOrder,
+  isValidMenuCustomization,
+  sanitizeMenuCustomization,
+  MENU_ORDER_STORAGE_KEY,
+  MENU_CUSTOMIZATION_STORAGE_KEY,
+} from '../types/menu';
 import {
   Subscription,
   SubscriptionNotificationConfig,
@@ -35,7 +48,26 @@ import {
   mergeSubscriptionNotificationConfigForImport,
   redactSubscriptionNotificationConfig,
 } from '../utils/subscriptionNotificationConfigPrivacy';
-import i18n from '../i18n';
+import { createLogger } from '../utils/logger';
+import {
+  bookmarkSidebarCollapsed,
+  cardsPerRow as cardsPerRowStorage,
+  homeItemOrder as homeItemOrderStorage,
+  isCardsPerRowValue,
+  isLanguageValue,
+  isSidebarWidthValue,
+  isStringArrayValue,
+  isThemeValue,
+  language as languageStorage,
+  noMoreDisplayed as noMoreDisplayedStorage,
+  sanitizeStringArrayValue,
+  sanitizeWebCombosValue,
+  sidebarWidth as sidebarWidthStorage,
+  theme as themeStorage,
+  webCombos as webCombosStorage,
+} from '../utils/storageManager';
+
+const logger = createLogger('[dataSync]');
 
 export {
   mergeSubscriptionNotificationConfigForImport,
@@ -126,7 +158,7 @@ const safeParseJSON = <T>(value: string | null, fallback: T): T => {
   try {
     return JSON.parse(value) as T;
   } catch (error) {
-    console.error('Failed to parse JSON value:', error);
+    logger.error('Failed to parse JSON value', error);
     return fallback;
   }
 };
@@ -143,10 +175,34 @@ const parseBooleanValue = (value: string | null): boolean | undefined => {
     return value === 'true';
   }
   try {
-    return JSON.parse(value);
+    const parsed = JSON.parse(value);
+    return typeof parsed === 'boolean' ? parsed : undefined;
   } catch {
     return undefined;
   }
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+const isSortOrderValue = (value: unknown): value is SortOrder => (
+  isRecord(value) &&
+  (value.key === 'dateAdded' || value.key === 'dateLastUsed' || value.key === 'title') &&
+  (value.order === 'asc' || value.order === 'desc')
+);
+
+const sanitizeBookmarkFolderStates = (value: unknown): Record<string, boolean> | null => {
+  if (!isRecord(value)) return null;
+
+  const entries = Object.entries(value).filter((entry): entry is [string, boolean] => {
+    const [folderId, expanded] = entry;
+    return (
+      folderId.length > 0 && typeof expanded === 'boolean'
+    );
+  });
+
+  return Object.fromEntries(entries);
 };
 
 const collectBookmarkFolderStates = (): Record<string, boolean> => {
@@ -199,7 +255,7 @@ export const redactLLMSettings = (settings: LLMSettings): LLMSettings => ({
 });
 
 export const redactBarkKeys = (keys: BarkKeyConfig[]): BarkKeyConfig[] => (
-  keys.map(key => ({
+  sanitizeBarkKeys(keys).map(key => ({
     ...key,
     deviceKey: '',
   }))
@@ -233,9 +289,9 @@ export const mergeBarkKeysForImport = (
   incomingKeys: BarkKeyConfig[],
   existingKeys: BarkKeyConfig[]
 ): BarkKeyConfig[] => {
-  const existingById = new Map(existingKeys.map(key => [key.id, key]));
+  const existingById = new Map(sanitizeBarkKeys(existingKeys).map(key => [key.id, key]));
 
-  return incomingKeys
+  return sanitizeBarkKeys(incomingKeys, { allowEmptyDeviceKey: true })
     .map(key => {
       if (key.deviceKey) return key;
 
@@ -255,8 +311,14 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
     const includeSensitiveData = options.includeSensitiveData === true;
     const [bookmarkTree] = await chrome.bookmarks.getTree();
     const tags = await getAllBookmarkTags();
-    const combos = safeParseJSON<WebCombo[]>(localStorage.getItem(STORAGE_KEYS.combos), []);
-    const noMoreDisplayed = safeParseJSON<string[]>(localStorage.getItem(STORAGE_KEYS.noMoreDisplayed), []);
+    const combos = sanitizeWebCombosValue(
+      safeParseJSON<unknown>(localStorage.getItem(STORAGE_KEYS.combos), []),
+      []
+    );
+    const noMoreDisplayed = sanitizeStringArrayValue(
+      safeParseJSON<unknown>(localStorage.getItem(STORAGE_KEYS.noMoreDisplayed), []),
+      []
+    );
 
     const exportedBookmarks = bookmarkTree.children ? bookmarkTree.children.map(buildExportTree) : [];
 
@@ -270,7 +332,7 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
     // General settings
     const settings: LocalSettings = {};
     const cardsPerRow = parseNumberValue(localStorage.getItem(STORAGE_KEYS.cardsPerRow));
-    if (cardsPerRow !== undefined) {
+    if (isCardsPerRowValue(cardsPerRow)) {
       settings.cardsPerRow = cardsPerRow;
     }
 
@@ -280,17 +342,17 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
     }
 
     const language = localStorage.getItem(STORAGE_KEYS.language);
-    if (language) {
+    if (isLanguageValue(language)) {
       settings.language = language;
     }
 
     const theme = localStorage.getItem(STORAGE_KEYS.theme);
-    if (theme) {
+    if (isThemeValue(theme)) {
       settings.theme = theme;
     }
 
     const sidebarWidth = parseNumberValue(localStorage.getItem(STORAGE_KEYS.sidebarWidth));
-    if (sidebarWidth !== undefined) {
+    if (isSidebarWidthValue(sidebarWidth)) {
       settings.sidebarWidth = sidebarWidth;
     }
 
@@ -298,7 +360,7 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
       localStorage.getItem(STORAGE_KEYS.bookmarkSortOrder),
       null
     );
-    if (bookmarkSortOrder && bookmarkSortOrder.key && bookmarkSortOrder.order) {
+    if (isSortOrderValue(bookmarkSortOrder)) {
       settings.bookmarkSortOrder = bookmarkSortOrder;
     }
 
@@ -307,11 +369,11 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
       settings.bookmarkSidebarCollapsed = bookmarkSidebarCollapsed;
     }
 
-    const homeItemOrder = safeParseJSON<string[] | null>(
+    const homeItemOrder = safeParseJSON<unknown>(
       localStorage.getItem(STORAGE_KEYS.homeItemOrder),
       null
     );
-    if (homeItemOrder !== null) {
+    if (isStringArrayValue(homeItemOrder)) {
       settings.homeItemOrder = homeItemOrder;
     }
 
@@ -329,8 +391,11 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
       localStorage.getItem(STORAGE_KEYS.menuCustomization),
       null
     );
-    if (menuCustomization !== null && isValidMenuCustomization(menuCustomization)) {
-      settings.menuCustomization = menuCustomization;
+    if (menuCustomization !== null) {
+      const sanitizedCustomization = sanitizeMenuCustomization(menuCustomization);
+      if (isValidMenuCustomization(menuCustomization) || Object.keys(sanitizedCustomization).length > 0) {
+        settings.menuCustomization = sanitizedCustomization;
+      }
     }
 
     settings.bookmarkFolderStates = collectBookmarkFolderStates();
@@ -359,13 +424,17 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
     }
 
     // Bark notifier
-    const barkKeys = safeParseJSON<BarkKeyConfig[]>(localStorage.getItem(STORAGE_KEYS.barkKeys), []);
+    const barkKeys = sanitizeBarkKeys(
+      safeParseJSON<unknown>(localStorage.getItem(STORAGE_KEYS.barkKeys), [])
+    );
     // 默认导出不携带可直接发送通知的密钥和历史内容，避免备份文件泄露隐私。
     data.bark = {
       keys: includeSensitiveData ? barkKeys : redactBarkKeys(barkKeys),
       selectedKeyId: localStorage.getItem(STORAGE_KEYS.barkSelectedKeyId),
       history: includeSensitiveData
-        ? safeParseJSON<BarkNotificationRecord[]>(localStorage.getItem(STORAGE_KEYS.barkHistory), [])
+        ? sanitizeBarkHistoryRecords(
+          safeParseJSON<unknown>(localStorage.getItem(STORAGE_KEYS.barkHistory), [])
+        )
         : [],
     };
 
@@ -393,8 +462,8 @@ export const exportData = async (options: ExportOptions = {}): Promise<void> => 
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('Error exporting data:', error);
-    alert(i18n.t('dataSync.exportError'));
+    logger.error('Error exporting data', error);
+    throw error;
   }
 };
 
@@ -449,11 +518,17 @@ const importBookmarksByName = async (
 
 
 export const importData = async (file: File): Promise<void> => {
-  const reader = new FileReader();
-  reader.onload = async (event) => {
-    try {
-      const json = event.target?.result as string;
-      const data: ExportData = JSON.parse(json);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('Failed to read import file'));
+    };
+
+    reader.onload = async (event) => {
+      try {
+        const json = event.target?.result as string;
+        const data: ExportData = JSON.parse(json);
 
       const existingUrls = await getAllBookmarkUrls();
 
@@ -472,9 +547,7 @@ export const importData = async (file: File): Promise<void> => {
             if (matchingChromeFolder) {
               await importBookmarksByName(importedTopFolder.children, matchingChromeFolder.id, existingUrls);
             } else {
-              console.warn(
-                `Top-level bookmark folder "${importedTopFolder.title}" not found in Chrome. Skipping import for this folder.`
-              );
+              logger.warn('Top-level bookmark folder from import data was not found in Chrome; skipping that folder');
             }
           }
         }
@@ -489,67 +562,69 @@ export const importData = async (file: File): Promise<void> => {
       }
 
       // Import Combos
-      if (data.combos) {
-        localStorage.setItem(STORAGE_KEYS.combos, JSON.stringify(data.combos));
+      if ('combos' in data) {
+        webCombosStorage.set(sanitizeWebCombosValue(data.combos, []));
       }
 
       // Import No More Displayed
-      if (data.noMoreDisplayed) {
-        localStorage.setItem(STORAGE_KEYS.noMoreDisplayed, JSON.stringify(data.noMoreDisplayed));
+      if ('noMoreDisplayed' in data) {
+        noMoreDisplayedStorage.set(sanitizeStringArrayValue(data.noMoreDisplayed, []));
       }
 
       // Import general settings
       if (data.settings) {
         const settings = data.settings;
-        if ('cardsPerRow' in settings && settings.cardsPerRow !== undefined) {
-          localStorage.setItem(STORAGE_KEYS.cardsPerRow, String(settings.cardsPerRow));
+        if (isCardsPerRowValue(settings.cardsPerRow)) {
+          cardsPerRowStorage.set(settings.cardsPerRow);
         }
-        if ('autoSuggestBookmarkInfo' in settings && settings.autoSuggestBookmarkInfo !== undefined) {
+        if (typeof settings.autoSuggestBookmarkInfo === 'boolean') {
           localStorage.setItem(
             STORAGE_KEYS.autoSuggest,
             JSON.stringify(settings.autoSuggestBookmarkInfo)
           );
         }
-        if (settings.language) {
-          localStorage.setItem(STORAGE_KEYS.language, settings.language);
+        if (isLanguageValue(settings.language)) {
+          languageStorage.set(settings.language);
         }
-        if (settings.theme) {
-          localStorage.setItem(STORAGE_KEYS.theme, settings.theme);
+        if (isThemeValue(settings.theme)) {
+          themeStorage.set(settings.theme);
         }
-        if ('sidebarWidth' in settings && settings.sidebarWidth !== undefined) {
-          localStorage.setItem(STORAGE_KEYS.sidebarWidth, String(settings.sidebarWidth));
+        if (isSidebarWidthValue(settings.sidebarWidth)) {
+          sidebarWidthStorage.set(settings.sidebarWidth);
         }
-        if (settings.bookmarkSortOrder) {
+        if (isSortOrderValue(settings.bookmarkSortOrder)) {
           localStorage.setItem(STORAGE_KEYS.bookmarkSortOrder, JSON.stringify(settings.bookmarkSortOrder));
         }
-        if ('bookmarkSidebarCollapsed' in settings && settings.bookmarkSidebarCollapsed !== undefined) {
-          localStorage.setItem(
-            STORAGE_KEYS.bookmarkSidebarCollapsed,
-            JSON.stringify(settings.bookmarkSidebarCollapsed)
-          );
+        if (typeof settings.bookmarkSidebarCollapsed === 'boolean') {
+          bookmarkSidebarCollapsed.set(settings.bookmarkSidebarCollapsed);
         }
-        if ('homeItemOrder' in settings && settings.homeItemOrder !== undefined) {
-          localStorage.setItem(STORAGE_KEYS.homeItemOrder, JSON.stringify(settings.homeItemOrder));
+        if (isStringArrayValue(settings.homeItemOrder)) {
+          homeItemOrderStorage.set(settings.homeItemOrder);
         }
         // Import menu order
         if ('menuOrder' in settings && settings.menuOrder !== undefined) {
           if (isValidMenuOrder(settings.menuOrder)) {
             localStorage.setItem(STORAGE_KEYS.menuOrder, JSON.stringify(settings.menuOrder));
           } else {
-            console.warn('Invalid menu order in import data, skipping');
+            logger.warn('Invalid menu order in import data, skipping');
           }
         }
         // Import menu customization
         if ('menuCustomization' in settings && settings.menuCustomization !== undefined) {
-          if (isValidMenuCustomization(settings.menuCustomization)) {
-            localStorage.setItem(STORAGE_KEYS.menuCustomization, JSON.stringify(settings.menuCustomization));
+          const sanitizedCustomization = sanitizeMenuCustomization(settings.menuCustomization);
+          if (
+            isValidMenuCustomization(settings.menuCustomization) ||
+            Object.keys(sanitizedCustomization).length > 0
+          ) {
+            localStorage.setItem(STORAGE_KEYS.menuCustomization, JSON.stringify(sanitizedCustomization));
           } else {
-            console.warn('Invalid menu customization in import data, skipping');
+            logger.warn('Invalid menu customization in import data, skipping');
           }
         }
-        if ('bookmarkFolderStates' in settings && settings.bookmarkFolderStates !== undefined) {
+        const bookmarkFolderStates = sanitizeBookmarkFolderStates(settings.bookmarkFolderStates);
+        if (bookmarkFolderStates) {
           clearBookmarkFolderStates();
-          Object.entries(settings.bookmarkFolderStates).forEach(([folderId, expanded]) => {
+          Object.entries(bookmarkFolderStates).forEach(([folderId, expanded]) => {
             localStorage.setItem(`${BOOKMARK_FOLDER_STATE_PREFIX}${folderId}`, String(expanded));
           });
         }
@@ -583,15 +658,17 @@ export const importData = async (file: File): Promise<void> => {
       // Import Bark notifier data
       if (data.bark) {
         if (data.bark.keys) {
-          const existingBarkKeys = safeParseJSON<BarkKeyConfig[]>(
+          const existingBarkKeys = sanitizeBarkKeys(safeParseJSON<unknown>(
             localStorage.getItem(STORAGE_KEYS.barkKeys),
             []
-          );
+          ));
           const mergedBarkKeys = mergeBarkKeysForImport(data.bark.keys, existingBarkKeys);
           localStorage.setItem(STORAGE_KEYS.barkKeys, JSON.stringify(mergedBarkKeys));
         }
         if ('selectedKeyId' in data.bark) {
-          const currentKeys = safeParseJSON<BarkKeyConfig[]>(localStorage.getItem(STORAGE_KEYS.barkKeys), []);
+          const currentKeys = sanitizeBarkKeys(
+            safeParseJSON<unknown>(localStorage.getItem(STORAGE_KEYS.barkKeys), [])
+          );
           const selectedKeyExists = currentKeys.some(key => key.id === data.bark?.selectedKeyId);
           if (data.bark.selectedKeyId && selectedKeyExists) {
             localStorage.setItem(STORAGE_KEYS.barkSelectedKeyId, data.bark.selectedKeyId);
@@ -600,7 +677,10 @@ export const importData = async (file: File): Promise<void> => {
           }
         }
         if (data.bark.history) {
-          localStorage.setItem(STORAGE_KEYS.barkHistory, JSON.stringify(data.bark.history));
+          localStorage.setItem(
+            STORAGE_KEYS.barkHistory,
+            JSON.stringify(sanitizeBarkHistoryRecords(data.bark.history))
+          );
         }
       }
 
@@ -644,13 +724,13 @@ export const importData = async (file: File): Promise<void> => {
         }
       }
 
-      alert(i18n.t('dataSync.importSuccess'));
-      // 刷新页面以加载导入的数据
-      window.location.reload();
-    } catch (error) {
-      console.error('Error importing data:', error);
-      alert(i18n.t('dataSync.importError'));
-    }
-  };
-  reader.readAsText(file);
+        resolve();
+      } catch (error) {
+        logger.error('Error importing data', error);
+        reject(error);
+      }
+    };
+
+    reader.readAsText(file);
+  });
 };

@@ -26,26 +26,87 @@ const CHAR_SETS = {
 
 const HISTORY_KEY = 'password-generator-history';
 const MAX_HISTORY = 20;
+const UINT32_SIZE = 0x100000000;
+
+const isHistoryItem = (item: unknown): item is HistoryItem => {
+  if (!item || typeof item !== 'object') return false;
+
+  const candidate = item as Partial<HistoryItem>;
+  return (
+    typeof candidate.password === 'string' &&
+    candidate.password.length > 0 &&
+    typeof candidate.timestamp === 'number' &&
+    Number.isFinite(candidate.timestamp)
+  );
+};
+
+const parseHistory = (saved: string | null): HistoryItem[] => {
+  if (!saved) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(saved);
+    // 旧版本或手动写入的脏数据只保留有效记录，避免渲染历史列表时崩溃。
+    return Array.isArray(parsed) ? parsed.filter(isHistoryItem).slice(0, MAX_HISTORY) : [];
+  } catch {
+    return [];
+  }
+};
+
+const loadHistory = (): HistoryItem[] => {
+  try {
+    return parseHistory(localStorage.getItem(HISTORY_KEY));
+  } catch {
+    return [];
+  }
+};
+
+const persistHistory = (items: HistoryItem[]) => {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+  } catch {
+    // 存储不可用或容量不足时仍保留本次页面内的历史状态。
+  }
+};
 
 /**
  * 生成密码
  */
 export const generatePassword = (options: PasswordOptions): string => {
-  let chars = '';
-  if (options.uppercase) chars += CHAR_SETS.uppercase;
-  if (options.lowercase) chars += CHAR_SETS.lowercase;
-  if (options.numbers) chars += CHAR_SETS.numbers;
-  if (options.symbols) chars += CHAR_SETS.symbols;
+  const selectedCharSets = [
+    options.uppercase ? CHAR_SETS.uppercase : '',
+    options.lowercase ? CHAR_SETS.lowercase : '',
+    options.numbers ? CHAR_SETS.numbers : '',
+    options.symbols ? CHAR_SETS.symbols : '',
+  ].filter(Boolean);
+  const chars = selectedCharSets.join('');
+  const length = Math.max(0, Math.floor(options.length));
 
-  if (!chars) return '';
+  if (!chars || length === 0) return '';
 
-  let password = '';
-  const array = new Uint32Array(options.length);
-  crypto.getRandomValues(array);
-  for (let i = 0; i < options.length; i++) {
-    password += chars[array[i] % chars.length];
+  const randomIndex = (maxExclusive: number) => {
+    const limit = UINT32_SIZE - (UINT32_SIZE % maxExclusive);
+    const array = new Uint32Array(1);
+    do {
+      crypto.getRandomValues(array);
+    } while (array[0] >= limit);
+    return array[0] % maxExclusive;
+  };
+
+  // 先放入每个已选字符集的一个字符，再整体洗牌，保证选项语义和输出一致。
+  const passwordChars = selectedCharSets
+    .slice(0, length)
+    .map(charSet => charSet[randomIndex(charSet.length)]);
+
+  while (passwordChars.length < length) {
+    passwordChars.push(chars[randomIndex(chars.length)]);
   }
-  return password;
+
+  for (let i = passwordChars.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1);
+    [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+  }
+
+  return passwordChars.join('');
 };
 
 /**
@@ -74,20 +135,13 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
 
   // 加载历史记录
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(HISTORY_KEY);
-      if (saved) {
-        setHistory(JSON.parse(saved));
-      }
-    } catch {
-      // ignore
-    }
+    setHistory(loadHistory());
   }, []);
 
   // 保存历史记录
   const saveHistory = useCallback((newHistory: HistoryItem[]) => {
     setHistory(newHistory);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+    persistHistory(newHistory);
   }, []);
 
   // 添加到历史记录
@@ -142,7 +196,7 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
             </label>
             <input
               type="range" min={8} max={128} value={options.length}
-              onChange={e => updateOption('length', parseInt(e.target.value))}
+              onChange={e => updateOption('length', Number(e.target.value))}
               className="w-full accent-[var(--nb-accent-yellow)]"
             />
           </div>

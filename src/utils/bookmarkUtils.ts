@@ -91,13 +91,18 @@ export const getFaviconUrl = (url: string): string => {
  * @param nodes - Array of Chrome bookmark tree nodes
  * @returns Simplified tree with only folders and their hierarchy
  */
+export interface SimplifiedBookmarkFolder {
+  title: string;
+  children?: SimplifiedBookmarkFolder[];
+}
+
 export const simplifyBookmarkTree = (
   nodes: chrome.bookmarks.BookmarkTreeNode[]
-): Array<{ title: string; children?: any[] }> => {
+): SimplifiedBookmarkFolder[] => {
   return nodes
     .filter(node => !node.url) // Only folders
     .map(node => {
-      const simplifiedNode: { title: string; children?: any[] } = {
+      const simplifiedNode: SimplifiedBookmarkFolder = {
         title: node.title
       };
       if (node.children && node.children.length > 0) {

@@ -13,6 +13,9 @@ import { KeyForm } from './KeyForm';
 import { Modal } from '../../../../../components/Modal';
 import { ConfirmDialog } from '../../../../../components/ConfirmDialog';
 import { maskDeviceKey } from '../../../../../utils/barkKeyManager';
+import { createLogger } from '../../../../../utils/logger';
+
+const logger = createLogger('[KeyManagementModal]');
 
 interface KeyManagementModalProps {
   isOpen: boolean;
@@ -113,8 +116,8 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({
     try {
       keyManager.setSelectedKey(keyId);
       onKeysChange();
-    } catch (e) {
-      console.error('Failed to select key:', e);
+    } catch (error) {
+      logger.error('Failed to select key', error);
     }
   };
 
@@ -134,7 +137,9 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({
       const error = e as Error;
       const errorKey = error.message;
       showMessage(
-        t(`tools.barkNotifier.keys.${errorKey}`) || t('tools.barkNotifier.keys.saveFailed'),
+        t(`tools.barkNotifier.keys.${errorKey}`, {
+          defaultValue: t('tools.barkNotifier.keys.saveFailed'),
+        }),
         'error'
       );
     }

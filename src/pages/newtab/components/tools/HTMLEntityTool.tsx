@@ -18,9 +18,9 @@ export const encodeHtmlEntities = (text: string, scope: EncodeScope): string => 
   if (scope === 'special') {
     return text.replace(/[&<>"']/g, char => SPECIAL_CHARS[char] || char);
   }
-  // 编码所有非 ASCII 字符
-  return text.split('').map(char => {
-    const code = char.charCodeAt(0);
+  // 按 Unicode code point 编码，避免 emoji 被拆成两个代理项实体。
+  return Array.from(text).map(char => {
+    const code = char.codePointAt(0) ?? 0;
     if (code > 127 || SPECIAL_CHARS[char]) {
       return SPECIAL_CHARS[char] || `&#${code};`;
     }

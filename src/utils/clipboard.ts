@@ -2,6 +2,9 @@
  * 剪贴板工具函数
  * 提供复制文本到剪贴板的功能
  */
+import { createLogger } from './logger';
+
+const logger = createLogger('[clipboard]');
 
 /**
  * 复制文本到剪贴板
@@ -15,7 +18,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
+    logger.error('Failed to copy to clipboard', error);
 
     // 降级方案：使用 document.execCommand
     try {
@@ -33,7 +36,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
 
       return successful;
     } catch (fallbackError) {
-      console.error('Fallback copy method also failed:', fallbackError);
+      logger.error('Fallback copy method also failed', fallbackError);
       return false;
     }
   }

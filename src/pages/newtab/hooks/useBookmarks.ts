@@ -1,20 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnhancedBookmark, BookmarkOrganization } from '../../../types/bookmarks';
-import { getAllBookmarkTags, addBookmarkTag, deleteBookmarkTag, batchUpdateTags } from '../../../db/indexedDB';
+import { getAllBookmarkTags, addBookmarkTag, deleteBookmarkTag, batchUpdateTags, getBookmarkTag } from '../../../db/indexedDB';
 import { SortOrder } from '../types';
 import { applyNewBookmarkTree, GeneratedNode } from '../utils';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('[useBookmarks]');
 
 const STORAGE_KEY = 'bookmark_sort_order';
 const DEFAULT_SORT_ORDER: SortOrder = { key: 'dateAdded', order: 'desc' };
 
-const getSortOrderFromStorage = (): SortOrder => {
+const getChromeBookmarksApi = () => (
+  typeof chrome !== 'undefined' && chrome.bookmarks ? chrome.bookmarks : null
+);
+
+export const isBookmarkSortOrderValue = (value: unknown): value is SortOrder => (
+  !!value &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  (
+    (value as SortOrder).key === 'dateAdded' ||
+    (value as SortOrder).key === 'dateLastUsed' ||
+    (value as SortOrder).key === 'title'
+  ) &&
+  ((value as SortOrder).order === 'asc' || (value as SortOrder).order === 'desc')
+);
+
+export const getSortOrderFromStorage = (): SortOrder => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed: unknown = JSON.parse(stored);
+      return isBookmarkSortOrderValue(parsed) ? parsed : DEFAULT_SORT_ORDER;
     }
-  } catch (error) {
-    console.error('Error reading sort order from localStorage:', error);
+  } catch {
+    // 损坏的排序偏好可直接回退默认值，不需要打扰用户或污染测试日志。
   }
   return DEFAULT_SORT_ORDER;
 };
@@ -23,7 +43,7 @@ const setSortOrderInStorage = (sortOrder: SortOrder) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sortOrder));
   } catch (error) {
-    console.error('Error saving sort order to localStorage:', error);
+    logger.error('Error saving sort order to localStorage', error);
   }
 };
 
@@ -167,7 +187,14 @@ export function useBookmarks() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const bookmarkTree = await chrome.bookmarks.getTree();
+      const bookmarksApi = getChromeBookmarksApi();
+      if (!bookmarksApi) {
+        setBookmarksWithHistory(null);
+        setRawBookmarks([]);
+        return;
+      }
+
+      const bookmarkTree = await bookmarksApi.getTree();
       const allTags = await getAllBookmarkTags();
       // 使用 URL 作为主键构建映射表
       const tagsMap = new Map(allTags.map(bt => [bt.url, bt.tags]));
@@ -176,7 +203,7 @@ export function useBookmarks() {
       setBookmarksWithHistory(null);
       setRawBookmarks(mergedBookmarks);
     } catch (error) {
-      console.error('Error fetching bookmarks:', error);
+      logger.error('Error fetching bookmarks', error);
       setBookmarksWithHistory(null);
       setRawBookmarks([]);
     } finally {
@@ -187,21 +214,26 @@ export function useBookmarks() {
   useEffect(() => {
     fetchData();
 
+    const bookmarksApi = getChromeBookmarksApi();
+    if (!bookmarksApi) {
+      return;
+    }
+
     const listener = () => {
       if (!isBulkUpdatingRef.current) {
         fetchData();
       }
     };
-    chrome.bookmarks.onChanged.addListener(listener);
-    chrome.bookmarks.onCreated.addListener(listener);
-    chrome.bookmarks.onMoved.addListener(listener);
-    chrome.bookmarks.onRemoved.addListener(listener);
+    bookmarksApi.onChanged.addListener(listener);
+    bookmarksApi.onCreated.addListener(listener);
+    bookmarksApi.onMoved.addListener(listener);
+    bookmarksApi.onRemoved.addListener(listener);
 
     return () => {
-      chrome.bookmarks.onChanged.removeListener(listener);
-      chrome.bookmarks.onCreated.removeListener(listener);
-      chrome.bookmarks.onMoved.removeListener(listener);
-      chrome.bookmarks.onRemoved.removeListener(listener);
+      bookmarksApi.onChanged.removeListener(listener);
+      bookmarksApi.onCreated.removeListener(listener);
+      bookmarksApi.onMoved.removeListener(listener);
+      bookmarksApi.onRemoved.removeListener(listener);
     };
   }, [fetchData]);
 
@@ -225,7 +257,7 @@ export function useBookmarks() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Error loading last used timestamps for bookmarks:', error);
+          logger.error('Error loading last used timestamps for bookmarks', error);
           setBookmarksWithHistory(null);
         }
       } finally {
@@ -263,7 +295,7 @@ export function useBookmarks() {
     const bookmarkUrl = bookmarkNodes[0]?.url;
     
     if (!bookmarkUrl) {
-      console.error('Cannot update tags: bookmark URL not found for id:', id);
+      logger.warn('Cannot update tags because bookmark URL was not found');
       return;
     }
     
@@ -298,7 +330,7 @@ export function useBookmarks() {
       }
       // Listener will auto-refresh
     } catch (error) {
-      console.error(`Error deleting bookmark ${id}:`, error);
+      logger.error('Error deleting bookmark', error);
     }
   };
 
@@ -307,7 +339,7 @@ export function useBookmarks() {
       await chrome.bookmarks.update(id, changes);
       // Listener will auto-refresh
     } catch (error) {
-      console.error(`Error updating bookmark ${id}:`, error);
+      logger.error('Error updating bookmark', error);
     }
   };
 
@@ -317,7 +349,7 @@ export function useBookmarks() {
       await chrome.bookmarks.create({ parentId, title });
       // Listener will auto-refresh
     } catch (error) {
-      console.error(`Error creating folder:`, error);
+      logger.error('Error creating folder', error);
     }
   };
 
@@ -326,7 +358,7 @@ export function useBookmarks() {
       await chrome.bookmarks.update(id, { title: newTitle });
       // Listener will auto-refresh
     } catch (error) {
-      console.error(`Error renaming folder ${id}:`, error);
+      logger.error('Error renaming folder', error);
     }
   };
 
@@ -351,7 +383,7 @@ export function useBookmarks() {
       }
       // Listener will auto-refresh
     } catch (error) {
-      console.error(`Error deleting folder ${id}:`, error);
+      logger.error('Error deleting folder', error);
     }
   };
 
@@ -360,7 +392,7 @@ export function useBookmarks() {
       await chrome.bookmarks.move(id, { parentId: newParentId });
       // Listener will auto-refresh
     } catch (error) {
-      console.error(`Error moving bookmark ${id}:`, error);
+      logger.error('Error moving bookmark', error);
     }
   };
 
@@ -373,7 +405,7 @@ export function useBookmarks() {
       }
       await fetchData();
     } catch (error) {
-      console.error(`Error moving bookmarks:`, error);
+      logger.error('Error moving bookmarks', error);
     } finally {
       setIsBulkUpdating(false);
     }
@@ -381,7 +413,6 @@ export function useBookmarks() {
 
   const addTagsToBookmarks = async (ids: string[], tags: string[]) => {
     try {
-      const { batchUpdateTags } = await import('../../../db/indexedDB');
       const updates = await Promise.all(
         ids.map(async (id) => {
           // 获取书签的 URL
@@ -389,11 +420,10 @@ export function useBookmarks() {
           const bookmarkUrl = bookmarkNodes[0]?.url;
           
           if (!bookmarkUrl) {
-            console.error('Cannot add tags: bookmark URL not found for id:', id);
+            logger.warn('Cannot add tags because bookmark URL was not found');
             return null;
           }
           
-          const { getBookmarkTag } = await import('../../../db/indexedDB');
           const existingTag = await getBookmarkTag(bookmarkUrl);
           const existingTags = existingTag?.tags || [];
           const newTags = [...new Set([...existingTags, ...tags])];
@@ -410,7 +440,7 @@ export function useBookmarks() {
       
       await fetchData(); // Re-fetch to update state
     } catch (error) {
-      console.error(`Error adding tags to bookmarks:`, error);
+      logger.error('Error adding tags to bookmarks', error);
     }
   };
 
@@ -422,7 +452,7 @@ export function useBookmarks() {
       }
       await fetchData();
     } catch (error) {
-      console.error(`Error deleting bookmarks:`, error);
+      logger.error('Error deleting bookmarks', error);
     } finally {
       setIsBulkUpdating(false);
     }
@@ -434,7 +464,7 @@ export function useBookmarks() {
       await applyNewBookmarkTree(tree);
       await fetchData();
     } catch (error) {
-      console.error('Error applying bookmark organization:', error);
+      logger.error('Error applying bookmark organization', error);
       // Optionally re-throw or handle error state here
     } finally {
       setIsBulkUpdating(false);
@@ -460,7 +490,7 @@ export function useBookmarks() {
         // Final defensive check: filter out any updates that are missing a URL.
         const validTagUpdates = tagUpdates.filter(update => {
           if (!update.url) {
-            console.warn('Filtering out a tag update because its URL is missing:', update);
+            logger.warn('Filtering out a tag update because its URL is missing');
             return false;
           }
           return true;
@@ -478,11 +508,11 @@ export function useBookmarks() {
             await chrome.bookmarks.move(op.bookmarkId, { parentId: op.newParentId });
           }
         } catch (error) {
-          console.error(`Error moving bookmark ${op.bookmarkId}:`, error);
+          logger.error('Error moving bookmark during organization batch', error);
         }
       }
     } catch (error) {
-      console.error('Error applying bookmark organization batch:', error);
+      logger.error('Error applying bookmark organization batch', error);
     } finally {
       setIsBulkUpdating(false);
     }
@@ -516,7 +546,7 @@ export function useBookmarks() {
       }
       await fetchData();
     } catch (error) {
-      console.error('Error reordering bookmarks in Chrome:', error);
+      logger.error('Error reordering bookmarks in Chrome', error);
     } finally {
       setIsBulkUpdating(false);
     }

@@ -28,6 +28,19 @@ export const validateBaseInput = (value: string, base: BaseType): boolean => {
   return patterns[base].test(value);
 };
 
+const parseBaseValue = (value: string, fromBase: BaseType): bigint => {
+  switch (fromBase) {
+    case 'bin':
+      return BigInt(`0b${value}`);
+    case 'oct':
+      return BigInt(`0o${value}`);
+    case 'dec':
+      return BigInt(value);
+    case 'hex':
+      return BigInt(`0x${value}`);
+  }
+};
+
 /**
  * 转换进制
  */
@@ -40,20 +53,19 @@ export const convertBase = (value: string, fromBase: BaseType): ConversionResult
     return { binary: '', octal: '', decimal: '', hexadecimal: '', error: 'invalid' };
   }
 
-  const radix: Record<BaseType, number> = { bin: 2, oct: 8, dec: 10, hex: 16 };
-  const num = parseInt(value, radix[fromBase]);
+  try {
+    const num = parseBaseValue(value, fromBase);
 
-  if (isNaN(num)) {
+    return {
+      binary: num.toString(2),
+      octal: num.toString(8),
+      decimal: num.toString(10),
+      hexadecimal: num.toString(16).toUpperCase(),
+      error: null,
+    };
+  } catch {
     return { binary: '', octal: '', decimal: '', hexadecimal: '', error: 'invalid' };
   }
-
-  return {
-    binary: num.toString(2),
-    octal: num.toString(8),
-    decimal: num.toString(10),
-    hexadecimal: num.toString(16).toUpperCase(),
-    error: null,
-  };
 };
 
 export const NumberBaseTool: React.FC<ToolComponentProps> = ({ isExpanded, onToggleExpand }) => {

@@ -16,10 +16,66 @@ interface DateBoundary {
 // 快速日期选项
 type QuickDateOption = 'today' | 'tomorrow' | 'yesterday' | 'thisWeek' | 'thisMonth';
 
+export const parseTimestampInput = (input: string): number | null => {
+  const trimmed = input.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const timestamp = Number(trimmed);
+  return Number.isSafeInteger(timestamp) ? timestamp : null;
+};
+
+const buildStrictLocalDate = (
+  year: string,
+  month: string,
+  day: string,
+  hour = '0',
+  minute = '0',
+  second = '0',
+): Date | null => {
+  const parts = [year, month, day, hour, minute, second].map(Number);
+  if (parts.some(part => !Number.isInteger(part))) return null;
+
+  const [yyyy, mm, dd, hh, min, sec] = parts;
+  if (
+    mm < 1 || mm > 12 ||
+    dd < 1 || dd > 31 ||
+    hh < 0 || hh > 23 ||
+    min < 0 || min > 59 ||
+    sec < 0 || sec > 59
+  ) {
+    return null;
+  }
+
+  const date = new Date(yyyy, mm - 1, dd, hh, min, sec);
+  if (
+    date.getFullYear() !== yyyy ||
+    date.getMonth() !== mm - 1 ||
+    date.getDate() !== dd ||
+    date.getHours() !== hh ||
+    date.getMinutes() !== min ||
+    date.getSeconds() !== sec
+  ) {
+    return null;
+  }
+  return date;
+};
+
 // 解析多种日期格式
-const parseDateString = (input: string): Date | null => {
+export const parseDateString = (input: string): Date | null => {
   const trimmed = input.trim();
   if (!trimmed) return null;
+
+  // 先严格解析常见本地日期格式，避免 JS Date 自动把 2 月 31 日归一化到 3 月。
+  const dateTimeMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+)(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (dateTimeMatch) {
+    const [, year, month, day, hour, minute, second = '0'] = dateTimeMatch;
+    return buildStrictLocalDate(year, month, day, hour, minute, second);
+  }
+
+  const dateOnlyMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return buildStrictLocalDate(year, month, day);
+  }
 
   // 尝试直接解析 ISO 格式和 datetime-local 格式
   let date = new Date(trimmed);
@@ -29,29 +85,6 @@ const parseDateString = (input: string): Date | null => {
   const normalizedSlash = trimmed.replace(/-/g, '/');
   date = new Date(normalizedSlash);
   if (!isNaN(date.getTime())) return date;
-
-  // 尝试解析 yyyy-mm-dd 或 yyyy/mm/dd 格式
-  const dateOnlyMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch;
-    date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    if (!isNaN(date.getTime())) return date;
-  }
-
-  // 尝试解析 yyyy-mm-dd hh:mm:ss 或 yyyy/mm/dd hh:mm:ss 格式
-  const dateTimeMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
-  if (dateTimeMatch) {
-    const [, year, month, day, hour, minute, second = '0'] = dateTimeMatch;
-    date = new Date(
-      parseInt(year),
-      parseInt(month) - 1,
-      parseInt(day),
-      parseInt(hour),
-      parseInt(minute),
-      parseInt(second)
-    );
-    if (!isNaN(date.getTime())) return date;
-  }
 
   return null;
 };
@@ -170,7 +203,11 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
     }
 
     try {
-      const timestamp = parseInt(timestampInput);
+      const timestamp = parseTimestampInput(timestampInput);
+      if (timestamp === null) {
+        setDateOutput(t('tools.timestampConverter.invalidTimestamp'));
+        return;
+      }
       // 判断是秒还是毫秒
       const date = new Date(timestamp > 10000000000 ? timestamp : timestamp * 1000);
 
@@ -407,7 +444,9 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
 
         {/* 原有的转换功能 */}
         <div className="pt-2 pb-4 flex-shrink-0">
-          <h4 className="text-sm font-medium nb-text mb-2">转换工具</h4>
+          <h4 className="text-sm font-medium nb-text mb-2">
+            {t('tools.timestampConverter.conversionTools')}
+          </h4>
           <div className="grid grid-cols-2 gap-6">
             {/* 时间戳转日期 */}
             <div className="flex flex-col min-h-0">

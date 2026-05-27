@@ -7,7 +7,13 @@ import { QRCodeImageList } from './qrcode/QRCodeImageList';
 import { QRCodeScanner } from './qrcode/QRCodeScanner';
 import { BatchModeToggle } from './qrcode/BatchModeToggle';
 import { useQRCodeStorage } from '../../../../hooks/useQRCodeStorage';
-import { generateQRCode, generateBatchQRCodes, downloadImage, downloadAsZip } from '../../../../utils/qrcode';
+import {
+  createQRCodeFileName,
+  generateQRCode,
+  generateBatchQRCodes,
+  downloadImage,
+  downloadAsZip,
+} from '../../../../utils/qrcode';
 import type { QRCodeOptions } from '../../../../types/qrcode';
 import { DEFAULT_QRCODE_OPTIONS } from '../../../../types/qrcode';
 
@@ -110,8 +116,7 @@ export const QRCodeGeneratorTool: React.FC<ToolComponentProps> = ({
     (id: string) => {
       const image = images.find(img => img.id === id);
       if (image) {
-        const filename = `qrcode_${image.content.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-        downloadImage(image.dataUrl, filename);
+        downloadImage(image.dataUrl, createQRCodeFileName(image.content));
       }
     },
     [images]

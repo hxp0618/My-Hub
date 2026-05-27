@@ -5,6 +5,7 @@
 
 import {
   ScheduledTask,
+  ScheduledTaskExecutionErrorKey,
   TaskExecutionRecord,
   CreateTaskParams,
   UpdateTaskParams,
@@ -12,6 +13,8 @@ import {
   generateTaskId,
   generateExecutionId,
   getAlarmName,
+  SCHEDULED_TASK_EXECUTION_ERROR_MESSAGES,
+  setScheduledTaskExecutionError,
 } from '../types/scheduledTask';
 import { ScheduledTaskStorage } from './ScheduledTaskStorage';
 import {
@@ -23,6 +26,17 @@ import { BarkKeyManager } from './BarkKeyManager';
 import { createLogger } from '../utils/logger';
 
 const scheduledTaskLogger = createLogger('[ScheduledTaskService]');
+
+export const SCHEDULED_TASK_SERVICE_ERROR_CODES = [
+  'taskNotFound',
+  'updateFailed',
+  'statusUpdateFailed',
+  'statusToggleUnavailable',
+] as const;
+
+export type ScheduledTaskServiceErrorCode = typeof SCHEDULED_TASK_SERVICE_ERROR_CODES[number];
+
+const createScheduledTaskServiceError = (code: ScheduledTaskServiceErrorCode) => new Error(code);
 
 /**
  * 定时任务调度服务类
@@ -138,7 +152,7 @@ export class ScheduledTaskService {
   updateTask(id: string, params: UpdateTaskParams): ScheduledTask {
     const existingTask = this.storage.getTask(id);
     if (!existingTask) {
-      throw new Error('Task not found');
+      throw createScheduledTaskServiceError('taskNotFound');
     }
 
     // 验证更新参数
@@ -165,7 +179,7 @@ export class ScheduledTaskService {
     // 更新任务
     const updatedTask = this.storage.updateTask(id, updates);
     if (!updatedTask) {
-      throw new Error('Failed to update task');
+      throw createScheduledTaskServiceError('updateFailed');
     }
 
     // 同步到 background
@@ -191,7 +205,7 @@ export class ScheduledTaskService {
     // 删除任务（存储服务会同时删除执行历史）
     const deleted = this.storage.deleteTask(id);
     if (!deleted) {
-      throw new Error('Task not found');
+      throw createScheduledTaskServiceError('taskNotFound');
     }
 
     // 同步到 background
@@ -206,12 +220,12 @@ export class ScheduledTaskService {
   toggleTaskStatus(id: string): ScheduledTask {
     const task = this.storage.getTask(id);
     if (!task) {
-      throw new Error('Task not found');
+      throw createScheduledTaskServiceError('taskNotFound');
     }
 
     // 只能切换 active 和 paused 状态
     if (task.status !== 'active' && task.status !== 'paused') {
-      throw new Error('Cannot toggle status of completed or failed task');
+      throw createScheduledTaskServiceError('statusToggleUnavailable');
     }
 
     const newStatus: ScheduledTaskStatus = task.status === 'active' ? 'paused' : 'active';
@@ -228,7 +242,7 @@ export class ScheduledTaskService {
     });
 
     if (!updatedTask) {
-      throw new Error('Failed to update task status');
+      throw createScheduledTaskServiceError('statusUpdateFailed');
     }
 
     // 同步到 background
@@ -271,7 +285,7 @@ export class ScheduledTaskService {
   async executeTask(taskId: string): Promise<TaskExecutionRecord> {
     const task = this.storage.getTask(taskId);
     if (!task) {
-      throw new Error('Task not found');
+      throw createScheduledTaskServiceError('taskNotFound');
     }
 
     const executionRecord: TaskExecutionRecord = {
@@ -290,9 +304,9 @@ export class ScheduledTaskService {
 
     if (targetKeys.length === 0) {
       executionRecord.status = 'failed';
-      executionRecord.errorMessage = 'No valid target keys found';
+      setScheduledTaskExecutionError(executionRecord, 'noValidTargetKeys');
       this.storage.addExecutionRecord(executionRecord);
-      this.markTaskFailed(taskId, executionRecord.errorMessage);
+      this.markTaskFailed(taskId, executionRecord.errorMessage ?? SCHEDULED_TASK_EXECUTION_ERROR_MESSAGES.noValidTargetKeys);
       return executionRecord;
     }
 
@@ -308,9 +322,9 @@ export class ScheduledTaskService {
       } else {
         executionRecord.failedCount++;
         if (result.status === 'rejected') {
-          executionRecord.errorMessage = result.reason?.message || 'Unknown error';
+          setScheduledTaskExecutionError(executionRecord, 'sendFailed');
         } else if (!result.value.success) {
-          executionRecord.errorMessage = result.value.error || 'Send failed';
+          setScheduledTaskExecutionError(executionRecord, result.value.errorMessageKey ?? 'sendFailed');
         }
       }
     }
@@ -348,9 +362,9 @@ export class ScheduledTaskService {
           type: 'REGISTER_TASK_ALARM',
           taskId: task.id,
           nextExecutionTime: task.nextExecutionTime,
-        }).catch((error) => {
+        }).catch(() => {
           // 忽略连接错误，background script 会在启动时恢复所有任务
-          scheduledTaskLogger.warn('Failed to request background alarm registration', error.message);
+          scheduledTaskLogger.warn('Failed to request background alarm registration');
         });
       }
       return;
@@ -384,8 +398,8 @@ export class ScheduledTaskService {
         chrome.runtime.sendMessage({
           type: 'CANCEL_TASK_ALARM',
           taskId: taskId,
-        }).catch((error) => {
-          scheduledTaskLogger.warn('Failed to request background alarm cancellation', error.message);
+        }).catch(() => {
+          scheduledTaskLogger.warn('Failed to request background alarm cancellation');
         });
       }
       return;
@@ -453,7 +467,7 @@ export class ScheduledTaskService {
         }
       }
     } catch (e) {
-      console.error('Failed to load execution history from chrome.storage.local:', e);
+      scheduledTaskLogger.error('Failed to load execution history from chrome.storage.local:', e);
     }
     // 回退到 localStorage
     return this.storage.loadExecutionHistory(taskId);
@@ -465,7 +479,7 @@ export class ScheduledTaskService {
   private async sendNotification(
     key: { server: string; deviceKey: string },
     task: ScheduledTask
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; errorMessageKey?: ScheduledTaskExecutionErrorKey }> {
     try {
       let url = `${key.server}/${key.deviceKey}/${encodeURIComponent(task.title)}/${encodeURIComponent(task.body)}`;
 
@@ -490,12 +504,12 @@ export class ScheduledTaskService {
 
       return {
         success: data.code === 200,
-        error: data.code !== 200 ? data.message : undefined,
+        errorMessageKey: data.code !== 200 ? 'sendFailed' : undefined,
       };
-    } catch (e) {
+    } catch {
       return {
         success: false,
-        error: (e as Error).message,
+        errorMessageKey: 'networkError',
       };
     }
   }

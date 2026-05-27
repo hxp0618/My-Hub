@@ -480,3 +480,49 @@ describe('Batch Generator Properties', () => {
     expect(generateBatch(() => 'test', 150).length).toBe(100);
   });
 });
+
+describe('Random generator stable errors', () => {
+  const getThrownMessage = (fn: () => void): string => {
+    try {
+      fn();
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+
+    throw new Error('Expected function to throw');
+  };
+
+  it('uses stable ULID parse errors without echoing invalid input', () => {
+    expect(getThrownMessage(() => parseULIDTimestamp('short'))).toBe('invalidULIDLength');
+
+    const invalidUlid = '!1ARZ3NDEKTSV4RRFFQ69G5FAV';
+    const message = getThrownMessage(() => parseULIDTimestamp(invalidUlid));
+
+    expect(message).toBe('invalidULIDCharacter');
+    expect(message).not.toContain('!');
+    expect(message).not.toContain(invalidUlid);
+  });
+
+  it('rejects malformed ObjectId values with stable errors', () => {
+    expect(getThrownMessage(() => parseObjectIdTimestamp('short'))).toBe('invalidObjectIdLength');
+
+    const invalidObjectId = 'zzzzzzzzzzzzzzzzzzzzzzzz';
+    const message = getThrownMessage(() => parseObjectIdTimestamp(invalidObjectId));
+
+    expect(message).toBe('invalidObjectIdFormat');
+    expect(message).not.toContain(invalidObjectId);
+  });
+
+  it('uses stable generation validation errors', () => {
+    expect(getThrownMessage(() => generateRandomString({
+      length: 16,
+      uppercase: false,
+      lowercase: false,
+      numbers: false,
+      symbols: false,
+    }))).toBe('emptyCharacterSet');
+
+    expect(getThrownMessage(() => generateRandomNumber({ min: 10, max: 1 })))
+      .toBe('invalidNumberRange');
+  });
+});

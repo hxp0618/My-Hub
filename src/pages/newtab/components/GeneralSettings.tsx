@@ -1,10 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { exportData, importData } from '../../../lib/dataSync';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { sanitizeBrightnessInput, useTheme } from '../../../contexts/ThemeContext';
 import { ThemeSwitcher } from '../../../components/ThemeSwitcher';
 import { MenuOrderConfig } from '../../../components/MenuOrderConfig';
 import { NotificationSettings } from '../../../components/NotificationSettings';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
+import { useToastContext } from '../../../contexts/ToastContext';
+import {
+  autoSuggestBookmark,
+  cardsPerRow as cardsPerRowStorage,
+  parseCardsPerRowValue,
+  type StorageValues,
+  StorageKey,
+} from '../../../utils/storageManager';
 
 const PERMISSION_ITEMS = [
   { key: 'bookmarks', icon: 'bookmark' },
@@ -18,28 +27,23 @@ const PERMISSION_ITEMS = [
 
 const GeneralSettings: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const toast = useToastContext();
   const { brightness, setBrightness } = useTheme();
   const [autoSuggest, setAutoSuggest] = useState<boolean>(false);
   const [currentLanguage, setCurrentLanguage] = useState<string>(i18n.language);
-  const [cardsPerRow, setCardsPerRow] = useState<number>(4);
+  const [cardsPerRow, setCardsPerRow] = useState<StorageValues[StorageKey.CARDS_PER_ROW]>(4);
   const [includeSensitiveExport, setIncludeSensitiveExport] = useState<boolean>(false);
+  const [showSensitiveExportConfirm, setShowSensitiveExportConfirm] = useState(false);
 
   useEffect(() => {
-    const savedSetting = localStorage.getItem('autoSuggestBookmarkInfo');
-    if (savedSetting !== null) {
-      setAutoSuggest(JSON.parse(savedSetting));
-    }
-
-    const savedCardsPerRow = localStorage.getItem('cardsPerRow');
-    if (savedCardsPerRow !== null) {
-      setCardsPerRow(parseInt(savedCardsPerRow, 10));
-    }
+    setAutoSuggest(autoSuggestBookmark.get());
+    setCardsPerRow(cardsPerRowStorage.get());
   }, []);
 
   const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setAutoSuggest(newValue);
-    localStorage.setItem('autoSuggestBookmarkInfo', JSON.stringify(newValue));
+    autoSuggestBookmark.set(newValue);
   };
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -49,16 +53,18 @@ const GeneralSettings: React.FC = () => {
   };
 
   const handleCardsPerRowChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newValue = parseInt(e.target.value, 10);
+    const newValue = parseCardsPerRowValue(e.target.value);
+    if (newValue === null) return;
+
     setCardsPerRow(newValue);
-    localStorage.setItem('cardsPerRow', newValue.toString());
+    cardsPerRowStorage.set(newValue);
 
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('cardsPerRowChanged', { detail: newValue }));
   };
 
   const handleBrightnessChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value);
+    const newValue = sanitizeBrightnessInput(Number(e.target.value));
     setBrightness(newValue);
   };
 
@@ -70,20 +76,43 @@ const GeneralSettings: React.FC = () => {
 
   const handleExport = async () => {
     if (includeSensitiveExport) {
-      const confirmed = window.confirm(t('settings.exportSensitiveConfirm'));
-      if (!confirmed) return;
+      setShowSensitiveExportConfirm(true);
+      return;
     }
-    await exportData({ includeSensitiveData: includeSensitiveExport });
+    try {
+      await exportData({ includeSensitiveData: false });
+    } catch {
+      toast.error(t('dataSync.exportError'));
+    }
+  };
+
+  const handleConfirmSensitiveExport = async () => {
+    try {
+      await exportData({ includeSensitiveData: true });
+    } catch {
+      toast.error(t('dataSync.exportError'));
+    }
   };
 
   const handleImport = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      importData(file);
+      try {
+        await importData(file);
+        toast.success(
+          t('dataSync.importSuccess'),
+          t('common.reload'),
+          () => window.location.reload()
+        );
+      } catch {
+        toast.error(t('dataSync.importError'));
+      } finally {
+        event.target.value = '';
+      }
     }
   };
 
@@ -313,6 +342,16 @@ const GeneralSettings: React.FC = () => {
       </div>
 
       <p className="nb-text-secondary mt-8">{t('settings.moreFeaturesComing')}</p>
+
+      <ConfirmDialog
+        isOpen={showSensitiveExportConfirm}
+        onClose={() => setShowSensitiveExportConfirm(false)}
+        onConfirm={handleConfirmSensitiveExport}
+        title={t('settings.exportSensitiveTitle')}
+        message={t('settings.exportSensitiveConfirm')}
+        confirmText={t('settings.exportButton')}
+        danger
+      />
     </div>
   );
 };

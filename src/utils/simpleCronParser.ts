@@ -15,6 +15,20 @@ interface ParsedCron {
 /**
  * 解析单个字段
  */
+function parseStrictInteger(value: string): number | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function parseSingleValue(value: string, min: number, max: number): number | null {
+  const parsed = parseStrictInteger(value);
+  if (parsed === null || parsed < min || parsed > max) return null;
+  return parsed;
+}
+
 function parseField(field: string, min: number, max: number): number[] | null {
   const values: number[] = [];
 
@@ -28,24 +42,33 @@ function parseField(field: string, min: number, max: number): number[] | null {
     // 处理逗号分隔的值
     const segments = field.split(',');
     for (const segment of segments) {
+      if (!segment) return null;
+
       // 处理步进 */n 或 start/n
       if (segment.includes('/')) {
-        const [range, stepStr] = segment.split('/');
-        const step = parseInt(stepStr, 10);
-        if (isNaN(step) || step <= 0) return null;
+        const parts = segment.split('/');
+        if (parts.length !== 2) return null;
+
+        const [range, stepStr] = parts;
+        const step = parseSingleValue(stepStr, 1, max - min + 1);
+        if (step === null) return null;
 
         let start = min;
         let end = max;
 
         if (range !== '*') {
           if (range.includes('-')) {
-            const [s, e] = range.split('-').map(n => parseInt(n, 10));
-            if (isNaN(s) || isNaN(e)) return null;
+            const rangeParts = range.split('-');
+            if (rangeParts.length !== 2) return null;
+            const s = parseSingleValue(rangeParts[0], min, max);
+            const e = parseSingleValue(rangeParts[1], min, max);
+            if (s === null || e === null || s > e) return null;
             start = s;
             end = e;
           } else {
-            start = parseInt(range, 10);
-            if (isNaN(start)) return null;
+            const parsedStart = parseSingleValue(range, min, max);
+            if (parsedStart === null) return null;
+            start = parsedStart;
           }
         }
 
@@ -55,23 +78,21 @@ function parseField(field: string, min: number, max: number): number[] | null {
       }
       // 处理范围 start-end
       else if (segment.includes('-')) {
-        const [start, end] = segment.split('-').map(n => parseInt(n, 10));
-        if (isNaN(start) || isNaN(end)) return null;
+        const rangeParts = segment.split('-');
+        if (rangeParts.length !== 2) return null;
+        const start = parseSingleValue(rangeParts[0], min, max);
+        const end = parseSingleValue(rangeParts[1], min, max);
+        if (start === null || end === null || start > end) return null;
         for (let i = start; i <= end; i++) {
           if (!values.includes(i)) values.push(i);
         }
       }
       // 处理单个值
       else {
-        const val = parseInt(segment, 10);
-        if (isNaN(val)) return null;
+        const val = parseSingleValue(segment, min, max);
+        if (val === null) return null;
         if (!values.includes(val)) values.push(val);
       }
-    }
-
-    // 验证所有值在有效范围内
-    for (const v of values) {
-      if (v < min || v > max) return null;
     }
 
     return values.sort((a, b) => a - b);

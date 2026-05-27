@@ -7,15 +7,146 @@ import {
   ExportOptions,
   ConvertResult,
   SVGInfo,
+  DEFAULT_EXPORT_OPTIONS,
   FORMAT_MIME_MAP,
+  SVGErrorKey,
+  SVG_ERROR_KEYS,
 } from '../types/svg';
+
+export const MAX_SVG_EXPORT_DIMENSION = 8192;
+
+const isSVGErrorKey = (value: unknown): value is SVGErrorKey => (
+  typeof value === 'string' && SVG_ERROR_KEYS.includes(value as SVGErrorKey)
+);
+
+const UNSAFE_SVG_ELEMENTS = new Set([
+  'script',
+  'foreignobject',
+  'iframe',
+  'object',
+  'embed',
+]);
+
+const URL_LIKE_SVG_ATTRIBUTES = new Set(['href', 'xlink:href', 'src']);
+const SAFE_SVG_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
+function sanitizeSVGUrl(value: string): string | null {
+  const trimmedValue = value.trim();
+  const normalizedValue = Array.from(trimmedValue)
+    .filter(char => {
+      const codePoint = char.codePointAt(0) ?? 0;
+      return codePoint > 31 && codePoint !== 127 && !/\s/.test(char);
+    })
+    .join('')
+    .toLowerCase();
+
+  if (!trimmedValue) return null;
+  if (/["'<>`]/.test(trimmedValue)) return null;
+  if (
+    trimmedValue.startsWith('#') ||
+    trimmedValue.startsWith('/') ||
+    trimmedValue.startsWith('./') ||
+    trimmedValue.startsWith('../')
+  ) {
+    return trimmedValue;
+  }
+
+  if (normalizedValue.startsWith('javascript:') || normalizedValue.startsWith('data:') || normalizedValue.startsWith('vbscript:')) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue, 'https://my-hub.local');
+    return SAFE_SVG_URL_PROTOCOLS.has(parsedUrl.protocol) ? trimmedValue : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseSVGExportDimension(
+  value: string | number,
+  fallback: number = DEFAULT_EXPORT_OPTIONS.width
+): number {
+  const fallbackDimension = Number.isSafeInteger(fallback) && fallback > 0
+    ? Math.min(fallback, MAX_SVG_EXPORT_DIMENSION)
+    : DEFAULT_EXPORT_OPTIONS.width;
+
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value) || value <= 0) return fallbackDimension;
+    return Math.min(value, MAX_SVG_EXPORT_DIMENSION);
+  }
+
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) return fallbackDimension;
+
+  const dimension = Number(trimmedValue);
+  if (!Number.isSafeInteger(dimension) || dimension <= 0) return fallbackDimension;
+
+  // Canvas 对异常大尺寸很敏感，导出入口统一夹到安全上限。
+  return Math.min(dimension, MAX_SVG_EXPORT_DIMENSION);
+}
+
+export function normalizeSVGExportOptions(options: ExportOptions): ExportOptions {
+  return {
+    ...options,
+    width: parseSVGExportDimension(options.width, DEFAULT_EXPORT_OPTIONS.width),
+    height: parseSVGExportDimension(options.height, DEFAULT_EXPORT_OPTIONS.height),
+    quality: Math.min(100, Math.max(1, parseSVGExportDimension(options.quality, DEFAULT_EXPORT_OPTIONS.quality))),
+  };
+}
+
+/**
+ * 清洗 SVG，避免预览和导出路径执行用户输入中的脚本或事件属性。
+ */
+export function sanitizeSVG(svgCode: string): string | null {
+  const validation = validateSVG(svgCode);
+  if (!validation.valid) {
+    return null;
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgCode, 'image/svg+xml');
+    const svgElement = doc.querySelector('svg');
+    if (!svgElement) return null;
+
+    doc.querySelectorAll('*').forEach(element => {
+      const tagName = element.tagName.toLowerCase();
+      if (UNSAFE_SVG_ELEMENTS.has(tagName)) {
+        element.remove();
+        return;
+      }
+
+      Array.from(element.attributes).forEach(attribute => {
+        const attributeName = attribute.name.toLowerCase();
+        if (attributeName.startsWith('on')) {
+          element.removeAttribute(attribute.name);
+          return;
+        }
+
+        if (URL_LIKE_SVG_ATTRIBUTES.has(attributeName)) {
+          const safeUrl = sanitizeSVGUrl(attribute.value);
+          if (safeUrl) {
+            element.setAttribute(attribute.name, safeUrl);
+          } else {
+            element.removeAttribute(attribute.name);
+          }
+        }
+      });
+    });
+
+    return new XMLSerializer().serializeToString(svgElement);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * 验证 SVG 代码
  */
-export function validateSVG(svgCode: string): { valid: boolean; error?: string } {
+export function validateSVG(svgCode: string): { valid: boolean; error?: SVGErrorKey } {
   if (!svgCode || !svgCode.trim()) {
-    return { valid: false, error: 'SVG code is empty' };
+    return { valid: false, error: 'invalidSVG' };
   }
 
   try {
@@ -25,18 +156,18 @@ export function validateSVG(svgCode: string): { valid: boolean; error?: string }
     // 检查解析错误
     const parserError = doc.querySelector('parsererror');
     if (parserError) {
-      return { valid: false, error: parserError.textContent || 'Parse error' };
+      return { valid: false, error: 'parseError' };
     }
 
     // 检查是否有 SVG 根元素
     const svgElement = doc.querySelector('svg');
     if (!svgElement) {
-      return { valid: false, error: 'No SVG element found' };
+      return { valid: false, error: 'invalidSVG' };
     }
 
     return { valid: true };
-  } catch (e) {
-    return { valid: false, error: e instanceof Error ? e.message : 'Unknown error' };
+  } catch {
+    return { valid: false, error: 'parseError' };
   }
 }
 
@@ -192,23 +323,24 @@ export async function svgToImage(
   svgCode: string,
   options: ExportOptions
 ): Promise<ConvertResult> {
-  const validation = validateSVG(svgCode);
-  if (!validation.valid) {
-    return { success: false, error: validation.error };
+  const sanitizedSVG = sanitizeSVG(svgCode);
+  if (!sanitizedSVG) {
+    const validation = validateSVG(svgCode);
+    return { success: false, error: validation.error ?? 'invalidSVG' };
   }
 
   try {
-    const { format, width, height, quality } = options;
+    const { format, width, height, quality } = normalizeSVGExportOptions(options);
     
     // 创建 Blob URL
-    const svgBlob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([sanitizedSVG], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
 
     // 加载图片
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Failed to load SVG'));
+      img.onerror = () => reject(new Error('convertError'));
       img.src = url;
     });
 
@@ -220,7 +352,7 @@ export async function svgToImage(
     
     if (!ctx) {
       URL.revokeObjectURL(url);
-      return { success: false, error: 'Canvas context not available' };
+      return { success: false, error: 'convertError' };
     }
 
     // 如果是 JPEG，填充白色背景
@@ -239,7 +371,7 @@ export async function svgToImage(
 
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('Conversion failed'))),
+        (b) => (b ? resolve(b) : reject(new Error('convertError'))),
         mimeType,
         qualityValue
       );
@@ -262,7 +394,7 @@ export async function svgToImage(
   } catch (e) {
     return {
       success: false,
-      error: e instanceof Error ? e.message : 'Unknown error',
+      error: e instanceof Error && isSVGErrorKey(e.message) ? e.message : 'convertError',
     };
   }
 }
@@ -274,7 +406,7 @@ export function readSVGFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     // 验证文件类型
     if (!file.type.includes('svg') && !file.name.endsWith('.svg')) {
-      reject(new Error('Unsupported file format'));
+      reject(new Error('unsupportedFormat'));
       return;
     }
 
@@ -283,7 +415,7 @@ export function readSVGFile(file: File): Promise<string> {
       const content = e.target?.result as string;
       resolve(content);
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error('readError'));
     reader.readAsText(file);
   });
 }
@@ -340,10 +472,13 @@ export function downloadImage(blob: Blob, filename: string): void {
 }
 
 export default {
+  normalizeSVGExportOptions,
+  parseSVGExportDimension,
   validateSVG,
   parseSVGInfo,
   formatSVG,
   minifySVG,
+  sanitizeSVG,
   svgToImage,
   readSVGFile,
   calculateAspectRatio,

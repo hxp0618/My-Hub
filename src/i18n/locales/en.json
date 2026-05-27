@@ -26,6 +26,7 @@
     "title": "Something went wrong",
     "description": "An unexpected error occurred. The application encountered a problem and couldn't continue.",
     "details": "Error Details",
+    "safeDetails": "Error details are hidden to protect your page content and local data.",
     "tryAgain": "Try Again",
     "reload": "Reload Page",
     "tipsTitle": "If the problem persists, please try:",
@@ -41,7 +42,10 @@
     "tags": "Tags",
     "subscriptions": "Subscriptions",
     "tools": "Tools",
-    "settings": "Settings"
+    "settings": "Settings",
+    "navigation": "Main navigation",
+    "openNavigation": "Open navigation menu",
+    "closeNavigation": "Close navigation menu"
   },
   "search": {
     "placeholder": "Search in history",
@@ -174,6 +178,8 @@
     },
     "regenerateAllTags": "Regenerate All Tags",
     "retryFailedTags": "Retry Failed Tags",
+    "failedTagsRetryLabel": "{{count}} failed tag generations",
+    "failedTagsRetryHint": "Click to regenerate failed tags",
     "bulkRegenerationError": "Failed to regenerate tags in bulk",
     "retryFailedError": "Failed to retry failed tags"
   },
@@ -296,10 +302,14 @@
     "theme": "Theme",
     "themeDesc": "Choose your preferred theme appearance",
     "themeLight": "Light Mode",
+    "themeLightDesc": "A bright, crisp interface for daytime use",
     "themeDark": "Dark Mode",
+    "themeDarkDesc": "A darker interface that reduces eye strain at night",
     "themeSystem": "Follow System",
+    "themeSystemDesc": "Automatically follows your system appearance",
     "themeHighContrast": "High Contrast",
     "themeEyeCare": "Eye Care",
+    "themeEyeCareDesc": "A warmer palette that reduces blue light",
     "selectTheme": "Select theme",
     "active": "Active",
     "previewingTheme": "Previewing theme",
@@ -403,6 +413,15 @@
     "settingsSavedAlert": "Settings saved",
     "connectionSuccessMsg": "Connection test successful!",
     "connectionFailedMsg": "Connection test failed: {{error}}",
+    "llmConnectionErrors": {
+      "invalidProvider": "Please select a valid provider.",
+      "emptyApiUrl": "API URL cannot be empty.",
+      "emptyApiKey": "API Key cannot be empty.",
+      "emptyModel": "Model cannot be empty.",
+      "apiRequestFailed": "API request failed with status {{status}}.",
+      "invalidResponse": "API response format is invalid.",
+      "networkError": "Network connection failed. Please check the API URL."
+    },
     "permissionsTitle": "Permission Notes",
     "permissionsDesc": "These permissions are used only by the current feature entry points. Content scripts are limited to http/https pages.",
     "permissions": {
@@ -590,7 +609,14 @@
     "currentStatus": "Current Status",
     "processing": "Processing...",
     "done": "Done",
-    "confirmAbort": "AI organization is in progress. Are you sure you want to abort?"
+    "confirmAbort": "AI organization is in progress. Are you sure you want to abort?",
+    "noRootBookmarks": "No root-level bookmarks need organizing",
+    "processingBatch": "Processing bookmark batch {{batch}} ({{count}} items)...",
+    "applyingBatch": "Applying organization results for batch {{batch}}...",
+    "batchError": "An error occurred while processing batch {{batch}}. Please try again later.",
+    "allDone": "All bookmarks have been organized.",
+    "invalidModelJson": "Could not extract valid JSON from the model output",
+    "parseModelResponseFailed": "Failed to parse the LLM response. Please try again later."
   },
   "organizeAiModal": {
     "title": "AI Auto-organize Folders",
@@ -606,13 +632,23 @@
     "cancel": "Cancel",
     "noBookmarks": "No bookmarks to organize.",
     "emptyResponse": "Received an empty response from the AI.",
+    "generateError": "AI organization failed. Please try again later.",
     "applyError": "An error occurred while applying the new structure."
   },
   "llmService": {
     "noProviderOrKey": "Provider or API Key not configured",
     "providerNotFound": "Provider not found: {{provider}}",
     "noApiUrl": "API URL not configured",
-    "noModelSelected": "No model selected"
+    "noModelSelected": "No model selected",
+    "errors": {
+      "promptApiUnavailable": "Browser built-in AI is unavailable",
+      "geminiUnavailable": "Browser built-in AI is currently unavailable. Falling back to the cloud model.",
+      "apiRequestFailed": "LLM request failed with status {{status}}.",
+      "streamUnavailable": "LLM response stream is unavailable. Please try again later.",
+      "invalidResponse": "LLM response format is invalid.",
+      "networkError": "LLM network request failed. Please check the API URL or network connection.",
+      "unknownError": "LLM request failed. Please try again later."
+    }
   },
   "tagGeneration": {
     "promptTemplate": "Title: \"{{title}}\"\nURL: \"{{url}}\"",
@@ -694,6 +730,11 @@
       "successMultiple": "Successfully sent to {{count}} devices",
       "partialSuccess": "Partial success: {{success}} succeeded, {{failed}} failed",
       "error": "Send failed",
+      "errors": {
+        "sendFailed": "Notification send failed",
+        "networkError": "Network error. Please try again later.",
+        "unknownError": "An unknown error occurred"
+      },
       "testConfig": "Test Configuration",
       "testSuccess": "Configuration test successful",
       "testFailed": "Configuration test failed",
@@ -727,6 +768,8 @@
         "label": "Label",
         "labelPlaceholder": "Enter label (e.g., My iPhone)",
         "labelHint": "{{current}}/50 characters",
+        "defaultLabel": "Device {{count}}",
+        "migratedDefaultLabel": "Default Device",
         "deviceKey": "Device Key",
         "server": "Server URL",
         "serverPlaceholder": "https://api.day.app",
@@ -841,7 +884,17 @@
           "enableSuccess": "Scheduled task enabled",
           "disableSuccess": "Scheduled task paused",
           "executionSuccess": "Scheduled task executed successfully",
-          "executionFailed": "Scheduled task execution failed"
+          "executionFailed": "Scheduled task execution failed",
+          "saveFailed": "Failed to save scheduled task",
+          "deleteFailed": "Failed to delete scheduled task",
+          "updateFailed": "Failed to update scheduled task",
+          "statusUpdateFailed": "Failed to update scheduled task status",
+          "statusToggleUnavailable": "Only active or paused tasks can be toggled",
+          "taskNotFound": "Scheduled task was not found",
+          "noValidTargetKeys": "No available target devices were found",
+          "sendFailed": "Notification send failed",
+          "networkError": "Network error. Please try again later.",
+          "unknownError": "An unknown error occurred"
         }
       }
     },
@@ -886,6 +939,7 @@
       "current": "Current Timestamp",
       "seconds": "Seconds",
       "milliseconds": "Milliseconds",
+      "conversionTools": "Conversion Tools",
       "timestampToDate": "Timestamp to Date",
       "dateToTimestamp": "Date to Timestamp",
       "timestampPlaceholder": "Enter timestamp (seconds or milliseconds)",
@@ -1051,6 +1105,7 @@
       "algorithm": "Algorithm",
       "uppercase": "Uppercase",
       "result": "Hash Result",
+      "lengthLabel": "{{count}} chars",
       "copy": "Copy",
       "clear": "Clear",
       "emptyInput": "Please enter text"
@@ -1068,7 +1123,10 @@
       "noMatches": "No matches",
       "groups": "Capture Groups",
       "error": "Regex Error",
-      "clear": "Clear"
+      "clear": "Clear",
+      "errors": {
+        "invalidExpression": "Invalid regular expression"
+      }
     },
     "colorConverter": {
       "name": "Color Converter",
@@ -1178,7 +1236,12 @@
       "expiresAt": "Expires at",
       "invalidToken": "Invalid JWT token",
       "copy": "Copy",
-      "clear": "Clear"
+      "clear": "Clear",
+      "errors": {
+        "invalidFormat": "Invalid JWT format: expected header, payload, and signature",
+        "invalidJsonObject": "JWT header and payload must be JSON objects",
+        "decodeFailed": "Failed to decode JWT"
+      }
     },
     "markdownPreview": {
       "name": "Markdown Preview",
@@ -1249,6 +1312,7 @@
       "emptyUrl": "Please enter a URL",
       "invalidUrl": "Invalid URL format",
       "fetchError": "Fetch failed",
+      "convertError": "Conversion failed",
       "cleanHtml": "Smart extract content"
     },
     "svgTool": {
@@ -1277,6 +1341,7 @@
       "parseError": "SVG parse error",
       "convertError": "Conversion failed",
       "unsupportedFormat": "Unsupported file format",
+      "readError": "Failed to read the SVG file. Choose the file again.",
       "svgInfo": "SVG Info",
       "originalSize": "Original Size",
       "convertedSize": "Converted Size"
@@ -1319,6 +1384,7 @@
       "sizeWarning": "Image dimensions cannot exceed 10000 pixels",
       "invalidSize": "Please enter a valid size",
       "sameFormat": "Target format is same as source",
+      "convertError": "Image conversion failed. Check the file and try again.",
       "noImages": "No images",
       "addImages": "Add images to start converting",
       "batchProgress": "Batch Progress",
@@ -1340,6 +1406,7 @@
       "headerValue": "Value",
       "body": "Body",
       "bodyPlaceholder": "Enter JSON request body...",
+      "invalidJsonBody": "Request body must be valid JSON",
       "response": "Response",
       "error": "Error",
       "networkError": "Network request failed, please check URL or network connection",
@@ -1376,6 +1443,7 @@
       "inputPlaceholder": "Paste your JSON, YAML, or TOML here...",
       "outputPlaceholder": "Converted result will appear here...",
       "emptyInput": "Please enter content to convert",
+      "convertError": "Conversion failed",
       "unknownError": "An unknown error occurred",
       "line": "Line"
     },
@@ -1540,6 +1608,17 @@
       "clear": "Clear",
       "clickToCopy": "Click to copy",
       "invalidInput": "Please enter a valid number",
+      "conversionError": "Unit conversion failed",
+      "readableTime": {
+        "day_one": "{{count}} day",
+        "day_other": "{{count}} days",
+        "hour_one": "{{count}} hour",
+        "hour_other": "{{count}} hours",
+        "minute_one": "{{count}} minute",
+        "minute_other": "{{count}} minutes",
+        "second_one": "{{count}} second",
+        "second_other": "{{count}} seconds"
+      },
       "hint": "Tip: Click any result to copy to clipboard, press Enter to focus input"
     },
     "caseConverter": {
@@ -1674,6 +1753,11 @@
         "invalidExpiryDate": "Subscription #{{number}} expiry date is invalid",
         "invalidReminderDays": "Subscription #{{number}} reminder days value is invalid",
         "invalidEnabledState": "Subscription #{{number}} enabled state is invalid",
+        "invalidSubscriptionStatus": "Subscription #{{number}} status is invalid: {{value}}",
+        "invalidNotificationChannels": "Subscription #{{number}} notification channels are invalid",
+        "invalidCreatedAt": "Subscription #{{number}} created time is invalid",
+        "invalidUpdatedAt": "Subscription #{{number}} updated time is invalid",
+        "invalidOptionalText": "Subscription #{{number}} optional text fields are invalid",
         "invalidNotificationConfigFormat": "Notification config format is invalid",
         "missingTelegramConfig": "Notification config is missing Telegram settings",
         "missingEmailConfig": "Notification config is missing email settings",
@@ -1681,7 +1765,10 @@
         "missingBarkConfig": "Notification config is missing Bark settings",
         "invalidSettingsFormat": "Reminder settings format is invalid",
         "invalidLunarSetting": "Lunar date display setting is invalid",
-        "invalidDefaultReminderDays": "Default reminder days value is invalid"
+        "invalidDefaultReminderDays": "Default reminder days value is invalid",
+        "invalidDailyReminder": "Daily reminder setting is invalid",
+        "invalidPageSize": "Page size is invalid",
+        "importFailed": "Failed to import the subscription backup. Please try again later."
       }
     },
     "feedback": {

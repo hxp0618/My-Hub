@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ToolId, DEFAULT_TOOL_ORDER, getValidToolOrder } from '../types/tools';
 import { getToolOrder, setToolOrder } from '../db/indexedDB';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[useToolOrder]');
 
 export interface UseToolOrderReturn {
   toolOrder: ToolId[];
@@ -33,7 +36,7 @@ export function useToolOrder(): UseToolOrderReturn {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Failed to load tool order:', error);
+        logger.error('Failed to load tool order', error);
         if (!cancelled) {
           setIsLoading(false);
         }
@@ -50,7 +53,7 @@ export function useToolOrder(): UseToolOrderReturn {
   // 监听自定义事件（同一页面内的组件通信）
   useEffect(() => {
     const handleToolOrderChange = (e: CustomEvent<ToolId[]>) => {
-      setToolOrderState(e.detail);
+      setToolOrderState(getValidToolOrder(e.detail));
     };
 
     window.addEventListener(TOOL_ORDER_CHANGE_EVENT, handleToolOrderChange as EventListener);
@@ -71,7 +74,7 @@ export function useToolOrder(): UseToolOrderReturn {
     try {
       await setToolOrder(validOrder);
     } catch (error) {
-      console.error('Failed to save tool order:', error);
+      logger.error('Failed to save tool order', error);
     }
   }, []);
 

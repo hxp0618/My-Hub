@@ -5,6 +5,17 @@
 /** 导出格式 */
 export type ExportFormat = 'png' | 'jpeg' | 'webp';
 
+/** SVG 工具错误码，用于界面层按当前语言展示稳定提示 */
+export const SVG_ERROR_KEYS = [
+  'invalidSVG',
+  'parseError',
+  'convertError',
+  'unsupportedFormat',
+  'readError',
+] as const;
+
+export type SVGErrorKey = typeof SVG_ERROR_KEYS[number];
+
 /** 导出选项 */
 export interface ExportOptions {
   format: ExportFormat;
@@ -21,7 +32,7 @@ export interface ConvertResult {
   blob?: Blob;
   width?: number;
   height?: number;
-  error?: string;
+  error?: SVGErrorKey;
 }
 
 /** SVG 信息 */

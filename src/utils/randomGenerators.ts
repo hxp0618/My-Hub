@@ -3,6 +3,19 @@
  * 支持 UUID、NanoID、ULID、ObjectId、雪花 ID、随机字符串、随机数字、MD5 哈希
  */
 
+export const RANDOM_GENERATOR_ERROR_CODES = [
+  'invalidULIDLength',
+  'invalidULIDCharacter',
+  'invalidObjectIdLength',
+  'invalidObjectIdFormat',
+  'emptyCharacterSet',
+  'invalidNumberRange',
+] as const;
+
+export type RandomGeneratorErrorCode = typeof RANDOM_GENERATOR_ERROR_CODES[number];
+
+const createRandomGeneratorError = (code: RandomGeneratorErrorCode) => new Error(code);
+
 // ==================== UUID 生成器 ====================
 
 export interface UUIDOptions {
@@ -145,7 +158,7 @@ export const generateULID = (): string => {
  */
 export const parseULIDTimestamp = (ulid: string): Date => {
   if (ulid.length !== 26) {
-    throw new Error('Invalid ULID length');
+    throw createRandomGeneratorError('invalidULIDLength');
   }
 
   const timeStr = ulid.slice(0, 10).toUpperCase();
@@ -155,7 +168,7 @@ export const parseULIDTimestamp = (ulid: string): Date => {
     const char = timeStr[i];
     const index = ULID_ENCODING.indexOf(char);
     if (index === -1) {
-      throw new Error(`Invalid ULID character: ${char}`);
+      throw createRandomGeneratorError('invalidULIDCharacter');
     }
     time = time * 32 + index;
   }
@@ -208,7 +221,11 @@ export const generateObjectId = (): string => {
  */
 export const parseObjectIdTimestamp = (objectId: string): Date => {
   if (objectId.length !== 24) {
-    throw new Error('Invalid ObjectId length');
+    throw createRandomGeneratorError('invalidObjectIdLength');
+  }
+
+  if (!/^[0-9a-f]{24}$/i.test(objectId)) {
+    throw createRandomGeneratorError('invalidObjectIdFormat');
   }
 
   const timestamp = parseInt(objectId.slice(0, 8), 16);
@@ -300,7 +317,7 @@ export const generateRandomString = (options: StringOptions): string => {
   if (options.symbols) charset += SYMBOL_CHARS;
 
   if (charset.length === 0) {
-    throw new Error('At least one character set must be selected');
+    throw createRandomGeneratorError('emptyCharacterSet');
   }
 
   const length = Math.min(256, Math.max(1, options.length));
@@ -330,7 +347,7 @@ export const generateRandomNumber = (options: NumberOptions): number => {
   const max = Math.floor(options.max);
 
   if (min > max) {
-    throw new Error('Minimum value cannot be greater than maximum value');
+    throw createRandomGeneratorError('invalidNumberRange');
   }
 
   return Math.floor(Math.random() * (max - min + 1)) + min;

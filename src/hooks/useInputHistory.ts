@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[useInputHistory]');
 
 /**
  * 历史记录项
@@ -42,21 +45,61 @@ export interface UseInputHistoryReturn {
 // localStorage key 前缀
 const STORAGE_KEY_PREFIX = 'tool_history_';
 
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+export function sanitizeInputHistoryItems(value: unknown, maxItems = 20): HistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const limit = Number.isInteger(maxItems) && maxItems > 0 ? maxItems : 20;
+  const seenIds = new Set<string>();
+  const sanitized: HistoryItem[] = [];
+
+  for (const item of value) {
+    if (!isRecord(item)) {
+      continue;
+    }
+
+    const { id, content, timestamp } = item;
+    if (
+      typeof id !== 'string' ||
+      id.trim().length === 0 ||
+      seenIds.has(id) ||
+      typeof content !== 'string' ||
+      content.trim().length === 0 ||
+      typeof timestamp !== 'number' ||
+      !Number.isFinite(timestamp)
+    ) {
+      continue;
+    }
+
+    sanitized.push({ id, content, timestamp });
+    seenIds.add(id);
+
+    if (sanitized.length >= limit) {
+      break;
+    }
+  }
+
+  return sanitized;
+}
+
 /**
  * 从 localStorage 获取历史记录
  */
-function getStoredHistory(toolId: string): HistoryItem[] {
+function getStoredHistory(toolId: string, maxItems: number): HistoryItem[] {
   try {
     const key = `${STORAGE_KEY_PREFIX}${toolId}`;
     const stored = localStorage.getItem(key);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
+      const parsed: unknown = JSON.parse(stored);
+      return sanitizeInputHistoryItems(parsed, maxItems);
     }
-  } catch (e) {
-    console.error('Failed to load history from localStorage:', e);
+  } catch (error) {
+    logger.error('Failed to load history from localStorage', error);
   }
   return [];
 }
@@ -67,9 +110,9 @@ function getStoredHistory(toolId: string): HistoryItem[] {
 function saveHistory(toolId: string, items: HistoryItem[]): void {
   try {
     const key = `${STORAGE_KEY_PREFIX}${toolId}`;
-    localStorage.setItem(key, JSON.stringify(items));
-  } catch (e) {
-    console.error('Failed to save history to localStorage:', e);
+    localStorage.setItem(key, JSON.stringify(sanitizeInputHistoryItems(items, items.length)));
+  } catch (error) {
+    logger.error('Failed to save history to localStorage', error);
   }
 }
 
@@ -92,12 +135,12 @@ function saveHistory(toolId: string, items: HistoryItem[]): void {
 export function useInputHistory(options: UseInputHistoryOptions): UseInputHistoryReturn {
   const { toolId, maxItems = 20 } = options;
 
-  const [history, setHistory] = useState<HistoryItem[]>(() => getStoredHistory(toolId));
+  const [history, setHistory] = useState<HistoryItem[]>(() => getStoredHistory(toolId, maxItems));
 
   // 当 toolId 变化时重新加载历史记录
   useEffect(() => {
-    setHistory(getStoredHistory(toolId));
-  }, [toolId]);
+    setHistory(getStoredHistory(toolId, maxItems));
+  }, [toolId, maxItems]);
 
   // 添加到历史记录
   const addToHistory = useCallback((content: string) => {

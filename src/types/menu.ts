@@ -2,6 +2,9 @@
  * 菜单类型定义和常量
  * 用于侧边栏菜单的自定义排序功能
  */
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[menuTypes]');
 
 // 菜单项类型
 export type MenuItemId = 'home' | 'bookmarks' | 'tags' | 'history' | 'tools' | 'subscriptions';
@@ -48,6 +51,10 @@ export const AVAILABLE_ICONS: string[] = [
   'rocket_launch', 'speed', 'timer', 'calendar_today', 'schedule',
 ];
 
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
 // 验证菜单顺序是否有效
 export function isValidMenuOrder(order: unknown): order is MenuItemId[] {
   if (!Array.isArray(order)) {
@@ -79,14 +86,14 @@ export function getValidMenuOrder(order: unknown): MenuItemId[] {
   if (isValidMenuOrder(order)) {
     return order;
   }
-  console.warn('Invalid menu order data, using default order');
+  logger.warn('Invalid menu order data, using default order');
   return [...DEFAULT_MENU_ORDER];
 }
 
 
 // 验证菜单自定义配置是否有效
 export function isValidMenuCustomization(customization: unknown): customization is MenuCustomization {
-  if (typeof customization !== 'object' || customization === null) {
+  if (!isRecord(customization)) {
     return false;
   }
   
@@ -96,11 +103,10 @@ export function isValidMenuCustomization(customization: unknown): customization 
     if (!validIds.has(key as MenuItemId)) {
       return false;
     }
-    if (typeof value !== 'object' || value === null) {
+    if (!isRecord(value)) {
       return false;
     }
-    const item = value as MenuItemCustomization;
-    if (item.customIcon !== undefined && typeof item.customIcon !== 'string') {
+    if (value.customIcon !== undefined && (typeof value.customIcon !== 'string' || value.customIcon.trim().length === 0)) {
       return false;
     }
   }
@@ -108,11 +114,43 @@ export function isValidMenuCustomization(customization: unknown): customization 
   return true;
 }
 
+// 清洗菜单自定义配置，保留合法项并丢弃损坏条目
+export function sanitizeMenuCustomization(customization: unknown): MenuCustomization {
+  if (!isRecord(customization)) {
+    return {};
+  }
+
+  const validIds = new Set(DEFAULT_MENU_ORDER);
+  const sanitized: MenuCustomization = {};
+
+  for (const [key, value] of Object.entries(customization)) {
+    if (!validIds.has(key as MenuItemId) || !isRecord(value)) {
+      continue;
+    }
+
+    if (value.customIcon === undefined) {
+      sanitized[key as MenuItemId] = {};
+      continue;
+    }
+
+    if (typeof value.customIcon !== 'string') {
+      continue;
+    }
+
+    const customIcon = value.customIcon.trim();
+    if (customIcon) {
+      sanitized[key as MenuItemId] = { customIcon };
+    }
+  }
+
+  return sanitized;
+}
+
 // 获取有效的菜单自定义配置，无效时返回空对象
 export function getValidMenuCustomization(customization: unknown): MenuCustomization {
-  if (isValidMenuCustomization(customization)) {
-    return customization;
+  const sanitized = sanitizeMenuCustomization(customization);
+  if (!isValidMenuCustomization(customization)) {
+    logger.warn('Invalid menu customization data, using sanitized customization');
   }
-  console.warn('Invalid menu customization data, using empty customization');
-  return {};
+  return sanitized;
 }

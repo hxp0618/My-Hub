@@ -4,9 +4,13 @@
  */
 
 import {
+  SCHEDULED_TASK_EXECUTION_ERROR_KEYS,
   ScheduledTask,
   TaskExecutionRecord,
 } from '../types/scheduledTask';
+import { createLogger } from '../utils/logger';
+
+const scheduledTaskStorageLogger = createLogger('[ScheduledTaskStorage]');
 
 /** 存储键常量 */
 const STORAGE_KEY = 'bark_scheduled_tasks';
@@ -14,6 +18,36 @@ const EXECUTION_HISTORY_KEY = 'bark_task_execution_history';
 
 /** 最大执行历史记录数 */
 const MAX_EXECUTION_HISTORY = 50;
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+const isFiniteNumber = (value: unknown): value is number => (
+  typeof value === 'number' && Number.isFinite(value)
+);
+
+const isStringArray = (value: unknown): value is string[] => (
+  Array.isArray(value) && value.every(item => typeof item === 'string')
+);
+
+const isTaskOptions = (value: unknown): boolean => {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+
+  return (
+    (value.sound === undefined || typeof value.sound === 'string') &&
+    (value.icon === undefined || typeof value.icon === 'string') &&
+    (value.group === undefined || typeof value.group === 'string')
+  );
+};
+
+const isExecutionErrorMessageKey = (value: unknown): boolean => (
+  typeof value === 'string' &&
+  SCHEDULED_TASK_EXECUTION_ERROR_KEYS.includes(
+    value as typeof SCHEDULED_TASK_EXECUTION_ERROR_KEYS[number]
+  )
+);
 
 /**
  * 定时任务存储服务类
@@ -28,14 +62,14 @@ export class ScheduledTaskStorage {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const tasks = JSON.parse(stored);
+        const tasks: unknown = JSON.parse(stored);
         // 验证数据格式
         if (Array.isArray(tasks)) {
           return tasks.filter(task => this.isValidTask(task));
         }
       }
-    } catch (e) {
-      console.error('Failed to load scheduled tasks:', e);
+    } catch {
+      return [];
     }
     return [];
   }
@@ -46,9 +80,9 @@ export class ScheduledTaskStorage {
    */
   saveTasks(tasks: ScheduledTask[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks.filter(task => this.isValidTask(task))));
     } catch (e) {
-      console.error('Failed to save scheduled tasks:', e);
+      scheduledTaskStorageLogger.error('Failed to save scheduled tasks:', e);
     }
   }
 
@@ -131,7 +165,7 @@ export class ScheduledTaskStorage {
     try {
       const stored = localStorage.getItem(EXECUTION_HISTORY_KEY);
       if (stored) {
-        const history = JSON.parse(stored);
+        const history: unknown = JSON.parse(stored);
         if (Array.isArray(history)) {
           const validHistory = history.filter(record => this.isValidExecutionRecord(record));
           if (taskId) {
@@ -140,8 +174,8 @@ export class ScheduledTaskStorage {
           return validHistory;
         }
       }
-    } catch (e) {
-      console.error('Failed to load execution history:', e);
+    } catch {
+      return [];
     }
     return [];
   }
@@ -208,9 +242,12 @@ export class ScheduledTaskStorage {
    */
   private saveExecutionHistory(history: TaskExecutionRecord[]): void {
     try {
-      localStorage.setItem(EXECUTION_HISTORY_KEY, JSON.stringify(history));
+      localStorage.setItem(
+        EXECUTION_HISTORY_KEY,
+        JSON.stringify(history.filter(record => this.isValidExecutionRecord(record)))
+      );
     } catch (e) {
-      console.error('Failed to save execution history:', e);
+      scheduledTaskStorageLogger.error('Failed to save execution history:', e);
     }
   }
 
@@ -220,11 +257,11 @@ export class ScheduledTaskStorage {
    * @returns 是否有效
    */
   private isValidTask(task: unknown): task is ScheduledTask {
-    if (!task || typeof task !== 'object') {
+    if (!isRecord(task)) {
       return false;
     }
 
-    const t = task as Record<string, unknown>;
+    const t = task;
     
     return (
       typeof t.id === 'string' &&
@@ -232,9 +269,14 @@ export class ScheduledTaskStorage {
       (t.status === 'active' || t.status === 'paused' || t.status === 'completed' || t.status === 'failed') &&
       typeof t.title === 'string' &&
       typeof t.body === 'string' &&
-      Array.isArray(t.targetKeyIds) &&
-      typeof t.createdAt === 'number' &&
-      typeof t.updatedAt === 'number'
+      isStringArray(t.targetKeyIds) &&
+      isFiniteNumber(t.createdAt) &&
+      isFiniteNumber(t.updatedAt) &&
+      isTaskOptions(t.options) &&
+      (t.scheduledTime === undefined || isFiniteNumber(t.scheduledTime)) &&
+      (t.nextExecutionTime === undefined || isFiniteNumber(t.nextExecutionTime)) &&
+      (t.lastExecutedAt === undefined || isFiniteNumber(t.lastExecutedAt)) &&
+      (t.cronExpression === undefined || typeof t.cronExpression === 'string')
     );
   }
 
@@ -244,20 +286,22 @@ export class ScheduledTaskStorage {
    * @returns 是否有效
    */
   private isValidExecutionRecord(record: unknown): record is TaskExecutionRecord {
-    if (!record || typeof record !== 'object') {
+    if (!isRecord(record)) {
       return false;
     }
 
-    const r = record as Record<string, unknown>;
+    const r = record;
     
     return (
       typeof r.id === 'string' &&
       typeof r.taskId === 'string' &&
-      typeof r.executedAt === 'number' &&
+      isFiniteNumber(r.executedAt) &&
       (r.status === 'success' || r.status === 'failed') &&
-      Array.isArray(r.targetKeyIds) &&
-      typeof r.successCount === 'number' &&
-      typeof r.failedCount === 'number'
+      isStringArray(r.targetKeyIds) &&
+      isFiniteNumber(r.successCount) &&
+      isFiniteNumber(r.failedCount) &&
+      (r.errorMessage === undefined || typeof r.errorMessage === 'string') &&
+      (r.errorMessageKey === undefined || isExecutionErrorMessageKey(r.errorMessageKey))
     );
   }
 }

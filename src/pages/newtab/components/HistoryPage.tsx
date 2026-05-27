@@ -13,10 +13,20 @@ import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useToastContext } from '../../../contexts/ToastContext';
 import { useTranslation } from 'react-i18next';
 import { getAllBookmarkTags, addBookmarkTag } from '../../../db/indexedDB';
+import { parseGeneratedTags } from '../../../lib/bookmarkTags';
 import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
 import { sendMessage } from '../../../services/llmService';
 import type { ChatMessage } from '../../../types/llm';
 import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
+import { createLogger } from '../../../utils/logger';
+import {
+  cardsPerRow as cardsPerRowStorage,
+  parseCardsPerRowValue,
+  type StorageValues,
+  StorageKey,
+} from '../../../utils/storageManager';
+
+const logger = createLogger('[HistoryPage]');
 
 export const HistoryPage: React.FC = () => {
   const { t } = useTranslation();
@@ -45,9 +55,8 @@ export const HistoryPage: React.FC = () => {
   const [tagGenerationAbortController, setTagGenerationAbortController] = useState<AbortController | null>(null);
 
   // Cards per row setting (global)
-  const [cardsPerRow, setCardsPerRow] = useState<number>(() => {
-    const saved = localStorage.getItem('cardsPerRow');
-    return saved ? parseInt(saved, 10) : 4;
+  const [cardsPerRow, setCardsPerRow] = useState<StorageValues[StorageKey.CARDS_PER_ROW]>(() => {
+    return cardsPerRowStorage.get();
   });
 
   const mainContentRef = useRef<HTMLElement | null>(null);
@@ -75,8 +84,10 @@ export const HistoryPage: React.FC = () => {
   // Listen for global cardsPerRow changes
   useEffect(() => {
     const handleCustomEvent = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      setCardsPerRow(customEvent.detail);
+      const customEvent = e as CustomEvent<unknown>;
+      const newValue = parseCardsPerRowValue(customEvent.detail);
+      if (newValue === null) return;
+      setCardsPerRow(newValue);
     };
 
     window.addEventListener('cardsPerRowChanged', handleCustomEvent);
@@ -195,16 +206,9 @@ export const HistoryPage: React.FC = () => {
             generatedContent += chunk;
           },
           onFinish: async () => {
-            // 移除代码块标记
-            const unwrapped = generatedContent.replace(/```(?:\w+)?\s*([\s\S]*?)```/g, '$1').trim();
+            const generatedTags = parseGeneratedTags(generatedContent);
 
-            if (unwrapped) {
-              const generatedTags = unwrapped
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(tag => tag.length > 0);
-
-              if (generatedTags.length > 0) {
+            if (generatedTags.length > 0) {
                 // History items are not bookmarks, so create a bookmark first
                 try {
                   await chrome.bookmarks.create({
@@ -221,13 +225,9 @@ export const HistoryPage: React.FC = () => {
                   setGenerationStatusMessage(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
                   toast.success(t('bookmarks.tagGenerateSuccess', { count: generatedTags.length }));
                 } catch (error) {
-                  console.error('创建书签失败:', error);
+                  logger.error('Failed to create bookmark while saving generated tags', error);
                   toast.error(t('bookmarks.addError'));
                 }
-              } else {
-                setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));
-                toast.error(t('bookmarks.tagGenerateFailed'));
-              }
             } else {
               setGenerationStatusMessage(t('bookmarks.tagGenerateFailed'));
               toast.error(t('bookmarks.tagGenerateFailed'));
@@ -241,9 +241,9 @@ export const HistoryPage: React.FC = () => {
             }, 2000);
           },
           onError: (error: Error) => {
-            console.error('生成标签失败:', error);
-            setGenerationStatusMessage(t('bookmarks.tagGenerateError', { message: error.message }));
-            toast.error(t('bookmarks.tagGenerateError', { message: error.message }));
+            logger.error('Failed to generate tags', error);
+            setGenerationStatusMessage(t('bookmarks.tagGenerateRetry'));
+            toast.error(t('bookmarks.tagGenerateRetry'));
             setIsGeneratingTags(false);
             setTagGenerationAbortController(null);
             setTimeout(() => {
@@ -255,7 +255,7 @@ export const HistoryPage: React.FC = () => {
         controller.signal
       );
     } catch (error) {
-      console.error('生成标签出错:', error);
+      logger.error('Tag generation request failed', error);
       setGenerationStatusMessage(t('bookmarks.tagGenerateRetry'));
       toast.error(t('bookmarks.tagGenerateRetry'));
       setIsGeneratingTags(false);
@@ -342,9 +342,10 @@ export const HistoryPage: React.FC = () => {
               <select
                 value={cardsPerRow}
                 onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
+                  const newValue = parseCardsPerRowValue(e.target.value);
+                  if (newValue === null) return;
                   setCardsPerRow(newValue);
-                  localStorage.setItem('cardsPerRow', newValue.toString());
+                  cardsPerRowStorage.set(newValue);
                   window.dispatchEvent(new CustomEvent('cardsPerRowChanged', { detail: newValue }));
                 }}
                 className="text-sm font-bold border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer nb-text uppercase tracking-wide"

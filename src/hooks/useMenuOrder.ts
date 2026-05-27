@@ -5,6 +5,9 @@ import {
   MENU_ORDER_STORAGE_KEY,
   getValidMenuOrder,
 } from '../types/menu';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[useMenuOrder]');
 
 export interface UseMenuOrderReturn {
   menuOrder: MenuItemId[];
@@ -22,7 +25,7 @@ function loadMenuOrder(): MenuItemId[] {
       return getValidMenuOrder(parsed);
     }
   } catch (error) {
-    console.warn('Failed to load menu order from localStorage:', error);
+    logger.warn('Failed to load menu order from localStorage', error);
   }
   return [...DEFAULT_MENU_ORDER];
 }
@@ -33,11 +36,12 @@ const MENU_ORDER_CHANGE_EVENT = 'menuOrderChanged';
 // 保存菜单顺序到 localStorage 并触发自定义事件
 function saveMenuOrder(order: MenuItemId[]): void {
   try {
-    localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(order));
+    const validOrder = getValidMenuOrder(order);
+    localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(validOrder));
     // 触发自定义事件，通知同一页面内的其他组件
-    window.dispatchEvent(new CustomEvent(MENU_ORDER_CHANGE_EVENT, { detail: order }));
+    window.dispatchEvent(new CustomEvent(MENU_ORDER_CHANGE_EVENT, { detail: validOrder }));
   } catch (error) {
-    console.error('Failed to save menu order to localStorage:', error);
+    logger.error('Failed to save menu order to localStorage', error);
   }
 }
 
@@ -54,7 +58,7 @@ export function useMenuOrder(): UseMenuOrderReturn {
     };
 
     const handleMenuOrderChange = (e: CustomEvent<MenuItemId[]>) => {
-      setMenuOrderState(e.detail);
+      setMenuOrderState(getValidMenuOrder(e.detail));
     };
 
     window.addEventListener('storage', handleStorageChange);

@@ -26,6 +26,7 @@
     "title": "出了点问题",
     "description": "应用遇到意外错误，无法继续运行。",
     "details": "错误详情",
+    "safeDetails": "错误详情已隐藏，以保护你的页面内容和本地数据。",
     "tryAgain": "重试",
     "reload": "重新加载页面",
     "tipsTitle": "若问题仍然存在，请尝试：",
@@ -41,7 +42,10 @@
     "tags": "标签",
     "subscriptions": "订阅",
     "tools": "工具",
-    "settings": "设置"
+    "settings": "设置",
+    "navigation": "主导航",
+    "openNavigation": "打开导航菜单",
+    "closeNavigation": "关闭导航菜单"
   },
   "search": {
     "placeholder": "在历史记录中搜索",
@@ -174,6 +178,8 @@
     },
     "regenerateAllTags": "重新生成所有标签",
     "retryFailedTags": "重试失败的标签",
+    "failedTagsRetryLabel": "{{count}} 个标签生成失败",
+    "failedTagsRetryHint": "点击重新生成失败的标签",
     "bulkRegenerationError": "批量重新生成标签失败",
     "retryFailedError": "重试失败的标签时出错"
   },
@@ -296,10 +302,14 @@
     "theme": "主题",
     "themeDesc": "选择你喜欢的主题外观",
     "themeLight": "浅色模式",
+    "themeLightDesc": "明亮清爽的界面，适合白天使用",
     "themeDark": "深色模式",
+    "themeDarkDesc": "深色背景，降低眼睛疲劳，适合夜间使用",
     "themeSystem": "跟随系统",
+    "themeSystemDesc": "自动跟随系统主题设置",
     "themeHighContrast": "高对比度",
     "themeEyeCare": "护眼模式",
+    "themeEyeCareDesc": "暖色调背景，减少蓝光，保护视力",
     "selectTheme": "选择主题",
     "active": "当前",
     "previewingTheme": "预览主题",
@@ -403,6 +413,15 @@
     "settingsSavedAlert": "设置已保存",
     "connectionSuccessMsg": "连接测试成功！",
     "connectionFailedMsg": "连接测试失败: {{error}}",
+    "llmConnectionErrors": {
+      "invalidProvider": "请选择有效的服务商。",
+      "emptyApiUrl": "API URL 不能为空。",
+      "emptyApiKey": "API Key 不能为空。",
+      "emptyModel": "模型不能为空。",
+      "apiRequestFailed": "API 请求失败，状态码 {{status}}。",
+      "invalidResponse": "API 响应格式异常。",
+      "networkError": "网络连接失败，请检查 API URL 是否正确。"
+    },
     "permissionsTitle": "权限说明",
     "permissionsDesc": "这些权限仅用于当前功能入口，内容脚本范围已限制为 http/https 页面。",
     "permissions": {
@@ -590,7 +609,14 @@
     "currentStatus": "当前状态",
     "processing": "正在处理中...",
     "done": "完成",
-    "confirmAbort": "正在进行AI整理，确定要中止吗？"
+    "confirmAbort": "正在进行AI整理，确定要中止吗？",
+    "noRootBookmarks": "没有找到需要整理的根目录书签",
+    "processingBatch": "正在处理第 {{batch}} 批书签（{{count}} 个）...",
+    "applyingBatch": "正在应用第 {{batch}} 批的整理结果...",
+    "batchError": "处理第 {{batch}} 批时发生错误，请稍后重试。",
+    "allDone": "所有书签整理完成！",
+    "invalidModelJson": "无法从模型输出中提取有效 JSON",
+    "parseModelResponseFailed": "解析 LLM 响应失败，请稍后重试。"
   },
   "organizeAiModal": {
     "title": "AI 自动整理文件夹",
@@ -606,13 +632,23 @@
     "cancel": "取消",
     "noBookmarks": "没有可整理的书签。",
     "emptyResponse": "AI 返回空结果。",
+    "generateError": "AI 整理失败，请稍后重试。",
     "applyError": "应用新结构时发生错误。"
   },
   "llmService": {
     "noProviderOrKey": "未配置服务商或 API Key",
     "providerNotFound": "未找到服务商: {{provider}}",
     "noApiUrl": "API URL 未配置",
-    "noModelSelected": "未选择模型"
+    "noModelSelected": "未选择模型",
+    "errors": {
+      "promptApiUnavailable": "浏览器内置 AI 不可用",
+      "geminiUnavailable": "浏览器内置 AI 当前不可用，已尝试切换到云端模型",
+      "apiRequestFailed": "LLM 请求失败，状态码：{{status}}",
+      "streamUnavailable": "LLM 响应流不可用，请稍后重试",
+      "invalidResponse": "LLM 响应格式无效",
+      "networkError": "LLM 网络请求失败，请检查 API 地址或网络连接",
+      "unknownError": "LLM 请求失败，请稍后重试"
+    }
   },
   "tagGeneration": {
     "promptTemplate": "标题: \"{{title}}\"\nURL: \"{{url}}\"",
@@ -694,6 +730,11 @@
       "successMultiple": "成功发送到 {{count}} 个设备",
       "partialSuccess": "部分成功：{{success}} 个成功，{{failed}} 个失败",
       "error": "发送失败",
+      "errors": {
+        "sendFailed": "通知发送失败",
+        "networkError": "网络错误，请稍后重试",
+        "unknownError": "发生未知错误"
+      },
       "testConfig": "测试配置",
       "testSuccess": "配置测试成功",
       "testFailed": "配置测试失败",
@@ -727,6 +768,8 @@
         "label": "备注",
         "labelPlaceholder": "输入备注（如：我的 iPhone）",
         "labelHint": "{{current}}/50 字符",
+        "defaultLabel": "设备 {{count}}",
+        "migratedDefaultLabel": "默认设备",
         "deviceKey": "设备密钥",
         "server": "服务器地址",
         "serverPlaceholder": "https://api.day.app",
@@ -841,7 +884,17 @@
           "enableSuccess": "定时任务已启用",
           "disableSuccess": "定时任务已暂停",
           "executionSuccess": "定时任务执行成功",
-          "executionFailed": "定时任务执行失败"
+          "executionFailed": "定时任务执行失败",
+          "saveFailed": "定时任务保存失败",
+          "deleteFailed": "定时任务删除失败",
+          "updateFailed": "定时任务更新失败",
+          "statusUpdateFailed": "定时任务状态更新失败",
+          "statusToggleUnavailable": "只有启用或暂停的任务可以切换状态",
+          "taskNotFound": "未找到定时任务",
+          "noValidTargetKeys": "未找到可用的目标设备",
+          "sendFailed": "通知发送失败",
+          "networkError": "网络错误，请稍后重试",
+          "unknownError": "发生未知错误"
         }
       }
     },
@@ -851,6 +904,7 @@
       "current": "当前时间戳",
       "seconds": "秒",
       "milliseconds": "毫秒",
+      "conversionTools": "转换工具",
       "timestampToDate": "时间戳转日期",
       "dateToTimestamp": "日期转时间戳",
       "timestampPlaceholder": "输入时间戳（秒或毫秒）",
@@ -1016,6 +1070,7 @@
       "algorithm": "哈希算法",
       "uppercase": "大写输出",
       "result": "哈希结果",
+      "lengthLabel": "{{count}} 个字符",
       "copy": "复制",
       "clear": "清空",
       "emptyInput": "请输入文本"
@@ -1033,7 +1088,10 @@
       "noMatches": "无匹配",
       "groups": "捕获组",
       "error": "正则表达式错误",
-      "clear": "清空"
+      "clear": "清空",
+      "errors": {
+        "invalidExpression": "无效的正则表达式"
+      }
     },
     "colorConverter": {
       "name": "颜色转换器",
@@ -1143,7 +1201,12 @@
       "expiresAt": "过期于",
       "invalidToken": "无效的 JWT Token",
       "copy": "复制",
-      "clear": "清空"
+      "clear": "清空",
+      "errors": {
+        "invalidFormat": "JWT 格式无效：应包含 header、payload 和 signature",
+        "invalidJsonObject": "JWT header 和 payload 必须是 JSON 对象",
+        "decodeFailed": "JWT 解码失败"
+      }
     },
     "markdownPreview": {
       "name": "Markdown 预览",
@@ -1214,6 +1277,7 @@
       "emptyUrl": "请输入 URL",
       "invalidUrl": "无效的 URL 格式",
       "fetchError": "获取失败",
+      "convertError": "转换失败",
       "cleanHtml": "智能提取正文"
     },
     "common": {
@@ -1277,6 +1341,7 @@
       "parseError": "SVG 解析错误",
       "convertError": "转换失败",
       "unsupportedFormat": "不支持的文件格式",
+      "readError": "SVG 文件读取失败，请重新选择文件",
       "svgInfo": "SVG 信息",
       "originalSize": "原始尺寸",
       "convertedSize": "转换后尺寸"
@@ -1319,6 +1384,7 @@
       "sizeWarning": "图片尺寸不能超过 10000 像素",
       "invalidSize": "请输入有效的尺寸",
       "sameFormat": "目标格式与源格式相同",
+      "convertError": "图片转换失败，请检查文件后重试",
       "noImages": "暂无图片",
       "addImages": "添加图片开始转换",
       "batchProgress": "批量转换进度",
@@ -1340,6 +1406,7 @@
       "headerValue": "值",
       "body": "请求体",
       "bodyPlaceholder": "输入 JSON 格式的请求体...",
+      "invalidJsonBody": "请求体必须是有效的 JSON",
       "response": "响应",
       "error": "错误",
       "networkError": "网络请求失败，请检查 URL 或网络连接",
@@ -1376,6 +1443,7 @@
       "inputPlaceholder": "在此粘贴 JSON、YAML 或 TOML 内容...",
       "outputPlaceholder": "转换结果将显示在这里...",
       "emptyInput": "请输入要转换的内容",
+      "convertError": "转换失败",
       "unknownError": "发生未知错误",
       "line": "行"
     },
@@ -1540,6 +1608,17 @@
       "clear": "清空",
       "clickToCopy": "点击复制",
       "invalidInput": "请输入有效的数字",
+      "conversionError": "单位转换失败",
+      "readableTime": {
+        "day_one": "{{count}}天",
+        "day_other": "{{count}}天",
+        "hour_one": "{{count}}小时",
+        "hour_other": "{{count}}小时",
+        "minute_one": "{{count}}分钟",
+        "minute_other": "{{count}}分钟",
+        "second_one": "{{count}}秒",
+        "second_other": "{{count}}秒"
+      },
       "hint": "提示：点击任意结果可复制到剪贴板，按 Enter 键聚焦输入框"
     },
     "caseConverter": {
@@ -1674,6 +1753,11 @@
         "invalidExpiryDate": "订阅 #{{number}} 到期日期无效",
         "invalidReminderDays": "订阅 #{{number}} 提醒天数无效",
         "invalidEnabledState": "订阅 #{{number}} 启用状态无效",
+        "invalidSubscriptionStatus": "订阅 #{{number}} 状态无效：{{value}}",
+        "invalidNotificationChannels": "订阅 #{{number}} 通知渠道无效",
+        "invalidCreatedAt": "订阅 #{{number}} 创建时间无效",
+        "invalidUpdatedAt": "订阅 #{{number}} 更新时间无效",
+        "invalidOptionalText": "订阅 #{{number}} 可选文本字段格式无效",
         "invalidNotificationConfigFormat": "通知配置格式无效",
         "missingTelegramConfig": "通知配置缺少 Telegram 配置",
         "missingEmailConfig": "通知配置缺少邮件配置",
@@ -1681,7 +1765,10 @@
         "missingBarkConfig": "通知配置缺少 Bark 配置",
         "invalidSettingsFormat": "提醒设置格式无效",
         "invalidLunarSetting": "农历显示设置无效",
-        "invalidDefaultReminderDays": "默认提醒天数无效"
+        "invalidDefaultReminderDays": "默认提醒天数无效",
+        "invalidDailyReminder": "每日提醒设置无效",
+        "invalidPageSize": "分页数量无效",
+        "importFailed": "订阅备份导入失败，请稍后重试"
       }
     },
     "feedback": {

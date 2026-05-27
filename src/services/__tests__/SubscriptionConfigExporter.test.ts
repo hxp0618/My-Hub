@@ -1,11 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_NOTIFICATION_CONFIG,
   DEFAULT_SUBSCRIPTION_SETTINGS,
   EXPORT_DATA_VERSION,
   SubscriptionExportData,
 } from '../../types/subscription';
-import { validateImportData } from '../SubscriptionConfigExporter';
+import * as indexedDB from '../../db/indexedDB';
+import { subscriptionConfigExporter, validateImportData } from '../SubscriptionConfigExporter';
+
+vi.mock('../../db/indexedDB', () => ({
+  getAllSubscriptions: vi.fn(async () => []),
+  clearAllSubscriptions: vi.fn(async () => undefined),
+  batchAddSubscriptions: vi.fn(async () => undefined),
+  getSubscriptionSettings: vi.fn(async () => DEFAULT_SUBSCRIPTION_SETTINGS),
+  setSubscriptionSettings: vi.fn(async () => undefined),
+  getSubscriptionNotificationConfig: vi.fn(async () => DEFAULT_NOTIFICATION_CONFIG),
+  setSubscriptionNotificationConfig: vi.fn(async () => undefined),
+}));
 
 const validExportData: SubscriptionExportData = {
   version: EXPORT_DATA_VERSION,
@@ -30,6 +41,16 @@ const validExportData: SubscriptionExportData = {
 };
 
 describe('subscription config import validation', () => {
+  beforeEach(() => {
+    vi.mocked(indexedDB.getAllSubscriptions).mockResolvedValue([]);
+    vi.mocked(indexedDB.clearAllSubscriptions).mockResolvedValue(undefined);
+    vi.mocked(indexedDB.batchAddSubscriptions).mockResolvedValue(undefined);
+    vi.mocked(indexedDB.getSubscriptionSettings).mockResolvedValue(DEFAULT_SUBSCRIPTION_SETTINGS);
+    vi.mocked(indexedDB.setSubscriptionSettings).mockResolvedValue(undefined);
+    vi.mocked(indexedDB.getSubscriptionNotificationConfig).mockResolvedValue(DEFAULT_NOTIFICATION_CONFIG);
+    vi.mocked(indexedDB.setSubscriptionNotificationConfig).mockResolvedValue(undefined);
+  });
+
   it('accepts valid backup data', () => {
     const result = validateImportData(JSON.stringify(validExportData));
 
@@ -55,6 +76,11 @@ describe('subscription config import validation', () => {
           ...validExportData.subscriptions[0],
           name: '',
           cycle: 'weekly',
+          status: 'pending',
+          notificationChannels: ['email', 'sms'],
+          createdAt: 'yesterday',
+          updatedAt: Number.POSITIVE_INFINITY,
+          notes: 42,
         },
       ],
     };
@@ -67,6 +93,30 @@ describe('subscription config import validation', () => {
     expect(result.issues).toEqual(expect.arrayContaining([
       { code: 'subscriptionNameRequired', values: { number: 1 } },
       { code: 'invalidSubscriptionCycle', values: { number: 1, value: 'weekly' } },
+      { code: 'invalidSubscriptionStatus', values: { number: 1, value: 'pending' } },
+      { code: 'invalidNotificationChannels', values: { number: 1 } },
+      { code: 'invalidCreatedAt', values: { number: 1 } },
+      { code: 'invalidUpdatedAt', values: { number: 1 } },
+      { code: 'invalidOptionalText', values: { number: 1 } },
+    ]));
+  });
+
+  it('reports invalid reminder settings fields', () => {
+    const result = validateImportData(JSON.stringify({
+      ...validExportData,
+      settings: {
+        showLunarDate: true,
+        defaultReminderDays: Number.NaN,
+        dailyReminder: 'yes',
+        pageSize: 0,
+      },
+    }));
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      { code: 'invalidDefaultReminderDays' },
+      { code: 'invalidDailyReminder' },
+      { code: 'invalidPageSize' },
     ]));
   });
 
@@ -78,5 +128,16 @@ describe('subscription config import validation', () => {
 
     expect(result.valid).toBe(false);
     expect(result.issues).toContainEqual({ code: 'missingSubscriptions' });
+  });
+
+  it('returns a stable import issue when storage fails during import', async () => {
+    vi.mocked(indexedDB.batchAddSubscriptions).mockRejectedValue(new Error('raw indexeddb quota exceeded'));
+
+    const result = await subscriptionConfigExporter.importConfig(JSON.stringify(validExportData), 'overwrite');
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(['导入失败']);
+    expect(result.issues).toEqual([{ code: 'importFailed' }]);
+    expect(result.errors.join(' ')).not.toContain('raw indexeddb quota exceeded');
   });
 });

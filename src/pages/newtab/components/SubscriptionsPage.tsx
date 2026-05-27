@@ -28,6 +28,9 @@ import {
   getSubscriptionCalendarSummary,
 } from '../../../utils/subscriptionCalendar';
 import { getSubscriptionErrorMessageKey } from '../../../utils/subscriptionErrorMessages';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('[SubscriptionsPage]');
 
 export const SubscriptionsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -118,7 +121,7 @@ export const SubscriptionsPage: React.FC = () => {
       const subSettings = await getSubscriptionSettings();
       setSettings(subSettings);
     } catch (error) {
-      console.error('Failed to load subscription data:', error);
+      logger.error('Failed to load subscription data', error);
       toastRef.current.error(t('subscriptions.feedback.loadError'));
     } finally {
       setLoading(false);
@@ -148,7 +151,7 @@ export const SubscriptionsPage: React.FC = () => {
       // 重置到第一页
       setCurrentPage(1);
     } catch (error) {
-      console.error('Failed to update page size:', error);
+      logger.error('Failed to update page size', error);
       toast.error(t('subscriptions.feedback.settingsError'));
     }
   }, [settings, t, toast]);
@@ -163,7 +166,7 @@ export const SubscriptionsPage: React.FC = () => {
       setCurrentPage(1);
       toast.success(t('subscriptions.feedback.createSuccess'));
     } catch (error) {
-      console.error('Failed to create subscription:', error);
+      logger.error('Failed to create subscription', error);
       toast.error(t(getSubscriptionErrorMessageKey(error)));
     }
   }, [loadData, t, toast]);
@@ -179,7 +182,7 @@ export const SubscriptionsPage: React.FC = () => {
       setEditingSubscription(undefined);
       toast.success(t('subscriptions.feedback.updateSuccess'));
     } catch (error) {
-      console.error('Failed to update subscription:', error);
+      logger.error('Failed to update subscription', error);
       toast.error(t(getSubscriptionErrorMessageKey(error)));
     }
   }, [editingSubscription, loadData, t, toast]);
@@ -194,7 +197,7 @@ export const SubscriptionsPage: React.FC = () => {
       setDeleteConfirm(null);
       toast.success(t('subscriptions.feedback.deleteSuccess'));
     } catch (error) {
-      console.error('Failed to delete subscription:', error);
+      logger.error('Failed to delete subscription', error);
       toast.error(t(getSubscriptionErrorMessageKey(error)));
     }
   }, [deleteConfirm, loadData, t, toast]);
@@ -210,7 +213,7 @@ export const SubscriptionsPage: React.FC = () => {
           : 'subscriptions.feedback.enableSuccess')
       );
     } catch (error) {
-      console.error('Failed to toggle subscription:', error);
+      logger.error('Failed to toggle subscription', error);
       toast.error(t(getSubscriptionErrorMessageKey(error)));
     }
   }, [loadData, t, toast]);
@@ -222,7 +225,7 @@ export const SubscriptionsPage: React.FC = () => {
       await loadData();
       toast.success(t('subscriptions.feedback.renewSuccess'));
     } catch (error) {
-      console.error('Failed to renew subscription:', error);
+      logger.error('Failed to renew subscription', error);
       toast.error(t(getSubscriptionErrorMessageKey(error, 'renew')));
     }
   }, [loadData, t, toast]);
@@ -240,7 +243,7 @@ export const SubscriptionsPage: React.FC = () => {
       setSettings(newSettings);
       toast.success(t('subscriptions.feedback.settingsSuccess'));
     } catch (error) {
-      console.error('Failed to update settings:', error);
+      logger.error('Failed to update settings', error);
       toast.error(t('subscriptions.feedback.settingsError'));
     }
   }, [t, toast]);
@@ -259,7 +262,7 @@ export const SubscriptionsPage: React.FC = () => {
       URL.revokeObjectURL(url);
       toast.success(t('subscriptions.backup.exportSuccess'));
     } catch (error) {
-      console.error('Failed to export subscription config:', error);
+      logger.error('Failed to export subscription config', error);
       toast.error(t('subscriptions.backup.exportError'));
     }
   }, [t, toast]);
@@ -288,7 +291,7 @@ export const SubscriptionsPage: React.FC = () => {
 
       setImportConfirmFile(file);
     } catch (error) {
-      console.error('Failed to read subscription backup file:', error);
+      logger.error('Failed to read subscription backup file', error);
       toast.error(t('subscriptions.backup.importReadError'));
     }
   }, [getImportIssueMessage, t, toast]);
@@ -316,7 +319,7 @@ export const SubscriptionsPage: React.FC = () => {
         skipped: result.skippedCount,
       }));
     } catch (error) {
-      console.error('Failed to import subscription config:', error);
+      logger.error('Failed to import subscription config', error);
       toast.error(t('subscriptions.backup.importError'));
     }
   }, [getImportIssueMessage, importConfirmFile, loadData, t, toast]);

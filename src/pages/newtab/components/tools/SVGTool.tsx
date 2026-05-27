@@ -12,17 +12,33 @@ import {
   DEFAULT_EXPORT_OPTIONS,
   PRESET_SIZES,
   FORMAT_EXTENSION_MAP,
+  SVGErrorKey,
+  SVG_ERROR_KEYS,
 } from '../../../../types/svg';
 import {
   validateSVG,
   parseSVGInfo,
   formatSVG,
   minifySVG,
+  sanitizeSVG,
   svgToImage,
   readSVGFile,
   calculateAspectRatio,
   downloadImage,
+  parseSVGExportDimension,
 } from '../../../../services/svgService';
+import { createLogger } from '../../../../utils/logger';
+
+const logger = createLogger('[SVGTool]');
+
+const isSVGErrorKey = (value: unknown): value is SVGErrorKey => (
+  typeof value === 'string' && SVG_ERROR_KEYS.includes(value as SVGErrorKey)
+);
+
+const getSVGErrorMessage = (
+  errorKey: SVGErrorKey | undefined,
+  t: (key: string) => string
+): string => t(`tools.svgTool.${errorKey ?? 'invalidSVG'}`);
 
 const SVGTool: React.FC<ToolComponentProps> = () => {
   const { t } = useTranslation();
@@ -57,12 +73,17 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
           try {
             const convertResult = await svgToImage(svgCode, exportOptions);
             if (convertResult.success && convertResult.dataUrl && convertResult.blob) {
+              setError(null);
               setConvertedImage(convertResult.dataUrl);
               setConvertedBlob(convertResult.blob);
+            } else {
+              setError(getSVGErrorMessage(convertResult.error, t));
+              setConvertedImage(null);
+              setConvertedBlob(null);
             }
-          } catch (e) {
+          } catch (error) {
             // 静默处理转换错误，不影响 SVG 预览
-            console.error('Auto convert error:', e);
+            logger.error('Auto convert error', error);
           } finally {
             setIsConverting(false);
           }
@@ -71,7 +92,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
         const timer = setTimeout(autoConvert, 300);
         return () => clearTimeout(timer);
       } else {
-        setError(result.error || t('tools.svgTool.invalidSVG'));
+        setError(getSVGErrorMessage(result.error, t));
         setConvertedImage(null);
         setConvertedBlob(null);
       }
@@ -133,7 +154,10 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
       setConvertedImage(null);
       setConvertedBlob(null);
     } catch (e) {
-      setError(t('tools.svgTool.unsupportedFormat'));
+      const errorKey = e instanceof Error && isSVGErrorKey(e.message)
+        ? e.message
+        : 'unsupportedFormat';
+      setError(getSVGErrorMessage(errorKey, t));
     }
   }, [t]);
 
@@ -180,7 +204,8 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
   }, []);
 
   // 处理自定义尺寸变化
-  const handleSizeChange = useCallback((dimension: 'width' | 'height', value: number) => {
+  const handleSizeChange = useCallback((dimension: 'width' | 'height', rawValue: string) => {
+    const value = parseSVGExportDimension(rawValue, exportOptions[dimension]);
     if (exportOptions.maintainAspectRatio && svgCode.trim()) {
       const info = parseSVGInfo(svgCode);
       if (info) {
@@ -202,10 +227,11 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
       ...prev,
       [dimension]: value,
     }));
-  }, [exportOptions.maintainAspectRatio, svgCode]);
+  }, [exportOptions, svgCode]);
 
   // 获取 SVG 信息
   const svgInfo = svgCode.trim() ? parseSVGInfo(svgCode) : null;
+  const sanitizedSvgCode = svgCode.trim() && !error ? sanitizeSVG(svgCode) : null;
 
   return (
     <div className="h-full flex flex-col p-4 overflow-hidden">
@@ -296,11 +322,11 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                 alt="Converted"
                 className="max-w-full max-h-full object-contain relative z-10"
               />
-            ) : svgCode.trim() && !error ? (
+            ) : sanitizedSvgCode ? (
               <div
                 className="max-w-full max-h-full relative z-10 flex items-center justify-center p-4"
                 style={{ width: '100%', height: '100%' }}
-                dangerouslySetInnerHTML={{ __html: svgCode }}
+                dangerouslySetInnerHTML={{ __html: sanitizedSvgCode }}
               />
             ) : (
               <span className="nb-text-secondary text-sm relative z-10">
@@ -362,7 +388,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                 <input
                   type="number"
                   value={exportOptions.width}
-                  onChange={(e) => handleSizeChange('width', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleSizeChange('width', e.target.value)}
                   className="nb-input w-16 text-sm py-1 px-2"
                   min="1"
                 />
@@ -370,7 +396,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                 <input
                   type="number"
                   value={exportOptions.height}
-                  onChange={(e) => handleSizeChange('height', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleSizeChange('height', e.target.value)}
                   className="nb-input w-16 text-sm py-1 px-2"
                   min="1"
                 />

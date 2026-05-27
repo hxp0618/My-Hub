@@ -8,7 +8,7 @@ import { useInputHistory } from '../../../../hooks/useInputHistory';
 import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
 
 // 大小写转换类型
-type CaseType =
+export type CaseType =
     | 'camelCase'      // camelCase
     | 'pascalCase'     // PascalCase
     | 'snakeCase'      // snake_case
@@ -22,7 +22,7 @@ type CaseType =
     | 'lowercase';     // lowercase
 
 // 分词函数：将输入字符串拆分为单词数组
-const splitIntoWords = (text: string): string[] => {
+export const splitIntoWords = (text: string): string[] => {
     // 清理前后空白
     text = text.trim();
     if (!text) return [];
@@ -30,6 +30,8 @@ const splitIntoWords = (text: string): string[] => {
     // 首先处理常见分隔符
     // 处理下划线、连字符、点、斜杠、空格等分隔符
     const words = text
+        // 先拆开连续缩写和普通 PascalCase 单词，例如 XMLHttp -> XML Http
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
         // 在大写字母前添加空格（处理 camelCase 和 PascalCase）
         .replace(/([a-z])([A-Z])/g, '$1 $2')
         // 在数字和字母之间添加空格
@@ -145,6 +147,8 @@ const converters: Record<CaseType, (text: string) => string> = {
     lowercase: toLowerCase,
 };
 
+export const convertCase = (text: string, caseType: CaseType): string => converters[caseType](text);
+
 // 所有大小写类型
 const caseTypes: CaseType[] = [
     'camelCase',
@@ -204,13 +208,13 @@ export const CaseConverterTool: React.FC<ToolComponentProps> = ({
             const lines = input.split('\n').filter(line => line.trim());
             return caseTypes.map(caseType => ({
                 type: caseType,
-                result: lines.map(line => converters[caseType](line)).join('\n'),
+                result: lines.map(line => convertCase(line, caseType)).join('\n'),
             }));
         } else {
             // 单行模式
             return caseTypes.map(caseType => ({
                 type: caseType,
-                result: converters[caseType](input),
+                result: convertCase(input, caseType),
             }));
         }
     }, [input, batchMode]);

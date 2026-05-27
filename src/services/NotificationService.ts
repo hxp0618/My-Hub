@@ -75,13 +75,13 @@ async function sendTelegramNotification(
     if (data.ok) {
       return { success: true, channel: 'telegram' };
     } else {
-      return { success: false, channel: 'telegram', error: data.description || getSubscriptionNotificationErrorMessage('sendFailed') };
+      return { success: false, channel: 'telegram', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch (error) {
+  } catch {
     return {
       success: false,
       channel: 'telegram',
-      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -115,14 +115,14 @@ async function sendEmailNotification(
     if (response.ok) {
       return { success: true, channel: 'email' };
     } else {
-      const data = await response.json();
-      return { success: false, channel: 'email', error: data.message || getSubscriptionNotificationErrorMessage('sendFailed') };
+      await response.json().catch(() => null);
+      return { success: false, channel: 'email', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch (error) {
+  } catch {
     return {
       success: false,
       channel: 'email',
-      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -168,13 +168,13 @@ async function sendWebhookNotification(
     if (response.ok) {
       return { success: true, channel: 'webhook' };
     } else {
-      return { success: false, channel: 'webhook', error: `HTTP ${response.status}` };
+      return { success: false, channel: 'webhook', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch (error) {
+  } catch {
     return {
       success: false,
       channel: 'webhook',
-      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -225,13 +225,13 @@ async function sendBarkNotification(
     if (data.code === 200) {
       return { success: true, channel: 'bark' };
     } else {
-      return { success: false, channel: 'bark', error: data.message || getSubscriptionNotificationErrorMessage('sendFailed') };
+      return { success: false, channel: 'bark', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch (error) {
+  } catch {
     return {
       success: false,
       channel: 'bark',
-      error: error instanceof Error ? error.message : getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage('networkError'),
     };
   }
 }
@@ -305,7 +305,7 @@ class NotificationService {
         results.push({
           success: false,
           channel: 'unknown',
-          error: result.reason?.message || getSubscriptionNotificationErrorMessage('sendFailed'),
+          error: getSubscriptionNotificationErrorMessage('sendFailed'),
         });
       }
     }

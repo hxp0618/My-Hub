@@ -40,6 +40,33 @@ const NOTIFICATION_CHANNELS: { id: NotificationChannel; icon: string }[] = [
   { id: 'bark', icon: 'notifications' },
 ];
 
+export const MAX_SUBSCRIPTION_REMINDER_DAYS = 365;
+
+export function parseSubscriptionReminderDays(value: string | number, fallback: number): number {
+  const safeFallback = Number.isSafeInteger(fallback) && fallback >= 0
+    ? Math.min(fallback, MAX_SUBSCRIPTION_REMINDER_DAYS)
+    : 0;
+
+  // 只接受完整整数，避免 "12abc" 被浏览器或 parseInt 截断成合法值。
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (!/^\d+$/.test(trimmedValue)) {
+      return safeFallback;
+    }
+
+    const parsedValue = Number(trimmedValue);
+    return Number.isSafeInteger(parsedValue)
+      ? Math.min(parsedValue, MAX_SUBSCRIPTION_REMINDER_DAYS)
+      : safeFallback;
+  }
+
+  if (!Number.isSafeInteger(value) || value < 0) {
+    return safeFallback;
+  }
+
+  return Math.min(value, MAX_SUBSCRIPTION_REMINDER_DAYS);
+}
+
 export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
   subscription,
   defaultReminderDays,
@@ -60,7 +87,9 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
     }
     return getDefaultDateInputValue();
   });
-  const [reminderDays, setReminderDays] = useState(subscription?.reminderDays ?? defaultReminderDays);
+  const [reminderDays, setReminderDays] = useState(() => (
+    parseSubscriptionReminderDays(subscription?.reminderDays ?? defaultReminderDays, defaultReminderDays)
+  ));
   const [notificationChannels, setNotificationChannels] = useState<NotificationChannel[]>(
     subscription?.notificationChannels || []
   );
@@ -106,13 +135,15 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
       return;
     }
 
+    const safeReminderDays = parseSubscriptionReminderDays(reminderDays, defaultReminderDays);
+
     const data: CreateSubscriptionParams = {
       name: name.trim(),
       type,
       customType: type === 'other' ? customType.trim() : undefined,
       cycle,
       expiryDate: parsedExpiryDate,
-      reminderDays,
+      reminderDays: safeReminderDays,
       notificationChannels,
       isEnabled,
       url: url.trim() || undefined,
@@ -120,7 +151,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
     };
 
     onSubmit(data);
-  }, [name, type, customType, cycle, expiryDate, reminderDays, notificationChannels, isEnabled, url, notes, validate, onSubmit, t]);
+  }, [name, type, customType, cycle, expiryDate, reminderDays, defaultReminderDays, notificationChannels, isEnabled, url, notes, validate, onSubmit, t]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -232,7 +263,11 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
           min="0"
           max="365"
           value={reminderDays}
-          onChange={(e) => setReminderDays(parseInt(e.target.value) || 0)}
+          onChange={(e) => {
+            setReminderDays((currentValue) => (
+              parseSubscriptionReminderDays(e.target.value, currentValue)
+            ));
+          }}
           className="nb-input w-full"
         />
       </div>

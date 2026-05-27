@@ -12,9 +12,14 @@ interface ErrorBoundaryProps extends WithTranslation {
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
 }
+
+const getComponentStackDepth = (errorInfo: ErrorInfo): number =>
+  (errorInfo.componentStack ?? '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .length;
 
 /**
  * ErrorBoundary component to catch and handle React errors
@@ -25,27 +30,20 @@ class ErrorBoundaryComponent extends Component<ErrorBoundaryProps, ErrorBoundary
     super(props);
     this.state = {
       hasError: false,
-      error: null,
-      errorInfo: null,
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(_error: Error): Partial<ErrorBoundaryState> {
     // Update state so the next render will show the fallback UI
     return {
       hasError: true,
-      error,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
-    logger.error('Component error caught:', error);
-    logger.error('Error info:', errorInfo);
-
-    // Update state with error info
-    this.setState({
-      errorInfo,
+    logger.error('Component error caught', {
+      name: error.name || 'Error',
+      componentStackDepth: getComponentStackDepth(errorInfo),
     });
 
     // Call optional error handler
@@ -60,8 +58,6 @@ class ErrorBoundaryComponent extends Component<ErrorBoundaryProps, ErrorBoundary
   handleReset = (): void => {
     this.setState({
       hasError: false,
-      error: null,
-      errorInfo: null,
     });
   };
 
@@ -90,23 +86,11 @@ class ErrorBoundaryComponent extends Component<ErrorBoundaryProps, ErrorBoundary
                 {t('errorBoundary.description')}
               </p>
 
-              {this.state.error && (
-                <details className="mb-4">
-                  <summary className="cursor-pointer text-sm font-semibold mb-2 hover:text-[color:var(--nb-accent-blue)]">
-                    {t('errorBoundary.details')}
-                  </summary>
-                  <div className="bg-error-light border border-error rounded p-4 overflow-auto">
-                    <p className="text-sm font-mono text-error mb-2">
-                      {this.state.error.toString()}
-                    </p>
-                    {this.state.errorInfo?.componentStack && (
-                      <pre className="text-xs text-error overflow-auto">
-                        {this.state.errorInfo.componentStack}
-                      </pre>
-                    )}
-                  </div>
-                </details>
-              )}
+              <div className="mb-4 p-4 nb-bg-card nb-border rounded-lg">
+                <p className="text-sm nb-text-secondary">
+                  {t('errorBoundary.safeDetails')}
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-4">

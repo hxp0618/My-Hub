@@ -6,6 +6,57 @@ import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 
 export type ViewMode = 'edit' | 'preview' | 'split';
 
+const SAFE_MARKDOWN_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
+const escapeHtml = (value: string): string => (
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+);
+
+const escapeHtmlAttribute = (value: string): string => (
+  escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+);
+
+export const sanitizeMarkdownUrl = (url: string): string => {
+  const trimmedUrl = url.trim();
+  const normalizedUrl = Array.from(trimmedUrl)
+    .filter(char => {
+      const codePoint = char.codePointAt(0) ?? 0;
+      return codePoint > 31 && codePoint !== 127 && !/\s/.test(char);
+    })
+    .join('')
+    .toLowerCase();
+
+  if (!trimmedUrl) return '#';
+  if (/["'<>`]/.test(trimmedUrl)) return '#';
+  if (
+    trimmedUrl.startsWith('#') ||
+    trimmedUrl.startsWith('/') ||
+    trimmedUrl.startsWith('./') ||
+    trimmedUrl.startsWith('../')
+  ) {
+    return trimmedUrl;
+  }
+
+  // Block obfuscated javascript/data URLs before URL parsing normalizes them.
+  if (normalizedUrl.startsWith('javascript:') || normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('vbscript:')) {
+    return '#';
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedUrl, 'https://my-hub.local');
+    if (SAFE_MARKDOWN_URL_PROTOCOLS.has(parsedUrl.protocol)) {
+      return trimmedUrl;
+    }
+  } catch {
+    return '#';
+  }
+
+  return '#';
+};
+
 /**
  * 简单的 Markdown 转 HTML（不依赖外部库）
  */
@@ -27,10 +78,16 @@ export const markdownToHtml = (markdown: string): string => {
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
     // 行内代码
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // 链接
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
     // 图片
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => {
+      const safeUrl = sanitizeMarkdownUrl(url);
+      return `<img src="${escapeHtmlAttribute(safeUrl)}" alt="${escapeHtmlAttribute(alt)}" />`;
+    })
+    // 链接
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, url: string) => {
+      const safeUrl = sanitizeMarkdownUrl(url);
+      return `<a href="${escapeHtmlAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    })
     // 无序列表
     .replace(/^\s*[-*+] (.*$)/gm, '<li>$1</li>')
     // 有序列表

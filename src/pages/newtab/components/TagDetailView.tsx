@@ -4,6 +4,9 @@ import { TagInfo } from '../../../types/tags';
 import { ItemCard } from './ItemCard';
 import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
 import { timeAgo } from '../utils';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('[TagDetailView]');
 
 interface TagDetailViewProps {
   tag: TagInfo;
@@ -51,7 +54,7 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
               };
             }
           } catch (error) {
-            console.warn('Failed to load bookmark for url', bookmarkUrl, error);
+            logger.warn('Failed to load bookmark for tagged URL', error);
           }
           return {
             id: bookmarkUrl,
@@ -62,7 +65,7 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
       );
       setBookmarks(entries.filter(Boolean));
     } catch (error) {
-      console.error('Failed to load tag bookmarks', error);
+      logger.error('Failed to load tag bookmarks', error);
       setBookmarks([]);
     } finally {
       setLoading(false);
@@ -92,7 +95,7 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
       try {
         await chrome.tabs.create({ url, active: false });
       } catch (error) {
-        console.error('Failed to open tab', error);
+        logger.error('Failed to open tagged bookmark tab', error);
       }
     }
   };

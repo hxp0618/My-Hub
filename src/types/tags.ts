@@ -22,10 +22,35 @@ export interface TagWithBookmarks extends TagInfo {
   bookmarks: EnhancedBookmark[];
 }
 
+export const TAG_GENERATION_FAILURE_REASON_KEYS = [
+  'missingUrl',
+  'noTagsGenerated',
+  'parseFailed',
+  'rateLimited',
+  'networkError',
+  'cancelled',
+  'generationFailed',
+  'saveFailed',
+] as const;
+
+export type TagGenerationFailureReasonKey = typeof TAG_GENERATION_FAILURE_REASON_KEYS[number];
+
+export const DEFAULT_TAG_GENERATION_FAILURE_REASON: TagGenerationFailureReasonKey = 'generationFailed';
+
+export const isTagGenerationFailureReasonKey = (
+  value: unknown
+): value is TagGenerationFailureReasonKey =>
+  TAG_GENERATION_FAILURE_REASON_KEYS.includes(value as TagGenerationFailureReasonKey);
+
+export const sanitizeTagGenerationFailureReason = (
+  value: unknown
+): TagGenerationFailureReasonKey =>
+  isTagGenerationFailureReasonKey(value) ? value : DEFAULT_TAG_GENERATION_FAILURE_REASON;
+
 export interface TagGenerationFailure {
   url: string;
   bookmarkId: string;
-  failureReason: string;
+  failureReason: TagGenerationFailureReasonKey;
   failureTimestamp: number;
   retryCount: number;
   lastRetryTimestamp?: number;

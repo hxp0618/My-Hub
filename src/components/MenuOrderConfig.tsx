@@ -4,6 +4,7 @@ import { useMenuOrder } from '../hooks/useMenuOrder';
 import { useMenuCustomization } from '../hooks/useMenuCustomization';
 import { MENU_ITEMS, MenuItemId, AVAILABLE_ICONS } from '../types/menu';
 import { useToast } from '../hooks/useToast';
+import { parseDragIndex } from '../utils/dragIndex';
 
 interface MenuOrderConfigProps {
   onReset?: () => void;
@@ -37,16 +38,19 @@ export const MenuOrderConfig: React.FC<MenuOrderConfigProps> = ({ onReset }) => 
   const handleDrop = useCallback(
     (e: React.DragEvent, toIndex: number) => {
       e.preventDefault();
-      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const fromIndex = parseDragIndex(e.dataTransfer.getData('text/plain'), menuOrder.length);
+      const targetIndex = Number.isInteger(toIndex) && toIndex >= 0 && toIndex < menuOrder.length
+        ? toIndex
+        : null;
 
-      if (!isNaN(fromIndex) && fromIndex !== toIndex) {
-        moveItem(fromIndex, toIndex);
+      if (fromIndex !== null && targetIndex !== null && fromIndex !== targetIndex) {
+        moveItem(fromIndex, targetIndex);
       }
 
       setDraggedIndex(null);
       setDragOverIndex(null);
     },
-    [moveItem]
+    [menuOrder.length, moveItem]
   );
 
   const handleDragEnd = useCallback(() => {

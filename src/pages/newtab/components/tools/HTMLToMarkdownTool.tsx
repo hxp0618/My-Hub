@@ -117,11 +117,11 @@ export const HTMLToMarkdownTool: React.FC<ToolComponentProps> = ({ isExpanded, o
     try {
       setMarkdown(htmlToMarkdown(html, cleanHtml));
       setError(null);
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      setError(t('tools.htmlToMarkdown.convertError'));
       setMarkdown('');
     }
-  }, [html, inputMode, cleanHtml]);
+  }, [html, inputMode, cleanHtml, t]);
 
   const handleFetchUrl = async () => {
     if (!url.trim()) {
@@ -142,8 +142,8 @@ export const HTMLToMarkdownTool: React.FC<ToolComponentProps> = ({ isExpanded, o
       const fetchedHtml = await res.text();
       setHtml(fetchedHtml);
       setMarkdown(htmlToMarkdown(fetchedHtml, cleanHtml));
-    } catch (e) {
-      setError(t('tools.htmlToMarkdown.fetchError') + ': ' + (e as Error).message);
+    } catch {
+      setError(t('tools.htmlToMarkdown.fetchError'));
     } finally {
       setLoading(false);
     }

@@ -5,13 +5,34 @@ import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/too
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 
 export interface JWTDecodeResult {
-  header: object | null;
-  payload: object | null;
+  header: Record<string, unknown> | null;
+  payload: Record<string, unknown> | null;
   signature: string;
   isExpired: boolean;
   expiresAt: Date | null;
-  error: string | null;
+  error: JWTDecodeErrorCode | null;
 }
+
+export type JWTDecodeErrorCode = 'invalidFormat' | 'invalidJsonObject' | 'decodeFailed';
+
+const JWT_OBJECT_ERROR_CODE: JWTDecodeErrorCode = 'invalidJsonObject';
+
+const decodeBase64Url = (value: string): string => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+  const bytes = Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+};
+
+const parseJwtObject = (value: string): Record<string, unknown> => {
+  const parsed: unknown = JSON.parse(decodeBase64Url(value));
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(JWT_OBJECT_ERROR_CODE);
+  }
+
+  return parsed as Record<string, unknown>;
+};
 
 /**
  * 解码 JWT Token
@@ -25,25 +46,27 @@ export const decodeJWT = (token: string): JWTDecodeResult => {
 
   const parts = token.split('.');
   if (parts.length !== 3) {
-    return { ...emptyResult, error: 'Invalid JWT format: expected 3 parts' };
+    return { ...emptyResult, error: 'invalidFormat' };
   }
 
   try {
-    const header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const header = parseJwtObject(parts[0]);
+    const payload = parseJwtObject(parts[1]);
     const signature = parts[2];
 
     let isExpired = false;
     let expiresAt: Date | null = null;
 
-    if (payload.exp) {
+    // JWT NumericDate 使用秒级时间戳；非数字 exp 不参与过期判断。
+    if (typeof payload.exp === 'number' && Number.isFinite(payload.exp)) {
       expiresAt = new Date(payload.exp * 1000);
       isExpired = expiresAt < new Date();
     }
 
     return { header, payload, signature, isExpired, expiresAt, error: null };
   } catch (e) {
-    return { ...emptyResult, error: 'Failed to decode JWT: ' + (e as Error).message };
+    const error = (e as Error).message === JWT_OBJECT_ERROR_CODE ? JWT_OBJECT_ERROR_CODE : 'decodeFailed';
+    return { ...emptyResult, error };
   }
 };
 
@@ -84,7 +107,7 @@ export const JWTDecoderTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
 
         {result.error && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{result.error}</p>
+            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{t(`tools.jwtDecoder.errors.${result.error}`)}</p>
           </div>
         )}
 

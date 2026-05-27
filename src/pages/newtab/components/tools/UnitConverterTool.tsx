@@ -73,8 +73,13 @@ export const UnitConverterTool: React.FC<ToolComponentProps> = ({
 
     setError(null);
     const numValue = parseFloat(value);
-    const newResults = convertUnits(numValue, unit, catConfig.key);
-    setResults(newResults);
+    try {
+      const newResults = convertUnits(numValue, unit, catConfig.key);
+      setResults(newResults);
+    } catch {
+      setResults([]);
+      setError(t('tools.unitConverter.conversionError'));
+    }
   }, [t]);
 
   // 处理输入变化
@@ -100,6 +105,10 @@ export const UnitConverterTool: React.FC<ToolComponentProps> = ({
   const handleCopyResult = useCallback((value: string) => {
     copy(value);
   }, [copy]);
+
+  const formatReadableTimePart = useCallback((count: number, part: 'day' | 'hour' | 'minute' | 'second') => {
+    return t(`tools.unitConverter.readableTime.${part}`, { count });
+  }, [t]);
 
   // 键盘事件处理 - Enter 键聚焦输入框
   useEffect(() => {
@@ -207,7 +216,7 @@ export const UnitConverterTool: React.FC<ToolComponentProps> = ({
               // 计算易读格式（仅时间类别）
               const readableFormat =
                 category === 'time' && result && !isSource
-                  ? formatTimeReadable(result.rawValue, unit.key as TimeUnit)
+                  ? formatTimeReadable(result.rawValue, unit.key as TimeUnit, formatReadableTimePart)
                   : null;
 
               return (

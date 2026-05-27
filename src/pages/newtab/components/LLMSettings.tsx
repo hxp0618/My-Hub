@@ -1,13 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getLLMSettings, saveLLMSettings, testLLMConnection } from '../../../lib/llmUtils';
+import { getLLMSettings, LLMConnectionError, saveLLMSettings, testLLMConnection } from '../../../lib/llmUtils';
 import type { LLMSettings as LLMSettingsData } from '../../../types/llm';
 import { PROVIDERS, ProviderKey } from '../../../data/models';
+import { useToastContext } from '../../../contexts/ToastContext';
+import { createLogger } from '../../../utils/logger';
+import { StorageKey } from '../../../utils/storageManager';
+
+const logger = createLogger('[LLMSettings]');
 
 type GeminiNanoStatus = 'checking' | 'available' | 'unavailable' | 'downloading' | 'downloadable';
 
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+export const hasSavedGeminiNanoPreference = (): boolean => {
+  try {
+    const rawSettingsData = localStorage.getItem(StorageKey.LLM_SETTINGS);
+    if (!rawSettingsData) return false;
+
+    const parsed: unknown = JSON.parse(rawSettingsData);
+    return isRecord(parsed) && Object.prototype.hasOwnProperty.call(parsed, 'prioritizeGeminiNano');
+  } catch {
+    return false;
+  }
+};
+
 const LLMSettings: React.FC = () => {
   const { t } = useTranslation();
+  const toast = useToastContext();
   const [settings, setSettings] = useState<LLMSettingsData>({
     selectedProvider: '',
     selectedModel: '',
@@ -51,7 +73,7 @@ const LLMSettings: React.FC = () => {
           status = await LanguageModel.availability();
         }
       } catch (error) {
-        console.error("Error checking Gemini Nano availability:", error);
+        logger.error('Error checking Gemini Nano availability', error);
       }
       
       setGeminiNanoStatus(status);
@@ -60,8 +82,7 @@ const LLMSettings: React.FC = () => {
       let nextSettingsToSave: LLMSettingsData | null = null;
       setSettings(currentSettings => {
         // Only default to 'on' if the setting has never been saved before.
-        const rawSettingsData = localStorage.getItem('llm_settings');
-        const hasSetNanoPreference = rawSettingsData ? 'prioritizeGeminiNano' in JSON.parse(rawSettingsData) : false;
+        const hasSetNanoPreference = hasSavedGeminiNanoPreference();
 
         if (status === 'available') {
           if (!hasSetNanoPreference && !currentSettings.prioritizeGeminiNano) {
@@ -145,7 +166,7 @@ const LLMSettings: React.FC = () => {
 
   const handleSave = () => {
     saveLLMSettings(settings);
-    alert(t('settings.settingsSavedAlert'));
+    toast.success(t('settings.settingsSavedAlert'));
   };
 
   const handleTest = async () => {
@@ -158,11 +179,22 @@ const LLMSettings: React.FC = () => {
     } catch (error) {
       setTestResult({ 
         success: false, 
-        message: t('settings.connectionFailedMsg', { error: error instanceof Error ? error.message : t('errors.generic.message') })
+        message: t('settings.connectionFailedMsg', { error: formatConnectionError(error) })
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatConnectionError = (error: unknown): string => {
+    if (error instanceof LLMConnectionError) {
+      return t(`settings.llmConnectionErrors.${error.code}`, {
+        status: error.status,
+        defaultValue: t('errors.generic.message'),
+      });
+    }
+
+    return t('errors.generic.message');
   };
 
   const getProviderOptions = () => {

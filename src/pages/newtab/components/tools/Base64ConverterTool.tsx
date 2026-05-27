@@ -11,14 +11,27 @@ import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdow
 import { SwapButton } from '../../../../components/SwapButton';
 import { BatchModeToggle } from '../../../../components/BatchModeToggle';
 
+const BASE64_CHUNK_SIZE = 0x8000;
+
+const bytesToBinaryString = (bytes: Uint8Array): string => {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += BASE64_CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + BASE64_CHUNK_SIZE);
+    binary += String.fromCharCode(...chunk);
+  }
+  return binary;
+};
+
 // Base64 编码（支持 UTF-8）
-const encodeBase64 = (text: string): string => {
-  return btoa(unescape(encodeURIComponent(text)));
+export const encodeBase64 = (text: string): string => {
+  return btoa(bytesToBinaryString(new TextEncoder().encode(text)));
 };
 
 // Base64 解码（支持 UTF-8）
-const decodeBase64 = (base64: string): string => {
-  return decodeURIComponent(escape(atob(base64)));
+export const decodeBase64 = (base64: string): string => {
+  const binary = atob(base64);
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 };
 
 /**
@@ -37,6 +50,12 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
     return mode === 'encode' ? encodeBase64 : decodeBase64;
   }, [mode]);
 
+  const getConversionErrorMessage = useCallback(() => (
+    mode === 'encode'
+      ? t('tools.base64Converter.encodeError')
+      : t('tools.base64Converter.decodeError')
+  ), [mode, t]);
+
   // 实时转换 Hook
   const {
     input,
@@ -49,6 +68,7 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
     setOutput,
   } = useRealTimeConvert(converter, {
     debounceMs: 300,
+    getErrorMessage: getConversionErrorMessage,
     silentError: true,
   });
 
@@ -60,6 +80,7 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
   // 批量模式 Hook
   const batchMode = useBatchMode({
     converter,
+    getErrorMessage: getConversionErrorMessage,
   });
 
   // 处理历史记录选择

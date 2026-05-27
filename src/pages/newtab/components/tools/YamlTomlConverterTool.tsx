@@ -89,7 +89,10 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
       setError(null);
     } else {
       setOutput('');
-      setError(result.error || { message: t('tools.yamlTomlConverter.unknownError') });
+      setError({
+        line: result.error?.line,
+        message: t('tools.yamlTomlConverter.convertError'),
+      });
     }
   }, [input, sourceFormat, targetFormat, indentSize, t]);
 

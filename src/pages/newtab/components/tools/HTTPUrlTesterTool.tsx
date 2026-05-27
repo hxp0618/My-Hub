@@ -24,6 +24,9 @@ import { generateCurl } from '../../../../utils/curlUtils';
 import { CurlParseSuccess } from '../../../../types/curl';
 import { useHttpHistory } from '../../../../hooks/useHttpHistory';
 import { CurlImportModal } from '../../../../components/CurlImportModal';
+import { createLogger } from '../../../../utils/logger';
+
+const logger = createLogger('[HTTPUrlTesterTool]');
 
 /**
  * HTTP URL 测试工具组件
@@ -60,8 +63,8 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
   const bodyError = useMemo(() => {
     if (!body.trim() || !METHODS_WITH_BODY.includes(method)) return null;
     const result = isValidJson(body);
-    return result.valid ? null : result.error;
-  }, [body, method]);
+    return result.valid ? null : t('tools.httpTester.invalidJsonBody');
+  }, [body, method, t]);
 
   const canSend = useMemo(() => {
     return url.trim() && !urlError && !bodyError && !loading;
@@ -138,7 +141,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
         body: '',
         time: 0,
         size: 0,
-        error: error instanceof Error ? error.message : t('tools.httpTester.networkError'),
+        error: t('tools.httpTester.networkError'),
       });
     } finally {
       setLoading(false);
@@ -191,8 +194,8 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
       await navigator.clipboard.writeText(curlCommand);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy curl command:', err);
+    } catch (error) {
+      logger.error('Failed to copy curl command', error);
     }
   }, [url, method, headers, body]);
 

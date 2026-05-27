@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  importData,
   mergeBarkKeysForImport,
   mergeLLMSettingsForImport,
   mergeSubscriptionNotificationConfigForImport,
@@ -10,6 +11,77 @@ import {
 import type { LLMSettings } from '../../types/llm';
 import type { BarkKeyConfig } from '../../types/bark';
 import type { SubscriptionNotificationConfig } from '../../types/subscription';
+
+afterEach(() => {
+  localStorage.clear();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('dataSync import/export UI boundary', () => {
+  it('rejects invalid import files without using blocking alerts', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const file = new File(['{invalid'], 'bad-backup.json', { type: 'application/json' });
+
+    await expect(importData(file)).rejects.toBeInstanceOf(Error);
+
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('skips invalid layout settings during import', async () => {
+    vi.stubGlobal('chrome', {
+      bookmarks: {
+        getTree: vi.fn().mockResolvedValue([{ children: [] }]),
+      },
+    });
+    localStorage.setItem('bookmark-folder-state-old-folder', 'true');
+    const file = new File([
+      JSON.stringify({
+        bookmarks: [],
+        tags: [],
+        combos: [
+          { id: 'combo-1', title: 'Docs', urls: ['https://example.com'] },
+          { id: 'combo-bad', title: 'Broken', urls: 'https://example.com' },
+        ],
+        noMoreDisplayed: ['https://hidden.example', 42],
+        settings: {
+          cardsPerRow: 999,
+          autoSuggestBookmarkInfo: 'true',
+          sidebarWidth: 9999,
+          bookmarkSidebarCollapsed: 'true',
+          language: 'fr',
+          theme: 'sepia',
+          bookmarkSortOrder: { key: 'unknown', order: 'sideways' },
+          homeItemOrder: ['https://example.com', 42],
+          bookmarkFolderStates: {
+            'valid-folder': false,
+            'invalid-folder': 'false',
+            '': true,
+          },
+        },
+      }),
+    ], 'backup.json', { type: 'application/json' });
+
+    await importData(file);
+
+    expect(localStorage.getItem('sidebarWidth')).toBeNull();
+    expect(localStorage.getItem('bookmark-sidebar-collapsed')).toBeNull();
+    expect(localStorage.getItem('language')).toBeNull();
+    expect(localStorage.getItem('cardsPerRow')).toBeNull();
+    expect(localStorage.getItem('autoSuggestBookmarkInfo')).toBeNull();
+    expect(localStorage.getItem('theme')).toBeNull();
+    expect(localStorage.getItem('bookmark_sort_order')).toBeNull();
+    expect(localStorage.getItem('homeItemOrder')).toBeNull();
+    expect(localStorage.getItem('bookmark-folder-state-old-folder')).toBeNull();
+    expect(localStorage.getItem('bookmark-folder-state-valid-folder')).toBe('false');
+    expect(localStorage.getItem('bookmark-folder-state-invalid-folder')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('webCombos') ?? '[]')).toEqual([
+      { id: 'combo-1', title: 'Docs', urls: ['https://example.com'] },
+    ]);
+    expect(JSON.parse(localStorage.getItem('noMoreDisplayed') ?? '[]')).toEqual([]);
+  });
+});
 
 describe('dataSync redaction helpers', () => {
   it('removes LLM API keys without mutating provider settings', () => {

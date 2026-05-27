@@ -12,6 +12,20 @@ export interface DiffChange {
   removed?: boolean;
 }
 
+export const DIFF_HIGHLIGHT_STYLES: Record<'added' | 'removed', React.CSSProperties> = {
+  added: {
+    backgroundColor: 'color-mix(in srgb, var(--nb-accent-green) 30%, transparent)',
+    color: 'inherit',
+    borderRadius: '2px',
+  },
+  removed: {
+    backgroundColor: 'color-mix(in srgb, var(--nb-accent-pink) 30%, transparent)',
+    color: 'inherit',
+    textDecoration: 'line-through',
+    borderRadius: '2px',
+  },
+};
+
 /**
  * 计算文本差异（字符级别）
  */
@@ -47,20 +61,6 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
     setTextB('');
   };
 
-  // 差异高亮样式 - 只高亮有差异的字符，使用更浅的背景色
-  const addedStyle = {
-    backgroundColor: 'rgba(94, 224, 168, 0.3)', // 浅绿色背景
-    color: 'inherit',
-    borderRadius: '2px',
-  };
-  
-  const removedStyle = {
-    backgroundColor: 'rgba(247, 113, 167, 0.3)', // 浅粉色背景
-    color: 'inherit',
-    textDecoration: 'line-through',
-    borderRadius: '2px',
-  };
-
   // 渲染行内差异
   const renderInlineDiff = () => {
     if (!textA && !textB) return null;
@@ -78,7 +78,7 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
         {diff.map((part, index) => (
           <span
             key={index}
-            style={part.added ? addedStyle : part.removed ? removedStyle : undefined}
+            style={part.added ? DIFF_HIGHLIGHT_STYLES.added : part.removed ? DIFF_HIGHLIGHT_STYLES.removed : undefined}
           >
             {part.value}
           </span>
@@ -107,14 +107,14 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
       if (part.removed) {
         // 删除的内容只显示在左边，带高亮
         leftContent.push(
-          <span key={`l-${index}`} style={removedStyle}>
+          <span key={`l-${index}`} style={DIFF_HIGHLIGHT_STYLES.removed}>
             {part.value}
           </span>
         );
       } else if (part.added) {
         // 新增的内容只显示在右边，带高亮
         rightContent.push(
-          <span key={`r-${index}`} style={addedStyle}>
+          <span key={`r-${index}`} style={DIFF_HIGHLIGHT_STYLES.added}>
             {part.value}
           </span>
         );

@@ -1,5 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  QR_CODE_MARGIN_RANGE,
+  QR_CODE_SIZES,
+  parseQRCodeMargin,
+  parseQRCodeSize,
+} from '../../../../../types/qrcode';
 import type { QRCodeOptions as QRCodeOptionsType } from '../../../../../types/qrcode';
 
 interface QRCodeOptionsProps {
@@ -21,13 +27,12 @@ export const QRCodeOptions: React.FC<QRCodeOptionsProps> = ({ options, onChange 
         <label className="text-sm nb-text-secondary w-16">{t('tools.qrcodeGenerator.size')}:</label>
         <select
           value={options.size}
-          onChange={e => handleChange('size', parseInt(e.target.value) as 128 | 256 | 384 | 512)}
+          onChange={e => handleChange('size', parseQRCodeSize(e.target.value, options.size))}
           className="nb-input flex-1 text-sm"
         >
-          <option value={128}>128 x 128</option>
-          <option value={256}>256 x 256</option>
-          <option value={384}>384 x 384</option>
-          <option value={512}>512 x 512</option>
+          {QR_CODE_SIZES.map(size => (
+            <option key={size} value={size}>{size} x {size}</option>
+          ))}
         </select>
       </div>
 
@@ -36,10 +41,13 @@ export const QRCodeOptions: React.FC<QRCodeOptionsProps> = ({ options, onChange 
         <label className="text-sm nb-text-secondary w-16">{t('tools.qrcodeGenerator.margin')}:</label>
         <select
           value={options.margin}
-          onChange={e => handleChange('margin', parseInt(e.target.value))}
+          onChange={e => handleChange('margin', parseQRCodeMargin(e.target.value, options.margin))}
           className="nb-input flex-1 text-sm"
         >
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(m => (
+          {Array.from(
+            { length: QR_CODE_MARGIN_RANGE.max - QR_CODE_MARGIN_RANGE.min + 1 },
+            (_, index) => QR_CODE_MARGIN_RANGE.min + index
+          ).map(m => (
             <option key={m} value={m}>
               {m}
             </option>

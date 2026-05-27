@@ -46,6 +46,16 @@ export interface ConversionResult {
   rawValue: number;
 }
 
+export const UNIT_CONVERTER_ERROR_CODES = [
+  'unknownCategory',
+  'unknownUnit',
+] as const;
+
+export type UnitConverterErrorCode = typeof UNIT_CONVERTER_ERROR_CODES[number];
+
+export type ReadableTimePart = 'day' | 'hour' | 'minute' | 'second';
+export type ReadableTimeFormatter = (count: number, part: ReadableTimePart) => string;
+
 // ============================================================================
 // 单位配置常量
 // ============================================================================
@@ -97,6 +107,8 @@ export const CATEGORY_CONFIGS: CategoryConfig[] = [
 /** 数据单位换算基数 */
 export const DATA_UNIT_BASE = 1024;
 
+const createUnitConverterError = (code: UnitConverterErrorCode) => new Error(code);
+
 // ============================================================================
 // 核心函数
 // ============================================================================
@@ -125,7 +137,7 @@ export function validateInput(value: string): boolean {
 export function getCategoryConfig(category: UnitCategory): CategoryConfig {
   const config = CATEGORY_CONFIGS.find(c => c.key === category);
   if (!config) {
-    throw new Error(`Unknown category: ${category}`);
+    throw createUnitConverterError('unknownCategory');
   }
   return config;
 }
@@ -140,7 +152,7 @@ export function getUnitConfig(unit: Unit, category: UnitCategory): UnitConfig {
   const categoryConfig = getCategoryConfig(category);
   const unitConfig = categoryConfig.units.find(u => u.key === unit);
   if (!unitConfig) {
-    throw new Error(`Unknown unit: ${unit} in category: ${category}`);
+    throw createUnitConverterError('unknownUnit');
   }
   return unitConfig;
 }
@@ -240,12 +252,25 @@ export function convert(
 
 /**
  * 将时间值转换为易读的复合单位格式
- * 例如：1.666667 分钟 -> "1分40秒"
+ * 例如：1.666667 分钟 -> "1分钟 40秒"
  * @param value 时间数值
  * @param unit 时间单位
+ * @param formatPart 单个时间片段的格式化函数
  * @returns 易读格式字符串，如果不适用则返回 null
  */
-export function formatTimeReadable(value: number, unit: TimeUnit): string | null {
+export function formatTimeReadable(
+  value: number,
+  unit: TimeUnit,
+  formatPart: ReadableTimeFormatter = (count, part) => {
+    const labels: Record<ReadableTimePart, string> = {
+      day: '天',
+      hour: '小时',
+      minute: '分钟',
+      second: '秒',
+    };
+    return `${count}${labels[part]}`;
+  }
+): string | null {
   // 转换为秒作为中间单位
   const totalSeconds = convert(value, unit, 's', 'time');
 
@@ -262,10 +287,10 @@ export function formatTimeReadable(value: number, unit: TimeUnit): string | null
 
   const parts: string[] = [];
 
-  if (days > 0) parts.push(`${days}天`);
-  if (hours > 0) parts.push(`${hours}小时`);
-  if (minutes > 0) parts.push(`${minutes}分钟`);
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}秒`);
+  if (days > 0) parts.push(formatPart(days, 'day'));
+  if (hours > 0) parts.push(formatPart(hours, 'hour'));
+  if (minutes > 0) parts.push(formatPart(minutes, 'minute'));
+  if (seconds > 0 || parts.length === 0) parts.push(formatPart(seconds, 'second'));
 
   // 只显示最多3个单位
   return parts.slice(0, 3).join(' ');

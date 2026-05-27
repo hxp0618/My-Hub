@@ -10,23 +10,68 @@ import { KeyManagementModal } from './bark/KeyManagementModal';
 import { ScheduledTaskList } from './bark/ScheduledTaskList';
 import { ScheduledTaskModal } from './bark/ScheduledTaskModal';
 import { ExecutionHistoryModal } from './bark/ExecutionHistoryModal';
-import { BarkNotificationOptions, BarkNotificationRecord } from '../../../../types/bark';
+import {
+  BarkNotificationErrorKey,
+  BarkNotificationOptions,
+  BarkNotificationRecord,
+  sanitizeBarkHistoryRecords,
+} from '../../../../types/bark';
 import { ScheduledTask, CreateTaskParams, UpdateTaskParams, TaskExecutionRecord } from '../../../../types/scheduledTask';
 import { ScheduledTaskService } from '../../../../services/ScheduledTaskService';
+import { ConfirmDialog } from '../../../../components/ConfirmDialog';
+import { createLogger } from '../../../../utils/logger';
+
+const logger = createLogger('[BarkNotifierTool]');
 
 // 历史记录存储键和限制
 const BARK_HISTORY_KEY = 'bark_notification_history';
 const MAX_HISTORY_RECORDS = 200;
+
+const SCHEDULED_TASK_ERROR_KEYS: Record<string, string> = {
+  taskNotFound: 'tools.barkNotifier.scheduled.messages.taskNotFound',
+  updateFailed: 'tools.barkNotifier.scheduled.messages.updateFailed',
+  statusUpdateFailed: 'tools.barkNotifier.scheduled.messages.statusUpdateFailed',
+  statusToggleUnavailable: 'tools.barkNotifier.scheduled.messages.statusToggleUnavailable',
+  'Task not found': 'tools.barkNotifier.scheduled.messages.taskNotFound',
+  'Failed to update task': 'tools.barkNotifier.scheduled.messages.updateFailed',
+  'Failed to update task status': 'tools.barkNotifier.scheduled.messages.statusUpdateFailed',
+  'Cannot toggle status of completed or failed task': 'tools.barkNotifier.scheduled.messages.statusToggleUnavailable',
+};
+
+const getBarkNotificationErrorMessage = (
+  errorMessageKey: BarkNotificationErrorKey,
+  t: (key: string) => string
+): string => t(`tools.barkNotifier.errors.${errorMessageKey}`);
+
+export const getScheduledTaskErrorMessage = (
+  error: unknown,
+  t: (key: string) => string,
+  fallbackKey: string
+): string => {
+  const message = error instanceof Error ? error.message : String(error);
+  const validationKeys = message
+    .split(',')
+    .map(item => item.trim())
+    .filter(item => item.startsWith('tools.barkNotifier.scheduled.validation.'));
+
+  if (validationKeys.length > 0) {
+    return validationKeys.map(key => t(key)).join('; ');
+  }
+
+  return t(SCHEDULED_TASK_ERROR_KEYS[message] ?? fallbackKey);
+};
+
+export { sanitizeBarkHistoryRecords };
 
 // 加载历史记录
 const loadHistory = (): BarkNotificationRecord[] => {
   try {
     const stored = localStorage.getItem(BARK_HISTORY_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      return sanitizeBarkHistoryRecords(JSON.parse(stored));
     }
-  } catch (e) {
-    console.error('Failed to load Bark history:', e);
+  } catch {
+    return [];
   }
   return [];
 };
@@ -34,10 +79,10 @@ const loadHistory = (): BarkNotificationRecord[] => {
 // 保存历史记录
 const saveHistory = (records: BarkNotificationRecord[]) => {
   try {
-    const limitedRecords = records.slice(0, MAX_HISTORY_RECORDS);
+    const limitedRecords = sanitizeBarkHistoryRecords(records).slice(0, MAX_HISTORY_RECORDS);
     localStorage.setItem(BARK_HISTORY_KEY, JSON.stringify(limitedRecords));
-  } catch (e) {
-    console.error('Failed to save Bark history:', e);
+  } catch (error) {
+    logger.error('Failed to save Bark history', error);
   }
 };
 
@@ -109,6 +154,14 @@ const NotificationHistory: React.FC<{
 }> = ({ records, onDelete, onClearAll, onReuse }) => {
   const { t } = useTranslation();
 
+  const getRecordErrorMessage = (record: BarkNotificationRecord) => {
+    if (record.errorMessageKey) {
+      return getBarkNotificationErrorMessage(record.errorMessageKey, t);
+    }
+
+    return record.errorMessage;
+  };
+
   if (records.length === 0) {
     return (
       <div className="nb-card-static h-full flex flex-col items-center justify-center text-center p-6">
@@ -163,18 +216,21 @@ const NotificationHistory: React.FC<{
 
             {/* 记录列表 - 更紧凑的卡片 */}
             <div className="space-y-1.5">
-              {groupedRecords[groupKey].map(record => (
-                <div
-                  key={record.id}
-                  className="group relative rounded-lg nb-border p-2.5 hover:shadow-sm transition-all cursor-pointer"
-                  style={{
-                    backgroundColor: 'var(--nb-bg)',
-                    borderLeftWidth: '3px',
-                    borderLeftColor: record.status === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)'
-                  }}
-                  onClick={() => onReuse(record)}
-                  title={t('tools.barkNotifier.reuseNotification')}
-                >
+              {groupedRecords[groupKey].map(record => {
+                const errorMessage = getRecordErrorMessage(record);
+
+                return (
+                  <div
+                    key={record.id}
+                    className="group relative rounded-lg nb-border p-2.5 hover:shadow-sm transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--nb-bg)',
+                      borderLeftWidth: '3px',
+                      borderLeftColor: record.status === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)'
+                    }}
+                    onClick={() => onReuse(record)}
+                    title={t('tools.barkNotifier.reuseNotification')}
+                  >
                   <div className="flex items-start gap-2">
                     {/* 状态图标 */}
                     <div className="flex-shrink-0 mt-0.5">
@@ -200,9 +256,9 @@ const NotificationHistory: React.FC<{
                           {record.body}
                         </p>
                       )}
-                      {record.errorMessage && (
+                      {errorMessage && (
                         <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--nb-accent-pink)' }}>
-                          {record.errorMessage}
+                          {errorMessage}
                         </p>
                       )}
                     </div>
@@ -221,7 +277,8 @@ const NotificationHistory: React.FC<{
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
@@ -274,6 +331,8 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyTaskTitle, setHistoryTaskTitle] = useState('');
   const [executionHistory, setExecutionHistory] = useState<TaskExecutionRecord[]>([]);
+  const [isClearHistoryConfirmOpen, setIsClearHistoryConfirmOpen] = useState(false);
+  const [pendingDeleteTask, setPendingDeleteTask] = useState<ScheduledTask | null>(null);
 
   // 获取当前密钥列表
   const keys = keyManager.getAllKeys();
@@ -312,8 +371,8 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
     if (keyIds.length > 0) {
       try {
         keyManager.setSelectedKey(keyIds[0]);
-      } catch (e) {
-        console.error('Failed to set selected key:', e);
+      } catch (error) {
+        logger.error('Failed to set selected key', error);
       }
     }
   }, [keyManager]);
@@ -361,9 +420,13 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
       selectedKeys.map(async (key) => {
         try {
           const data = await sendToKey(key);
-          return { key, success: data.code === 200, error: data.message };
-        } catch (e) {
-          return { key, success: false, error: (e as Error).message };
+          return {
+            key,
+            success: data.code === 200,
+            errorMessageKey: data.code === 200 ? undefined : 'sendFailed' as BarkNotificationErrorKey,
+          };
+        } catch {
+          return { key, success: false, errorMessageKey: 'networkError' as BarkNotificationErrorKey };
         }
       })
     );
@@ -400,22 +463,28 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
       setBody('');
     } else if (successCount === 0) {
       // 全部失败
-      const failedResults = results
+      const failedErrorKeys = results
         .filter(r => r.status === 'fulfilled' && !r.value.success)
-        .map(r => (r as PromiseFulfilledResult<{ key: typeof selectedKeys[0]; success: boolean; error?: string }>).value.error)
-        .filter(Boolean)
-        .join('; ');
+        .map(r => (r as PromiseFulfilledResult<{
+          key: typeof selectedKeys[0];
+          success: boolean;
+          errorMessageKey?: BarkNotificationErrorKey;
+        }>).value.errorMessageKey)
+        .filter(Boolean);
+      const failedErrorKey = failedErrorKeys[0] ?? 'unknownError';
+      const errorMessage = getBarkNotificationErrorMessage(failedErrorKey, t);
 
       const updatedHistory = addHistoryRecord({
         title: title || defaultTitle,
         body: body || '',
         status: 'failed',
-        errorMessage: failedResults || t('tools.barkNotifier.unknownError'),
+        errorMessage,
+        errorMessageKey: failedErrorKey,
         options: Object.keys(options).length > 0 ? options : undefined,
       });
       setHistory(updatedHistory);
 
-      setMessage(t('tools.barkNotifier.error') + ': ' + (failedResults || t('tools.barkNotifier.unknownError')));
+      setMessage(t('tools.barkNotifier.error') + ': ' + errorMessage);
       setMessageType('error');
     } else {
       // 部分成功
@@ -446,11 +515,13 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
 
   // 清空所有历史记录
   const handleClearAllHistory = useCallback(() => {
-    if (confirm(t('tools.barkNotifier.deleteConfirm'))) {
-      const updated = clearHistory();
-      setHistory(updated);
-    }
-  }, [t]);
+    setIsClearHistoryConfirmOpen(true);
+  }, []);
+
+  const handleConfirmClearAllHistory = useCallback(() => {
+    const updated = clearHistory();
+    setHistory(updated);
+  }, []);
 
   // 重用历史记录
   const handleReuseHistory = useCallback((record: BarkNotificationRecord) => {
@@ -481,25 +552,39 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
       setMessageType('success');
       setScheduledTasks(taskService.getAllTasks());
     } catch (e) {
-      setMessage((e as Error).message);
+      setMessage(getScheduledTaskErrorMessage(
+        e,
+        t,
+        'tools.barkNotifier.scheduled.messages.saveFailed'
+      ));
       setMessageType('error');
     }
   }, [taskService, t]);
 
   const handleDeleteTask = useCallback((taskId: string) => {
     const task = scheduledTasks.find(t => t.id === taskId);
-    if (task && confirm(t('tools.barkNotifier.scheduled.list.deleteConfirm', { title: task.title }))) {
-      try {
-        taskService.deleteTask(taskId);
-        setScheduledTasks(taskService.getAllTasks());
-        setMessage(t('tools.barkNotifier.scheduled.messages.deleteSuccess'));
-        setMessageType('success');
-      } catch (e) {
-        setMessage((e as Error).message);
-        setMessageType('error');
-      }
+    if (task) {
+      setPendingDeleteTask(task);
     }
-  }, [taskService, scheduledTasks, t]);
+  }, [scheduledTasks]);
+
+  const handleConfirmDeleteTask = useCallback(() => {
+    if (!pendingDeleteTask) return;
+
+    try {
+      taskService.deleteTask(pendingDeleteTask.id);
+      setScheduledTasks(taskService.getAllTasks());
+      setMessage(t('tools.barkNotifier.scheduled.messages.deleteSuccess'));
+      setMessageType('success');
+    } catch (e) {
+      setMessage(getScheduledTaskErrorMessage(
+        e,
+        t,
+        'tools.barkNotifier.scheduled.messages.deleteFailed'
+      ));
+      setMessageType('error');
+    }
+  }, [pendingDeleteTask, taskService, t]);
 
   const handleToggleTaskStatus = useCallback((taskId: string) => {
     try {
@@ -512,7 +597,11 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
       );
       setMessageType('success');
     } catch (e) {
-      setMessage((e as Error).message);
+      setMessage(getScheduledTaskErrorMessage(
+        e,
+        t,
+        'tools.barkNotifier.scheduled.messages.statusUpdateFailed'
+      ));
       setMessageType('error');
     }
   }, [taskService, t]);
@@ -822,6 +911,26 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
         onClose={() => setIsHistoryModalOpen(false)}
         taskTitle={historyTaskTitle}
         records={executionHistory}
+      />
+
+      <ConfirmDialog
+        isOpen={isClearHistoryConfirmOpen}
+        onClose={() => setIsClearHistoryConfirmOpen(false)}
+        onConfirm={handleConfirmClearAllHistory}
+        title={t('tools.barkNotifier.clearAll')}
+        message={t('tools.barkNotifier.deleteConfirm')}
+        confirmText={t('tools.barkNotifier.clearAll')}
+        danger
+      />
+
+      <ConfirmDialog
+        isOpen={!!pendingDeleteTask}
+        onClose={() => setPendingDeleteTask(null)}
+        onConfirm={handleConfirmDeleteTask}
+        title={t('tools.barkNotifier.scheduled.list.delete')}
+        message={t('tools.barkNotifier.scheduled.list.deleteConfirm', { title: pendingDeleteTask?.title ?? '' })}
+        confirmText={t('common.delete')}
+        danger
       />
     </ToolCard>
   );

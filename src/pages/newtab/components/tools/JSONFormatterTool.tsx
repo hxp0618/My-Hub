@@ -8,20 +8,27 @@ import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 // 转义字符处理模式
 type EscapeMode = 'preserve' | 'remove';
 
-// 防抖函数
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
+type DebouncedFunction<TArgs extends unknown[]> = ((...args: TArgs) => void) & {
+  cancel: () => void;
+};
+
+// 防抖函数：使用浏览器/测试环境通用的 timeout 类型，避免依赖 NodeJS 命名空间。
+function debounce<TArgs extends unknown[]>(
+  func: (...args: TArgs) => void,
   wait: number
-): T & { cancel: () => void } {
-  let timeout: NodeJS.Timeout | null = null;
+): DebouncedFunction<TArgs> {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   
-  const debounced = function (this: any, ...args: Parameters<T>) {
+  const debounced = ((...args: TArgs) => {
     if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  } as T & { cancel: () => void };
+    timeout = setTimeout(() => func(...args), wait);
+  }) as DebouncedFunction<TArgs>;
   
   debounced.cancel = () => {
-    if (timeout) clearTimeout(timeout);
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
   };
   
   return debounced;
@@ -48,12 +55,12 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
       try {
         // 先解析再序列化，然后手动处理特殊转义
         const parsed = JSON.parse(jsonString);
-        let result = JSON.stringify(parsed, null, 2);
+        const result = JSON.stringify(parsed, null, 2);
         
         // 注意：这里不能直接替换，因为 JSON.stringify 会自动添加必要的转义
         // 我们只在显示时处理，实际上 JSON 格式本身需要保留转义
         return result;
-      } catch (e) {
+      } catch {
         return jsonString;
       }
     }
@@ -74,8 +81,8 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
       const processed = processEscapeCharacters(formatted, escapeMode);
       setOutput(processed);
       setError('');
-    } catch (e) {
-      setError(t('tools.jsonFormatter.error') + ': ' + (e as Error).message);
+    } catch {
+      setError(t('tools.jsonFormatter.error'));
       setOutput('');
     }
   }, [input, escapeMode, processEscapeCharacters, t]);
@@ -96,7 +103,7 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
           const processed = processEscapeCharacters(formatted, escapeMode);
           setOutput(processed);
           setError('');
-        } catch (e) {
+        } catch {
           // 自动格式化时不显示错误，避免干扰用户输入
           setError('');
         }
@@ -125,8 +132,8 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
       const compressed = JSON.stringify(parsed);
       setOutput(compressed);
       setError('');
-    } catch (e) {
-      setError(t('tools.jsonFormatter.error') + ': ' + (e as Error).message);
+    } catch {
+      setError(t('tools.jsonFormatter.error'));
       setOutput('');
     }
   }, [input, t]);

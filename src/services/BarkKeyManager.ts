@@ -13,6 +13,9 @@ import {
   saveSelectedKeyId,
   validateDeviceKey,
 } from '../utils/barkKeyManager';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[BarkKeyManager]');
 
 /**
  * 同步密钥数据到 chrome.storage.local（供 background script 使用）
@@ -43,10 +46,15 @@ export class BarkKeyManager implements IKeyManager {
     this.keys = loadKeys();
     this.selectedKeyId = loadSelectedKeyId();
 
-    // 如果有密钥但没有选中任何密钥，自动选中第一个
-    if (this.keys.length > 0 && !this.selectedKeyId) {
+    const selectedKeyExists = this.keys.some(key => key.id === this.selectedKeyId);
+
+    // 如果没有选中密钥，或选中的密钥已被清理，自动恢复到第一个有效密钥。
+    if (this.keys.length > 0 && !selectedKeyExists) {
       this.selectedKeyId = this.keys[0].id;
       saveSelectedKeyId(this.selectedKeyId);
+    } else if (this.keys.length === 0 && this.selectedKeyId) {
+      this.selectedKeyId = null;
+      saveSelectedKeyId(null);
     }
 
     // 初始化时同步到 background
@@ -237,7 +245,7 @@ export class BarkKeyManager implements IKeyManager {
       const data = await response.json();
       return data.code === 200;
     } catch (e) {
-      console.error('Failed to test Bark key:', e);
+      logger.error('Failed to test Bark key', e);
       return false;
     }
   }

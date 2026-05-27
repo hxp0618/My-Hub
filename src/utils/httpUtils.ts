@@ -54,10 +54,10 @@ export function isValidJson(json: string): JsonValidationResult {
   try {
     JSON.parse(trimmedJson);
     return { valid: true };
-  } catch (e) {
+  } catch {
     return { 
       valid: false, 
-      error: e instanceof Error ? e.message : 'Invalid JSON' 
+      error: 'invalidJson',
     };
   }
 }
@@ -158,7 +158,7 @@ export function isJsonContent(content: string, contentType?: string): boolean {
  * @returns 是否需要请求体
  */
 export function methodNeedsBody(method: string): boolean {
-  return METHODS_WITH_BODY.includes(method as any);
+  return METHODS_WITH_BODY.some(bodyMethod => bodyMethod === method);
 }
 
 /**

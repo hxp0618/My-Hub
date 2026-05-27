@@ -19,6 +19,9 @@ import {
   getSubscriptionNotificationConfig,
   setSubscriptionNotificationConfig,
 } from '../db/indexedDB';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('[NotificationSettings]');
 
 interface ChannelCardProps {
   title: string;
@@ -133,7 +136,7 @@ export const NotificationSettings: React.FC = () => {
         const keyManager = new BarkKeyManager();
         setBarkKeys(keyManager.getAllKeys());
       } catch (error) {
-        console.error('Failed to load notification config:', error);
+        logger.error('Failed to load notification config', error);
       } finally {
         setLoading(false);
       }
@@ -147,7 +150,7 @@ export const NotificationSettings: React.FC = () => {
       await setSubscriptionNotificationConfig(newConfig);
       setConfig(newConfig);
     } catch (error) {
-      console.error('Failed to save notification config:', error);
+      logger.error('Failed to save notification config', error);
     }
   }, []);
 

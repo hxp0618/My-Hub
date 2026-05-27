@@ -80,7 +80,10 @@ export const FORMAT_EXTENSION_MAP: Record<ImageFormat, string> = {
 };
 
 export const ICO_SIZES = [16, 32, 48, 64, 128, 256];
+export const MAX_RESIZE_DIMENSION = 8192;
 const SUPPORTED_INPUT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp'];
+const IMAGE_CONVERTER_ERROR_KEYS = ['loadError', 'convertError'] as const;
+type ImageConverterErrorKey = typeof IMAGE_CONVERTER_ERROR_KEYS[number];
 
 // ==================== 工具函数 ====================
 
@@ -138,17 +141,67 @@ export function calculateAspectRatio(
 }
 
 export function validateSizeInput(value: string | number): boolean {
-  const num = typeof value === 'string' ? parseInt(value, 10) : value;
-  return Number.isInteger(num) && num > 0;
+  return parseResizeDimension(value) > 0;
+}
+
+export function parseResizeDimension(value: string | number): number {
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value) || value <= 0) return 0;
+    return Math.min(value, MAX_RESIZE_DIMENSION);
+  }
+
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return 0;
+
+  const num = Number(trimmed);
+  if (!Number.isSafeInteger(num) || num <= 0) return 0;
+
+  // 避免异常大尺寸触发浏览器 canvas 内存压力。
+  return Math.min(num, MAX_RESIZE_DIMENSION);
 }
 
 export function generateOutputFileName(originalName: string, targetFormat: ImageFormat): string {
   const baseName = originalName.replace(/\.[^/.]+$/, '');
-  return `${baseName}${FORMAT_EXTENSION_MAP[targetFormat]}`;
+  const safeBaseName = baseName
+    .trim()
+    .split('')
+    .map(char => (char.charCodeAt(0) < 32 || /[\\/:*?"<>|]/.test(char) ? '_' : char))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .replace(/^\.+$/, '');
+
+  return `${safeBaseName || 'converted-image'}${FORMAT_EXTENSION_MAP[targetFormat]}`;
+}
+
+export function makeUniqueFileName(fileName: string, usedNames: Set<string>): string {
+  const extensionMatch = fileName.match(/(\.[^.]*)$/);
+  const extension = extensionMatch?.[1] ?? '';
+  const baseName = extension ? fileName.slice(0, -extension.length) : fileName;
+  let candidate = fileName;
+  let counter = 2;
+
+  while (usedNames.has(candidate.toLowerCase())) {
+    candidate = `${baseName}-${counter}${extension}`;
+    counter += 1;
+  }
+
+  usedNames.add(candidate.toLowerCase());
+  return candidate;
 }
 
 export function shouldShowQualitySlider(format: ImageFormat): boolean {
   return format === 'jpeg' || format === 'webp';
+}
+
+function getImageConverterErrorKey(error: unknown): ImageConverterErrorKey {
+  if (
+    error instanceof Error &&
+    IMAGE_CONVERTER_ERROR_KEYS.includes(error.message as ImageConverterErrorKey)
+  ) {
+    return error.message as ImageConverterErrorKey;
+  }
+
+  return 'convertError';
 }
 
 export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions): Promise<ConvertResult> {
@@ -179,7 +232,7 @@ export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context not available');
+    if (!ctx) throw new Error('convertError');
 
     if (targetFormat === 'jpeg') {
       ctx.fillStyle = '#FFFFFF';
@@ -191,7 +244,7 @@ export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions
     const qualityValue = shouldShowQualitySlider(targetFormat) ? quality / 100 : undefined;
 
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Conversion failed'))), mimeType, qualityValue);
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('convertError'))), mimeType, qualityValue);
     });
 
     const dataUrl = await new Promise<string>((resolve) => {
@@ -202,7 +255,12 @@ export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions
 
     return { success: true, originalName: imageInfo.name, newName: generateOutputFileName(imageInfo.name, targetFormat), blob, dataUrl, size: blob.size };
   } catch (error) {
-    return { success: false, originalName: imageInfo.name, newName: generateOutputFileName(imageInfo.name, targetFormat), error: error instanceof Error ? error.message : i18n.t('tools.common.unknownError') };
+    return {
+      success: false,
+      originalName: imageInfo.name,
+      newName: generateOutputFileName(imageInfo.name, targetFormat),
+      error: i18n.t(`tools.imageConverter.${getImageConverterErrorKey(error)}`),
+    };
   }
 }
 
@@ -220,7 +278,10 @@ export function downloadImage(result: ConvertResult): void {
 
 export async function downloadAsZip(results: ConvertResult[]): Promise<void> {
   const zip = new JSZip();
-  results.filter(r => r.success && r.blob).forEach(r => r.blob && zip.file(r.newName, r.blob));
+  const usedNames = new Set<string>();
+  results
+    .filter(r => r.success && r.blob)
+    .forEach(r => r.blob && zip.file(makeUniqueFileName(r.newName, usedNames), r.blob));
   const content = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(content);
   const a = document.createElement('a');
@@ -315,9 +376,11 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
   };
 
   const handleWidthChange = (value: string) => {
-    const width = parseInt(value, 10) || 0;
+    const width = parseResizeDimension(value);
     if (selectedImage && options.resize.maintainAspectRatio) {
-      const { height } = calculateAspectRatio(selectedImage.width, selectedImage.height, width, undefined, true);
+      const { height } = width > 0
+        ? calculateAspectRatio(selectedImage.width, selectedImage.height, width, undefined, true)
+        : { height: 0 };
       setOptions((prev) => ({ ...prev, resize: { ...prev.resize, width, height } }));
     } else {
       setOptions((prev) => ({ ...prev, resize: { ...prev.resize, width } }));
@@ -325,9 +388,11 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
   };
 
   const handleHeightChange = (value: string) => {
-    const height = parseInt(value, 10) || 0;
+    const height = parseResizeDimension(value);
     if (selectedImage && options.resize.maintainAspectRatio) {
-      const { width } = calculateAspectRatio(selectedImage.width, selectedImage.height, undefined, height, true);
+      const { width } = height > 0
+        ? calculateAspectRatio(selectedImage.width, selectedImage.height, undefined, height, true)
+        : { width: 0 };
       setOptions((prev) => ({ ...prev, resize: { ...prev.resize, width, height } }));
     } else {
       setOptions((prev) => ({ ...prev, resize: { ...prev.resize, height } }));
@@ -339,6 +404,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
     setIsConverting(true);
     const result = await convertImage(selectedImage, options);
     setResults((prev) => new Map(prev).set(selectedImage.id, result));
+    setError(result.success ? null : result.error ?? t('tools.imageConverter.convertError'));
     setIsConverting(false);
   };
 

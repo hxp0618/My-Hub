@@ -61,9 +61,64 @@ export interface ToolConfig {
 export const DEFAULT_TOOL_ORDER: ToolId[] = Object.values(ToolId);
 
 /**
+ * 默认工具配置
+ */
+export const DEFAULT_TOOL_CONFIG: ToolConfig = { enabledTools: [...DEFAULT_TOOL_ORDER] };
+
+/**
  * 工具顺序存储键
  */
 export const TOOL_ORDER_STORAGE_KEY = 'tool_order';
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  !!value && typeof value === 'object' && !Array.isArray(value)
+);
+
+export const isToolIdValue = (value: unknown): value is ToolId => (
+  typeof value === 'string' && Object.values(ToolId).includes(value as ToolId)
+);
+
+const sanitizeToolIdList = (value: unknown): ToolId[] | null => {
+  if (!Array.isArray(value)) return null;
+
+  const seen = new Set<ToolId>();
+  const validIds: ToolId[] = [];
+  for (const id of value) {
+    if (isToolIdValue(id) && !seen.has(id)) {
+      seen.add(id);
+      validIds.push(id);
+    }
+  }
+  return validIds;
+};
+
+export const sanitizeToolConfig = (
+  value: unknown,
+  fallback: ToolConfig = DEFAULT_TOOL_CONFIG,
+): ToolConfig => {
+  if (!isRecord(value)) return fallback;
+
+  const enabledTools = sanitizeToolIdList(value.enabledTools) ?? fallback.enabledTools;
+  const toolOrder = sanitizeToolIdList(value.toolOrder);
+
+  return toolOrder ? { enabledTools, toolOrder } : { enabledTools };
+};
+
+export const sanitizeToolUsageCounts = (value: unknown): Record<string, number> => {
+  if (!isRecord(value)) return {};
+
+  return Object.entries(value).reduce<Record<string, number>>((counts, [toolId, count]) => {
+    if (
+      isToolIdValue(toolId) &&
+      typeof count === 'number' &&
+      Number.isInteger(count) &&
+      count >= 0
+    ) {
+      counts[toolId] = count;
+    }
+    return counts;
+  }, {});
+};
 
 /**
  * 验证并补全工具顺序
