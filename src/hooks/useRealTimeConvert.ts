@@ -127,6 +127,8 @@ export function useRealTimeConvert(
           if (silentError) {
             setError(null);
           }
+        } else if (silentError) {
+          setOutput('');
         }
       }, debounceMs),
     [debounceMs, executeConvert, silentError]
@@ -156,6 +158,8 @@ export function useRealTimeConvert(
     if (result !== null) {
       setOutput(result);
       setError(null);
+    } else {
+      setOutput('');
     }
   }, [input, executeConvert, debouncedAutoConvert]);
 

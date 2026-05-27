@@ -115,6 +115,13 @@ describe('NanoID Generator Properties', () => {
       { numRuns: 100 }
     );
   });
+
+  it('Property 11: NanoID should sanitize non-finite and unsupported lengths', () => {
+    expect(generateNanoID({ length: Number.NaN }).length).toBe(21);
+    expect(generateNanoID({ length: Number.POSITIVE_INFINITY }).length).toBe(21);
+    expect(generateNanoID({ length: 1.5 }).length).toBe(21);
+    expect(generateNanoID({ length: 999 }).length).toBe(64);
+  });
 });
 
 describe('ULID Generator Properties', () => {
@@ -374,6 +381,20 @@ describe('Random String Generator Properties', () => {
       { numRuns: 100 }
     );
   });
+
+  it('Property 5: String length should sanitize non-finite and unsupported values', () => {
+    const baseOptions = {
+      uppercase: true,
+      lowercase: true,
+      numbers: false,
+      symbols: false,
+    };
+
+    expect(generateRandomString({ ...baseOptions, length: Number.NaN }).length).toBe(16);
+    expect(generateRandomString({ ...baseOptions, length: Number.POSITIVE_INFINITY }).length).toBe(16);
+    expect(generateRandomString({ ...baseOptions, length: 1.5 }).length).toBe(16);
+    expect(generateRandomString({ ...baseOptions, length: 999 }).length).toBe(256);
+  });
 });
 
 describe('Random Number Generator Properties', () => {
@@ -478,6 +499,9 @@ describe('Batch Generator Properties', () => {
     expect(generateBatch(() => 'test', 0).length).toBe(1);
     expect(generateBatch(() => 'test', -5).length).toBe(1);
     expect(generateBatch(() => 'test', 150).length).toBe(100);
+    expect(generateBatch(() => 'test', Number.NaN).length).toBe(1);
+    expect(generateBatch(() => 'test', Number.POSITIVE_INFINITY).length).toBe(1);
+    expect(generateBatch(() => 'test', 2.5).length).toBe(1);
   });
 });
 
@@ -523,6 +547,10 @@ describe('Random generator stable errors', () => {
     }))).toBe('emptyCharacterSet');
 
     expect(getThrownMessage(() => generateRandomNumber({ min: 10, max: 1 })))
+      .toBe('invalidNumberRange');
+    expect(getThrownMessage(() => generateRandomNumber({ min: Number.NaN, max: 1 })))
+      .toBe('invalidNumberRange');
+    expect(getThrownMessage(() => generateRandomNumber({ min: 1, max: Number.POSITIVE_INFINITY })))
       .toBe('invalidNumberRange');
   });
 });

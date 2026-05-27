@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   normalizeSVGExportOptions,
   parseSVGExportDimension,
+  parseSVGExportQuality,
   readSVGFile,
   sanitizeSVG,
   svgToImage,
@@ -40,6 +41,11 @@ describe('svgService stable errors', () => {
     expect(parseSVGExportDimension('12.5', 128)).toBe(128);
     expect(parseSVGExportDimension(-10, 128)).toBe(128);
     expect(parseSVGExportDimension('999999', 128)).toBe(8192);
+    expect(parseSVGExportQuality('90', 50)).toBe(90);
+    expect(parseSVGExportQuality(' 101 ', 50)).toBe(100);
+    expect(parseSVGExportQuality('0', 50)).toBe(1);
+    expect(parseSVGExportQuality('90abc', 50)).toBe(50);
+    expect(parseSVGExportQuality(Number.NaN, 50)).toBe(50);
 
     expect(normalizeSVGExportOptions({
       ...DEFAULT_EXPORT_OPTIONS,

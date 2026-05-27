@@ -18,6 +18,7 @@ const EXECUTION_HISTORY_KEY = 'bark_task_execution_history';
 
 /** 最大执行历史记录数 */
 const MAX_EXECUTION_HISTORY = 50;
+const MAX_VALID_DATE_MS = 8_640_000_000_000_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   !!value && typeof value === 'object' && !Array.isArray(value)
@@ -25,6 +26,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 
 const isFiniteNumber = (value: unknown): value is number => (
   typeof value === 'number' && Number.isFinite(value)
+);
+
+const isValidTimestamp = (value: unknown): value is number => (
+  typeof value === 'number' &&
+  Number.isSafeInteger(value) &&
+  Math.abs(value) <= MAX_VALID_DATE_MS &&
+  !Number.isNaN(new Date(value).getTime())
 );
 
 const isStringArray = (value: unknown): value is string[] => (
@@ -270,12 +278,12 @@ export class ScheduledTaskStorage {
       typeof t.title === 'string' &&
       typeof t.body === 'string' &&
       isStringArray(t.targetKeyIds) &&
-      isFiniteNumber(t.createdAt) &&
-      isFiniteNumber(t.updatedAt) &&
+      isValidTimestamp(t.createdAt) &&
+      isValidTimestamp(t.updatedAt) &&
       isTaskOptions(t.options) &&
-      (t.scheduledTime === undefined || isFiniteNumber(t.scheduledTime)) &&
-      (t.nextExecutionTime === undefined || isFiniteNumber(t.nextExecutionTime)) &&
-      (t.lastExecutedAt === undefined || isFiniteNumber(t.lastExecutedAt)) &&
+      (t.scheduledTime === undefined || isValidTimestamp(t.scheduledTime)) &&
+      (t.nextExecutionTime === undefined || isValidTimestamp(t.nextExecutionTime)) &&
+      (t.lastExecutedAt === undefined || isValidTimestamp(t.lastExecutedAt)) &&
       (t.cronExpression === undefined || typeof t.cronExpression === 'string')
     );
   }
@@ -295,7 +303,7 @@ export class ScheduledTaskStorage {
     return (
       typeof r.id === 'string' &&
       typeof r.taskId === 'string' &&
-      isFiniteNumber(r.executedAt) &&
+      isValidTimestamp(r.executedAt) &&
       (r.status === 'success' || r.status === 'failed') &&
       isStringArray(r.targetKeyIds) &&
       isFiniteNumber(r.successCount) &&

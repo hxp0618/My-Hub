@@ -16,6 +16,16 @@ export type RandomGeneratorErrorCode = typeof RANDOM_GENERATOR_ERROR_CODES[numbe
 
 const createRandomGeneratorError = (code: RandomGeneratorErrorCode) => new Error(code);
 
+const sanitizeIntegerRange = (
+  value: number | undefined,
+  min: number,
+  max: number,
+  fallback: number
+): number => {
+  if (value === undefined || !Number.isSafeInteger(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+};
+
 // ==================== UUID 生成器 ====================
 
 export interface UUIDOptions {
@@ -75,7 +85,7 @@ const NANOID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
  * URL 安全的唯一字符串 ID
  */
 export const generateNanoID = (options: NanoIDOptions = {}): string => {
-  const length = Math.min(64, Math.max(1, options.length ?? 21));
+  const length = sanitizeIntegerRange(options.length, 1, 64, 21);
   let result = '';
   for (let i = 0; i < length; i++) {
     result += NANOID_ALPHABET[Math.floor(Math.random() * NANOID_ALPHABET.length)];
@@ -320,7 +330,7 @@ export const generateRandomString = (options: StringOptions): string => {
     throw createRandomGeneratorError('emptyCharacterSet');
   }
 
-  const length = Math.min(256, Math.max(1, options.length));
+  const length = sanitizeIntegerRange(options.length, 1, 256, 16);
   let result = '';
 
   for (let i = 0; i < length; i++) {
@@ -343,6 +353,10 @@ export interface NumberOptions {
  * @returns 范围内的随机整数（包含边界）
  */
 export const generateRandomNumber = (options: NumberOptions): number => {
+  if (!Number.isFinite(options.min) || !Number.isFinite(options.max)) {
+    throw createRandomGeneratorError('invalidNumberRange');
+  }
+
   const min = Math.ceil(options.min);
   const max = Math.floor(options.max);
 
@@ -562,6 +576,6 @@ export const calculateMD5 = (text: string, options: MD5Options = { uppercase: fa
  * @param count 生成数量 (1-100)
  */
 export const generateBatch = <T>(generator: () => T, count: number): T[] => {
-  const safeCount = Math.min(100, Math.max(1, count));
+  const safeCount = sanitizeIntegerRange(count, 1, 100, 1);
   return Array.from({ length: safeCount }, () => generator());
 };

@@ -49,6 +49,30 @@ describe('JSONFormatterTool', () => {
     });
   });
 
+  it('clears stale auto-formatted output when input becomes invalid', async () => {
+    render(<JSONFormatterTool isExpanded onToggleExpand={vi.fn()} />);
+
+    const input = screen.getByPlaceholderText('Paste or type JSON data...');
+    const output = screen.getByPlaceholderText('Formatted JSON will appear here...');
+
+    fireEvent.change(input, {
+      target: { value: '{"name":"My Hub"}' },
+    });
+
+    await waitFor(() => {
+      expect(output).toHaveValue('{\n  "name": "My Hub"\n}');
+    });
+
+    fireEvent.change(input, {
+      target: { value: '{"name":' },
+    });
+
+    await waitFor(() => {
+      expect(output).toHaveValue('');
+    });
+    expect(screen.queryByText('JSON Syntax Error')).not.toBeInTheDocument();
+  });
+
   it('compresses formatted JSON on demand', () => {
     render(<JSONFormatterTool isExpanded onToggleExpand={vi.fn()} />);
 

@@ -19,6 +19,33 @@ export interface ConversionOptions {
   indentSize?: 2 | 4;
 }
 
+export const DEFAULT_INDENT_SIZE: 2 | 4 = 2;
+export const INDENT_SIZE_OPTIONS = [2, 4] as const;
+export type IndentSizeOption = typeof INDENT_SIZE_OPTIONS[number];
+
+export function parseIndentSize(
+  value: unknown,
+  fallback: IndentSizeOption = DEFAULT_INDENT_SIZE
+): IndentSizeOption {
+  if (typeof value === 'number') {
+    return INDENT_SIZE_OPTIONS.includes(value as IndentSizeOption)
+      ? value as IndentSizeOption
+      : fallback;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (/^\d+$/.test(trimmedValue)) {
+      const parsedValue = Number(trimmedValue);
+      return INDENT_SIZE_OPTIONS.includes(parsedValue as IndentSizeOption)
+        ? parsedValue as IndentSizeOption
+        : fallback;
+    }
+  }
+
+  return fallback;
+}
+
 /**
  * 解析错误信息
  */
@@ -167,7 +194,7 @@ export function convert(
   targetFormat: DataFormat,
   options: ConversionOptions = {}
 ): ConversionResult {
-  const { indentSize = 2 } = options;
+  const indentSize = parseIndentSize(options.indentSize, DEFAULT_INDENT_SIZE);
   
   if (!input.trim()) {
     return { success: true, output: '' };

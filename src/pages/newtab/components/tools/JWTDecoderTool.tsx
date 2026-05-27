@@ -16,6 +16,7 @@ export interface JWTDecodeResult {
 export type JWTDecodeErrorCode = 'invalidFormat' | 'invalidJsonObject' | 'decodeFailed';
 
 const JWT_OBJECT_ERROR_CODE: JWTDecodeErrorCode = 'invalidJsonObject';
+const MAX_VALID_DATE_MS = 8.64e15;
 
 const decodeBase64Url = (value: string): string => {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
@@ -32,6 +33,18 @@ const parseJwtObject = (value: string): Record<string, unknown> => {
   }
 
   return parsed as Record<string, unknown>;
+};
+
+export const parseJwtNumericDate = (value: unknown): Date | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+
+  const timestampMs = value * 1000;
+  if (!Number.isFinite(timestampMs) || Math.abs(timestampMs) > MAX_VALID_DATE_MS) {
+    return null;
+  }
+
+  const date = new Date(timestampMs);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 /**
@@ -57,9 +70,9 @@ export const decodeJWT = (token: string): JWTDecodeResult => {
     let isExpired = false;
     let expiresAt: Date | null = null;
 
-    // JWT NumericDate 使用秒级时间戳；非数字 exp 不参与过期判断。
-    if (typeof payload.exp === 'number' && Number.isFinite(payload.exp)) {
-      expiresAt = new Date(payload.exp * 1000);
+    // JWT NumericDate 使用秒级时间戳；非法或超出 Date 范围的 exp 不参与过期判断。
+    expiresAt = parseJwtNumericDate(payload.exp);
+    if (expiresAt) {
       isExpired = expiresAt < new Date();
     }
 

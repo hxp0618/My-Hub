@@ -44,10 +44,20 @@ export interface UseInputHistoryReturn {
 
 // localStorage key 前缀
 const STORAGE_KEY_PREFIX = 'tool_history_';
+const MAX_VALID_DATE_MS = 8_640_000_000_000_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   !!value && typeof value === 'object' && !Array.isArray(value)
 );
+
+const isValidHistoryTimestamp = (value: unknown): value is number => {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+    return false;
+  }
+
+  // Date accepts finite numbers beyond its valid range and then renders "Invalid Date".
+  return Math.abs(value) <= MAX_VALID_DATE_MS && !Number.isNaN(new Date(value).getTime());
+};
 
 export function sanitizeInputHistoryItems(value: unknown, maxItems = 20): HistoryItem[] {
   if (!Array.isArray(value)) {
@@ -70,8 +80,7 @@ export function sanitizeInputHistoryItems(value: unknown, maxItems = 20): Histor
       seenIds.has(id) ||
       typeof content !== 'string' ||
       content.trim().length === 0 ||
-      typeof timestamp !== 'number' ||
-      !Number.isFinite(timestamp)
+      !isValidHistoryTimestamp(timestamp)
     ) {
       continue;
     }

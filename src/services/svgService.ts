@@ -86,12 +86,34 @@ export function parseSVGExportDimension(
   return Math.min(dimension, MAX_SVG_EXPORT_DIMENSION);
 }
 
+export function parseSVGExportQuality(
+  value: string | number,
+  fallback: number = DEFAULT_EXPORT_OPTIONS.quality
+): number {
+  const fallbackQuality = Number.isSafeInteger(fallback)
+    ? Math.min(100, Math.max(1, fallback))
+    : DEFAULT_EXPORT_OPTIONS.quality;
+
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) return fallbackQuality;
+    return Math.min(100, Math.max(1, value));
+  }
+
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) return fallbackQuality;
+
+  const quality = Number(trimmedValue);
+  return Number.isSafeInteger(quality)
+    ? Math.min(100, Math.max(1, quality))
+    : fallbackQuality;
+}
+
 export function normalizeSVGExportOptions(options: ExportOptions): ExportOptions {
   return {
     ...options,
     width: parseSVGExportDimension(options.width, DEFAULT_EXPORT_OPTIONS.width),
     height: parseSVGExportDimension(options.height, DEFAULT_EXPORT_OPTIONS.height),
-    quality: Math.min(100, Math.max(1, parseSVGExportDimension(options.quality, DEFAULT_EXPORT_OPTIONS.quality))),
+    quality: parseSVGExportQuality(options.quality, DEFAULT_EXPORT_OPTIONS.quality),
   };
 }
 
@@ -474,6 +496,7 @@ export function downloadImage(blob: Blob, filename: string): void {
 export default {
   normalizeSVGExportOptions,
   parseSVGExportDimension,
+  parseSVGExportQuality,
   validateSVG,
   parseSVGInfo,
   formatSVG,

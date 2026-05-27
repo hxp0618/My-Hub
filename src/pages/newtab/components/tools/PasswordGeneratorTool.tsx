@@ -27,6 +27,9 @@ const CHAR_SETS = {
 const HISTORY_KEY = 'password-generator-history';
 const MAX_HISTORY = 20;
 const UINT32_SIZE = 0x100000000;
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 128;
+export const DEFAULT_PASSWORD_LENGTH = 16;
 
 const isHistoryItem = (item: unknown): item is HistoryItem => {
   if (!item || typeof item !== 'object') return false;
@@ -68,6 +71,28 @@ const persistHistory = (items: HistoryItem[]) => {
   }
 };
 
+export const parsePasswordLength = (
+  value: string | number,
+  fallback = DEFAULT_PASSWORD_LENGTH
+): number => {
+  const safeFallback = Number.isSafeInteger(fallback)
+    ? Math.min(MAX_PASSWORD_LENGTH, Math.max(MIN_PASSWORD_LENGTH, fallback))
+    : DEFAULT_PASSWORD_LENGTH;
+
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) return safeFallback;
+    return Math.min(MAX_PASSWORD_LENGTH, Math.max(MIN_PASSWORD_LENGTH, value));
+  }
+
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) return safeFallback;
+
+  const parsedValue = Number(trimmedValue);
+  return Number.isSafeInteger(parsedValue)
+    ? Math.min(MAX_PASSWORD_LENGTH, Math.max(MIN_PASSWORD_LENGTH, parsedValue))
+    : safeFallback;
+};
+
 /**
  * 生成密码
  */
@@ -79,9 +104,9 @@ export const generatePassword = (options: PasswordOptions): string => {
     options.symbols ? CHAR_SETS.symbols : '',
   ].filter(Boolean);
   const chars = selectedCharSets.join('');
-  const length = Math.max(0, Math.floor(options.length));
+  const length = parsePasswordLength(options.length);
 
-  if (!chars || length === 0) return '';
+  if (!chars) return '';
 
   const randomIndex = (maxExclusive: number) => {
     const limit = UINT32_SIZE - (UINT32_SIZE % maxExclusive);
@@ -128,7 +153,7 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
   const [options, setOptions] = useState<PasswordOptions>({
-    length: 16, uppercase: true, lowercase: true, numbers: true, symbols: false,
+    length: DEFAULT_PASSWORD_LENGTH, uppercase: true, lowercase: true, numbers: true, symbols: false,
   });
   const [password, setPassword] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -195,8 +220,8 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
               {t('tools.passwordGenerator.length')}: {options.length}
             </label>
             <input
-              type="range" min={8} max={128} value={options.length}
-              onChange={e => updateOption('length', Number(e.target.value))}
+              type="range" min={MIN_PASSWORD_LENGTH} max={MAX_PASSWORD_LENGTH} value={options.length}
+              onChange={e => updateOption('length', parsePasswordLength(e.target.value, options.length))}
               className="w-full accent-[var(--nb-accent-yellow)]"
             />
           </div>

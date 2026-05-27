@@ -80,6 +80,8 @@ export const FORMAT_EXTENSION_MAP: Record<ImageFormat, string> = {
 };
 
 export const ICO_SIZES = [16, 32, 48, 64, 128, 256];
+export const DEFAULT_IMAGE_QUALITY = 85;
+export const DEFAULT_ICO_SIZE = 32;
 export const MAX_RESIZE_DIMENSION = 8192;
 const SUPPORTED_INPUT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp'];
 const IMAGE_CONVERTER_ERROR_KEYS = ['loadError', 'convertError'] as const;
@@ -160,6 +162,45 @@ export function parseResizeDimension(value: string | number): number {
   return Math.min(num, MAX_RESIZE_DIMENSION);
 }
 
+export function parseImageQuality(
+  value: string | number,
+  fallback = DEFAULT_IMAGE_QUALITY
+): number {
+  const safeFallback = Number.isSafeInteger(fallback)
+    ? Math.min(100, Math.max(1, fallback))
+    : DEFAULT_IMAGE_QUALITY;
+
+  const rawValue = typeof value === 'string' ? value.trim() : value;
+  if (typeof rawValue === 'string') {
+    if (!/^\d+$/.test(rawValue)) return safeFallback;
+    const parsedValue = Number(rawValue);
+    return Number.isSafeInteger(parsedValue)
+      ? Math.min(100, Math.max(1, parsedValue))
+      : safeFallback;
+  }
+
+  if (!Number.isSafeInteger(rawValue)) return safeFallback;
+  return Math.min(100, Math.max(1, rawValue));
+}
+
+export function parseIcoSizeOption(
+  value: string | number | undefined,
+  fallback = DEFAULT_ICO_SIZE
+): number {
+  const safeFallback = ICO_SIZES.includes(fallback) ? fallback : DEFAULT_ICO_SIZE;
+  const rawValue = typeof value === 'string' ? value.trim() : value;
+
+  if (typeof rawValue === 'string') {
+    if (!/^\d+$/.test(rawValue)) return safeFallback;
+    const parsedValue = Number(rawValue);
+    return ICO_SIZES.includes(parsedValue) ? parsedValue : safeFallback;
+  }
+
+  return typeof rawValue === 'number' && ICO_SIZES.includes(rawValue)
+    ? rawValue
+    : safeFallback;
+}
+
 export function generateOutputFileName(originalName: string, targetFormat: ImageFormat): string {
   const baseName = originalName.replace(/\.[^/.]+$/, '');
   const safeBaseName = baseName
@@ -205,7 +246,9 @@ function getImageConverterErrorKey(error: unknown): ImageConverterErrorKey {
 }
 
 export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions): Promise<ConvertResult> {
-  const { targetFormat, quality, resize, icoSize } = options;
+  const { targetFormat, resize } = options;
+  const quality = parseImageQuality(options.quality);
+  const icoSize = parseIcoSizeOption(options.icoSize);
   try {
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
@@ -223,7 +266,7 @@ export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions
       targetHeight = calculated.height;
     }
 
-    if (targetFormat === 'ico' && icoSize) {
+    if (targetFormat === 'ico') {
       targetWidth = icoSize;
       targetHeight = icoSize;
     }
@@ -319,9 +362,9 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [options, setOptions] = useState<ConvertOptions>({
     targetFormat: 'png',
-    quality: 85,
+    quality: DEFAULT_IMAGE_QUALITY,
     resize: { enabled: false, width: 0, height: 0, maintainAspectRatio: true },
-    icoSize: 32,
+    icoSize: DEFAULT_ICO_SIZE,
   });
   const [results, setResults] = useState<Map<string, ConvertResult>>(new Map());
   const [isConverting, setIsConverting] = useState(false);
@@ -576,7 +619,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
               {shouldShowQualitySlider(options.targetFormat) && (
                 <div>
                   <label className="block text-sm nb-text mb-1">{t('tools.imageConverter.quality')}: {options.quality}%</label>
-                  <input type="range" min="1" max="100" value={options.quality} onChange={(e) => setOptions(prev => ({ ...prev, quality: parseInt(e.target.value, 10) }))} className="w-full accent-[color:var(--nb-border)]" />
+                  <input type="range" min="1" max="100" value={options.quality} onChange={(e) => setOptions(prev => ({ ...prev, quality: parseImageQuality(e.target.value, prev.quality) }))} className="w-full accent-[color:var(--nb-border)]" />
                 </div>
               )}
 
@@ -584,7 +627,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
               {options.targetFormat === 'ico' && (
                 <div>
                   <label className="block text-sm nb-text mb-1">{t('tools.imageConverter.icoSize')}</label>
-                  <select value={options.icoSize} onChange={(e) => setOptions(prev => ({ ...prev, icoSize: parseInt(e.target.value, 10) }))} className="nb-input w-full text-sm">
+                  <select value={options.icoSize} onChange={(e) => setOptions(prev => ({ ...prev, icoSize: parseIcoSizeOption(e.target.value, prev.icoSize) }))} className="nb-input w-full text-sm">
                     {ICO_SIZES.map(size => <option key={size} value={size}>{size}×{size}</option>)}
                   </select>
                 </div>

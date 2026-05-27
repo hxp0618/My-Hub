@@ -26,6 +26,7 @@ import {
   calculateAspectRatio,
   downloadImage,
   parseSVGExportDimension,
+  parseSVGExportQuality,
 } from '../../../../services/svgService';
 import { createLogger } from '../../../../utils/logger';
 
@@ -423,7 +424,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
                   min="1"
                   max="100"
                   value={exportOptions.quality}
-                  onChange={(e) => setExportOptions(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
+                  onChange={(e) => setExportOptions(prev => ({ ...prev, quality: parseSVGExportQuality(e.target.value, prev.quality) }))}
                   className="w-24 accent-[color:var(--nb-border)]"
                 />
               </div>

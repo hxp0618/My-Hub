@@ -6,6 +6,8 @@ import {
   convertImage,
   generateOutputFileName,
   makeUniqueFileName,
+  parseIcoSizeOption,
+  parseImageQuality,
   parseResizeDimension,
   validateImageFile,
   validateSizeInput,
@@ -74,6 +76,20 @@ describe('ImageConverterTool helpers', () => {
     expect(parseResizeDimension('-12')).toBe(0);
     expect(parseResizeDimension('999999')).toBe(8192);
     expect(validateSizeInput('12abc')).toBe(false);
+  });
+
+  it('strictly parses quality and ICO size options', () => {
+    expect(parseImageQuality('90')).toBe(90);
+    expect(parseImageQuality(' 101 ')).toBe(100);
+    expect(parseImageQuality('0')).toBe(1);
+    expect(parseImageQuality('90abc', 75)).toBe(75);
+    expect(parseImageQuality(Number.NaN, 75)).toBe(75);
+
+    expect(parseIcoSizeOption('64')).toBe(64);
+    expect(parseIcoSizeOption(256)).toBe(256);
+    expect(parseIcoSizeOption('48abc', 32)).toBe(32);
+    expect(parseIcoSizeOption('24', 64)).toBe(64);
+    expect(parseIcoSizeOption(undefined, 48)).toBe(48);
   });
 
   it('sanitizes generated output names and keeps zip names unique', () => {

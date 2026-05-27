@@ -16,6 +16,25 @@ export interface HSL {
   l: number;
 }
 
+export const parseRgbChannel = (value: string | number, fallback = 0): number => {
+  const safeFallback = Number.isSafeInteger(fallback)
+    ? Math.min(255, Math.max(0, fallback))
+    : 0;
+
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) return safeFallback;
+    return Math.min(255, Math.max(0, value));
+  }
+
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) return safeFallback;
+
+  const parsedValue = Number(trimmedValue);
+  return Number.isSafeInteger(parsedValue)
+    ? Math.min(255, Math.max(0, parsedValue))
+    : safeFallback;
+};
+
 /**
  * HEX 转 RGB
  */
@@ -119,10 +138,10 @@ export const parseRgbString = (str: string): RGB | null => {
   const normalized = str.trim().replace(/^rgb\(\s*/i, '').replace(/\s*\)$/, '');
   const match = normalized.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
   if (!match) return null;
-  const r = parseInt(match[1], 10);
-  const g = parseInt(match[2], 10);
-  const b = parseInt(match[3], 10);
-  if (r > 255 || g > 255 || b > 255) return null;
+  if (match.slice(1).some(channel => Number(channel) > 255)) return null;
+  const r = parseRgbChannel(match[1]);
+  const g = parseRgbChannel(match[2]);
+  const b = parseRgbChannel(match[3]);
   return { r, g, b };
 };
 
@@ -351,7 +370,7 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
                 max={255}
                 value={rgb[channel]}
                 onChange={e => {
-                  const newRgb = { ...rgb, [channel]: parseInt(e.target.value, 10) };
+                  const newRgb = { ...rgb, [channel]: parseRgbChannel(e.target.value, rgb[channel]) };
                   setRgb(newRgb);
                   setActiveInput('rgb');
                   updateFromRgb(newRgb);

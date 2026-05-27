@@ -14,13 +14,17 @@ import {
   DEFAULT_SUBSCRIPTION_SETTINGS,
   PageSizeOption,
   PAGE_SIZE_OPTIONS,
+  parsePageSizeOption,
 } from '../../../types/subscription';
 import { subscriptionService, compareSubscriptions } from '../../../services/SubscriptionService';
 import { getSubscriptionSettings, setSubscriptionSettings } from '../../../db/indexedDB';
 import { subscriptionConfigExporter } from '../../../services/SubscriptionConfigExporter';
 import type { ImportValidationIssue } from '../../../services/SubscriptionConfigExporter';
 import { SubscriptionList } from './tools/subscription/SubscriptionList';
-import { SubscriptionForm } from './tools/subscription/SubscriptionForm';
+import {
+  SubscriptionForm,
+  parseSubscriptionReminderDays,
+} from './tools/subscription/SubscriptionForm';
 import { Pagination } from './tools/subscription/Pagination';
 import {
   buildSubscriptionCalendar,
@@ -80,7 +84,7 @@ export const SubscriptionsPage: React.FC = () => {
 
   // 计算分页数据
   const paginationData = useMemo(() => {
-    const pageSize = settings.pageSize || PAGE_SIZE_OPTIONS[0];
+    const pageSize = parsePageSizeOption(settings.pageSize, PAGE_SIZE_OPTIONS[0]);
     const totalItems = visibleSubscriptions.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     
@@ -637,7 +641,13 @@ export const SubscriptionsPage: React.FC = () => {
             </label>
             <select
               value={settings.defaultReminderDays}
-              onChange={(e) => handleUpdateSettings({ ...settings, defaultReminderDays: parseInt(e.target.value) })}
+              onChange={(e) => handleUpdateSettings({
+                ...settings,
+                defaultReminderDays: parseSubscriptionReminderDays(
+                  e.target.value,
+                  settings.defaultReminderDays
+                ),
+              })}
               className="nb-input w-full text-sm"
             >
               {[1, 3, 5, 7, 14, 30].map((days) => (

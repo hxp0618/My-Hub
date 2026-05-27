@@ -105,6 +105,7 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
           setError('');
         } catch {
           // 自动格式化时不显示错误，避免干扰用户输入
+          setOutput('');
           setError('');
         }
       }, 500),

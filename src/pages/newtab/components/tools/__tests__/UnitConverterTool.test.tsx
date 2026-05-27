@@ -66,4 +66,30 @@ describe('UnitConverterTool', () => {
     expect(screen.getByText('Unit conversion failed')).toBeInTheDocument();
     expect(screen.queryByText(/evil-unit|Unknown unit/i)).not.toBeInTheDocument();
   });
+
+  it('rejects malformed numeric input before conversion', () => {
+    render(<UnitConverterTool isExpanded onToggleExpand={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter value to convert...'), {
+      target: { value: '12abc' },
+    });
+
+    expect(screen.getByText('Please enter a valid number')).toBeInTheDocument();
+    expect(convertUnitsMock).not.toHaveBeenCalled();
+  });
+
+  it('clears stale results when input becomes invalid', () => {
+    convertUnitsMock.mockReturnValue([{ unit: 'ms', value: '90', rawValue: 90 }]);
+
+    render(<UnitConverterTool isExpanded onToggleExpand={vi.fn()} />);
+
+    const input = screen.getByPlaceholderText('Enter value to convert...');
+    fireEvent.change(input, { target: { value: '90' } });
+    expect(screen.getByText('90')).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: '1e309' } });
+
+    expect(screen.getByText('Please enter a valid number')).toBeInTheDocument();
+    expect(screen.queryByText('90')).not.toBeInTheDocument();
+  });
 });

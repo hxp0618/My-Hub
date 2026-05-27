@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useRealTimeConvert } from '../useRealTimeConvert';
 
@@ -45,5 +45,30 @@ describe('useRealTimeConvert', () => {
     });
 
     expect(result.current.error).toBe('Conversion failed');
+  });
+
+  it('clears stale output when silent auto conversion fails', async () => {
+    const { result } = renderHook(() => useRealTimeConvert(
+      (value) => {
+        if (value === 'bad') {
+          throw new Error('raw decode failure');
+        }
+        return value.toUpperCase();
+      },
+      { debounceMs: 1, silentError: true }
+    ));
+
+    act(() => {
+      result.current.setInput('ok');
+    });
+    await waitFor(() => expect(result.current.output).toBe('OK'));
+
+    act(() => {
+      result.current.setInput('bad');
+    });
+    await waitFor(() => expect(result.current.output).toBe(''));
+
+    expect(result.current.output).toBe('');
+    expect(result.current.error).toBeNull();
   });
 });

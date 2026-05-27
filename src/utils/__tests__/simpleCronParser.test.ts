@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSimpleCron, validateSimpleCron } from '../simpleCronParser';
+import { getNextExecutionTime, parseSimpleCron, validateSimpleCron } from '../simpleCronParser';
 
 describe('simpleCronParser', () => {
   it('parses valid standard five-field cron expressions', () => {
@@ -18,5 +18,10 @@ describe('simpleCronParser', () => {
     expect(validateSimpleCron('30-10 * * * *')).toBe(false);
     expect(validateSimpleCron('*/999 * * * *')).toBe(false);
     expect(validateSimpleCron('1,,2 * * * *')).toBe(false);
+  });
+
+  it('does not schedule malformed cron expressions', () => {
+    expect(getNextExecutionTime('5abc * * * *')).toBeNull();
+    expect(getNextExecutionTime('*/2abc * * * *')).toBeNull();
   });
 });

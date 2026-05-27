@@ -8,8 +8,12 @@ import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import {
   validateInput,
+  parseUnitInput,
   formatValue,
   convert,
+  convertUnits,
+  toBaseUnit,
+  fromBaseUnit,
   saveCategoryPreference,
   loadCategoryPreference,
   CATEGORY_CONFIGS,
@@ -213,6 +217,15 @@ describe('Property 3: 输入验证拒绝非数字', () => {
     );
   });
 
+  it('解析有效输入时返回完整数值，非法或空输入返回 null', () => {
+    expect(parseUnitInput('12')).toBe(12);
+    expect(parseUnitInput(' 0.5 ')).toBe(0.5);
+    expect(parseUnitInput('-.5')).toBe(-0.5);
+    expect(parseUnitInput('')).toBeNull();
+    expect(parseUnitInput('12abc')).toBeNull();
+    expect(parseUnitInput('Infinity')).toBeNull();
+  });
+
   it('包含字母的字符串应被拒绝', () => {
     const invalidStrings = [
       'abc', '123abc', 'abc123', '12a34', 
@@ -343,6 +356,12 @@ describe('Property 5: 科学计数法阈值', () => {
   it('零应格式化为 "0"', () => {
     expect(formatValue(0)).toBe('0');
   });
+
+  it('非有限值应格式化为对应文本而不是误报为正无穷', () => {
+    expect(formatValue(Number.NaN)).toBe('NaN');
+    expect(formatValue(Number.POSITIVE_INFINITY)).toBe('Infinity');
+    expect(formatValue(Number.NEGATIVE_INFINITY)).toBe('-Infinity');
+  });
 });
 
 // ============================================================================
@@ -426,5 +445,12 @@ describe('Unit converter stable errors', () => {
     expect(message).toBe('unknownUnit');
     expect(message).not.toContain('evil-unit');
     expect(message).not.toContain('time');
+  });
+
+  it('rejects non-finite conversion values with a stable error code', () => {
+    expect(getThrownMessage(() => convertUnits(Number.NaN, 's', 'time'))).toBe('invalidValue');
+    expect(getThrownMessage(() => convert(Number.POSITIVE_INFINITY, 's', 'min', 'time'))).toBe('invalidValue');
+    expect(getThrownMessage(() => toBaseUnit(Number.NEGATIVE_INFINITY, 's', 'time'))).toBe('invalidValue');
+    expect(getThrownMessage(() => fromBaseUnit(Number.NaN, 's', 'time'))).toBe('invalidValue');
   });
 });

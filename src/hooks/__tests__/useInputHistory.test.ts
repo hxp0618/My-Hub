@@ -9,6 +9,8 @@ describe('useInputHistory sanitizers', () => {
       { id: 'b', content: '   ', timestamp: 102 },
       { id: 'c', content: 'third', timestamp: Number.NaN },
       { id: 'd', content: 'second', timestamp: 103 },
+      { id: 'e', content: 'invalid date', timestamp: 9_000_000_000_000_000 },
+      { id: 'f', content: 'fractional date', timestamp: 104.5 },
       null,
     ], 2)).toEqual([
       { id: 'a', content: 'first', timestamp: 100 },

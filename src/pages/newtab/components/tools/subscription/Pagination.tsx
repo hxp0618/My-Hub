@@ -4,7 +4,11 @@
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { PAGE_SIZE_OPTIONS, PageSizeOption } from '../../../../../types/subscription';
+import {
+  PAGE_SIZE_OPTIONS,
+  PageSizeOption,
+  parsePageSizeOption,
+} from '../../../../../types/subscription';
 
 interface PaginationProps {
   currentPage: number;
@@ -139,7 +143,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         </span>
         <select
           value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value) as PageSizeOption)}
+          onChange={(e) => onPageSizeChange(parsePageSizeOption(e.target.value))}
           className="nb-input text-sm py-1 px-2 min-w-[70px]"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (

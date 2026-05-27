@@ -13,6 +13,7 @@ import {
   DEFAULT_NOTIFICATION_CONFIG,
   NotificationChannel,
   SubscriptionStatus,
+  isPageSizeOption,
 } from '../types/subscription';
 import {
   getAllSubscriptions,
@@ -266,7 +267,7 @@ function validateSettings(settings: unknown): { errors: string[]; issues: Import
     issues.push({ code: 'invalidDailyReminder' });
   }
 
-  if (!isFiniteNumber(s.pageSize) || s.pageSize <= 0) {
+  if (!isPageSizeOption(s.pageSize)) {
     errors.push('设置: 无效的分页数量');
     issues.push({ code: 'invalidPageSize' });
   }

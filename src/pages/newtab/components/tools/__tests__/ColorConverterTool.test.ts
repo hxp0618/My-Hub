@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hexToRgb, parseHslString, parseRgbString } from '../ColorConverterTool';
+import { hexToRgb, parseHslString, parseRgbChannel, parseRgbString } from '../ColorConverterTool';
 
 describe('ColorConverterTool parsers', () => {
   it('accepts long and shorthand hex colors', () => {
@@ -17,6 +17,16 @@ describe('ColorConverterTool parsers', () => {
     expect(parseRgbString('rgb(256, 0, 0)')).toBeNull();
     expect(parseRgbString('rgb(1.5, 0, 0)')).toBeNull();
     expect(parseRgbString('rgb(1, 2)')).toBeNull();
+  });
+
+  it('strictly parses RGB channel values for UI controls', () => {
+    expect(parseRgbChannel('128')).toBe(128);
+    expect(parseRgbChannel(' 255 ')).toBe(255);
+    expect(parseRgbChannel('999')).toBe(255);
+    expect(parseRgbChannel('-1', 12)).toBe(12);
+    expect(parseRgbChannel('12abc', 64)).toBe(64);
+    expect(parseRgbChannel('12.5', 64)).toBe(64);
+    expect(parseRgbChannel(Number.NaN, 64)).toBe(64);
   });
 
   it('accepts plain and CSS hsl input', () => {

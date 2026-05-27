@@ -7,6 +7,10 @@ import {
   convert,
   detectFormat,
   DataFormat,
+  DEFAULT_INDENT_SIZE,
+  IndentSizeOption,
+  INDENT_SIZE_OPTIONS,
+  parseIndentSize,
 } from '../../../../utils/formatConverter';
 
 /**
@@ -25,7 +29,7 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
   const [error, setError] = useState<{ message: string; line?: number } | null>(null);
   const [sourceFormat, setSourceFormat] = useState<DataFormat>('json');
   const [targetFormat, setTargetFormat] = useState<DataFormat>('yaml');
-  const [indentSize, setIndentSize] = useState<2 | 4>(2);
+  const [indentSize, setIndentSize] = useState<IndentSizeOption>(DEFAULT_INDENT_SIZE);
   const [autoDetect, setAutoDetect] = useState(true);
 
   // 格式选项
@@ -201,11 +205,14 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
             </label>
             <select
               value={indentSize}
-              onChange={e => setIndentSize(parseInt(e.target.value) as 2 | 4)}
+              onChange={e => setIndentSize(current => parseIndentSize(e.target.value, current))}
               className="nb-input text-sm"
             >
-              <option value={2}>2 {t('tools.yamlTomlConverter.spaces')}</option>
-              <option value={4}>4 {t('tools.yamlTomlConverter.spaces')}</option>
+              {INDENT_SIZE_OPTIONS.map(size => (
+                <option key={size} value={size}>
+                  {size} {t('tools.yamlTomlConverter.spaces')}
+                </option>
+              ))}
             </select>
           </div>
 

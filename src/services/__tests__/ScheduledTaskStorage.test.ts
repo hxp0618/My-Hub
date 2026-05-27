@@ -48,6 +48,8 @@ describe('ScheduledTaskStorage', () => {
       createTask(),
       createTask({ id: 'task_bad_keys', targetKeyIds: ['key_1', 42] as unknown as string[] }),
       createTask({ id: 'task_bad_time', nextExecutionTime: Number.NaN }),
+      createTask({ id: 'task_bad_date', nextExecutionTime: 9_000_000_000_000_000 }),
+      createTask({ id: 'task_fractional_date', scheduledTime: 100.5 }),
       createTask({ id: 'task_bad_options', options: { icon: 123 } as unknown as ScheduledTask['options'] }),
     ]));
 
@@ -83,6 +85,8 @@ describe('ScheduledTaskStorage', () => {
       createExecutionRecord(1),
       { ...createExecutionRecord(2), targetKeyIds: ['key_1', null] },
       { ...createExecutionRecord(3), executedAt: Number.NaN },
+      { ...createExecutionRecord(4), executedAt: 9_000_000_000_000_000 },
+      { ...createExecutionRecord(5), executedAt: 1.5 },
       { ...createExecutionRecord(4), errorMessage: 500 },
       { ...createExecutionRecord(5), errorMessageKey: 'rawServerMessage' },
     ]));

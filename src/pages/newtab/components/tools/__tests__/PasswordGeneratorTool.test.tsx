@@ -1,7 +1,11 @@
 import React from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { generatePassword, PasswordGeneratorTool } from '../PasswordGeneratorTool';
+import {
+  generatePassword,
+  parsePasswordLength,
+  PasswordGeneratorTool,
+} from '../PasswordGeneratorTool';
 
 const HISTORY_KEY = 'password-generator-history';
 
@@ -84,6 +88,34 @@ describe('PasswordGeneratorTool', () => {
     expect(password).toMatch(/[a-z]/);
     expect(password).toMatch(/[0-9]/);
     expect(password).toMatch(/[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/);
+  });
+
+  it('strictly parses password length within the supported range', () => {
+    expect(parsePasswordLength('32')).toBe(32);
+    expect(parsePasswordLength(' 128 ')).toBe(128);
+    expect(parsePasswordLength('2')).toBe(8);
+    expect(parsePasswordLength('999')).toBe(128);
+    expect(parsePasswordLength('16abc', 24)).toBe(24);
+    expect(parsePasswordLength('16.5', 24)).toBe(24);
+    expect(parsePasswordLength(Number.NaN, 24)).toBe(24);
+  });
+
+  it('sanitizes generated password length before building output', () => {
+    expect(generatePassword({
+      length: 2,
+      uppercase: true,
+      lowercase: true,
+      numbers: false,
+      symbols: false,
+    })).toHaveLength(8);
+
+    expect(generatePassword({
+      length: 999,
+      uppercase: true,
+      lowercase: false,
+      numbers: false,
+      symbols: false,
+    })).toHaveLength(128);
   });
 
   it('returns an empty password when no character type is selected', () => {

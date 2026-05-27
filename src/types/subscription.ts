@@ -256,6 +256,33 @@ export const DEFAULT_SUBSCRIPTION_SETTINGS: SubscriptionSettings = {
  */
 export const DEFAULT_PAGE_SIZE: PageSizeOption = 10;
 
+export function isPageSizeOption(value: unknown): value is PageSizeOption {
+  return typeof value === 'number'
+    && Number.isSafeInteger(value)
+    && (PAGE_SIZE_OPTIONS as readonly number[]).includes(value);
+}
+
+export function parsePageSizeOption(
+  value: unknown,
+  fallback: PageSizeOption = DEFAULT_PAGE_SIZE
+): PageSizeOption {
+  if (isPageSizeOption(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (/^\d+$/.test(trimmedValue)) {
+      const parsedValue = Number(trimmedValue);
+      if (isPageSizeOption(parsedValue)) {
+        return parsedValue;
+      }
+    }
+  }
+
+  return fallback;
+}
+
 /**
  * 订阅类型图标映射
  */

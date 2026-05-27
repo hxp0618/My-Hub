@@ -120,6 +120,19 @@ describe('subscription config import validation', () => {
     ]));
   });
 
+  it('rejects unsupported imported subscription page sizes', () => {
+    const result = validateImportData(JSON.stringify({
+      ...validExportData,
+      settings: {
+        ...DEFAULT_SUBSCRIPTION_SETTINGS,
+        pageSize: 25,
+      },
+    }));
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContainEqual({ code: 'invalidPageSize' });
+  });
+
   it('reports a structured issue when subscription data is missing', () => {
     const result = validateImportData(JSON.stringify({
       ...validExportData,

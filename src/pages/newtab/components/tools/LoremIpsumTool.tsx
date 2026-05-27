@@ -28,14 +28,26 @@ const CHINESE_WORDS = [
 
 export const getLoremMaxCount = (mode: LoremMode): number => LOREM_MAX_COUNTS[mode];
 
+export const normalizeLoremCount = (
+  count: number,
+  mode: LoremMode,
+  fallback = LOREM_MIN_COUNT
+): number => {
+  const maxCount = getLoremMaxCount(mode);
+  const safeFallback = Number.isSafeInteger(fallback)
+    ? Math.min(maxCount, Math.max(LOREM_MIN_COUNT, fallback))
+    : LOREM_MIN_COUNT;
+
+  if (!Number.isSafeInteger(count)) return safeFallback;
+  return Math.min(maxCount, Math.max(LOREM_MIN_COUNT, count));
+};
+
 export const parseLoremCountInput = (value: string, mode: LoremMode, fallback = LOREM_MIN_COUNT): number => {
   const trimmedValue = value.trim();
   if (!/^\d+$/.test(trimmedValue)) return fallback;
 
   const parsedValue = Number(trimmedValue);
-  if (!Number.isSafeInteger(parsedValue)) return fallback;
-
-  return Math.min(getLoremMaxCount(mode), Math.max(LOREM_MIN_COUNT, parsedValue));
+  return normalizeLoremCount(parsedValue, mode, fallback);
 };
 
 /**
@@ -48,10 +60,11 @@ export const generateLoremIpsum = (
 ): string => {
   const words = language === 'latin' ? LOREM_WORDS : CHINESE_WORDS;
   const separator = language === 'latin' ? ' ' : '';
+  const safeCount = normalizeLoremCount(count, mode);
 
   if (mode === 'words') {
     const result: string[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < safeCount; i++) {
       result.push(words[i % words.length]);
     }
     return result.join(separator);
@@ -59,7 +72,7 @@ export const generateLoremIpsum = (
 
   // paragraphs mode
   const paragraphs: string[] = [];
-  for (let p = 0; p < count; p++) {
+  for (let p = 0; p < safeCount; p++) {
     const sentenceCount = 4 + Math.floor(Math.random() * 4);
     const sentences: string[] = [];
     for (let s = 0; s < sentenceCount; s++) {
@@ -91,7 +104,7 @@ export const LoremIpsumTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
 
   const handleModeChange = (nextMode: LoremMode) => {
     setMode(nextMode);
-    setCount(prevCount => Math.min(prevCount, getLoremMaxCount(nextMode)));
+    setCount(prevCount => normalizeLoremCount(prevCount, nextMode));
   };
 
   return (

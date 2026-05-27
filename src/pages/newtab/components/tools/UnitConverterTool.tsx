@@ -9,6 +9,7 @@ import {
   ConversionResult,
   CATEGORY_CONFIGS,
   validateInput,
+  parseUnitInput,
   convertUnits,
   saveCategoryPreference,
   loadCategoryPreference,
@@ -67,12 +68,19 @@ export const UnitConverterTool: React.FC<ToolComponentProps> = ({
     }
 
     if (!validateInput(value)) {
+      setResults([]);
       setError(t('tools.unitConverter.invalidInput'));
       return;
     }
 
     setError(null);
-    const numValue = parseFloat(value);
+    const numValue = parseUnitInput(value);
+    if (numValue === null) {
+      setResults([]);
+      setError(t('tools.unitConverter.invalidInput'));
+      return;
+    }
+
     try {
       const newResults = convertUnits(numValue, unit, catConfig.key);
       setResults(newResults);

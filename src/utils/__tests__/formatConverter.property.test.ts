@@ -10,6 +10,7 @@ import fc from 'fast-check';
 import {
   convert,
   detectFormat,
+  parseIndentSize,
   parseJson,
   parseYaml,
   stringifyJson,
@@ -271,6 +272,28 @@ describe('Format Converter Property Tests', () => {
    * For any 有效的 JavaScript 对象和缩进设置（2 或 4），JSON/YAML 输出的缩进应与设置一致。
    */
   describe('Property 8: Indent Options Effectiveness', () => {
+    it('should strictly parse supported indent sizes', () => {
+      expect(parseIndentSize('2')).toBe(2);
+      expect(parseIndentSize(' 4 ')).toBe(4);
+      expect(parseIndentSize(4)).toBe(4);
+      expect(parseIndentSize('2abc', 4)).toBe(4);
+      expect(parseIndentSize('3', 2)).toBe(2);
+      expect(parseIndentSize('2.5', 4)).toBe(4);
+      expect(parseIndentSize(Number.NaN, 2)).toBe(2);
+    });
+
+    it('should fall back for unsupported indent options before converting', () => {
+      const result = convert(
+        stringifyJson({ nested: { key: 'value' } }),
+        'json',
+        'json',
+        { indentSize: '4abc' as unknown as 2 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.output).toContain('\n  "nested"');
+    });
+
     it('should apply indent size to JSON output', () => {
       fc.assert(
         fc.property(

@@ -49,6 +49,7 @@ export interface ConversionResult {
 export const UNIT_CONVERTER_ERROR_CODES = [
   'unknownCategory',
   'unknownUnit',
+  'invalidValue',
 ] as const;
 
 export type UnitConverterErrorCode = typeof UNIT_CONVERTER_ERROR_CODES[number];
@@ -109,6 +110,12 @@ export const DATA_UNIT_BASE = 1024;
 
 const createUnitConverterError = (code: UnitConverterErrorCode) => new Error(code);
 
+const assertFiniteUnitValue = (value: number): void => {
+  if (!Number.isFinite(value)) {
+    throw createUnitConverterError('invalidValue');
+  }
+};
+
 // ============================================================================
 // 核心函数
 // ============================================================================
@@ -125,8 +132,22 @@ export function validateInput(value: string): boolean {
   if (!/^-?\d*\.?\d*$/.test(trimmed)) return false;
   // 确保不是只有符号
   if (trimmed === '-' || trimmed === '.' || trimmed === '-.') return false;
-  const num = parseFloat(trimmed);
-  return !isNaN(num) && isFinite(num);
+  return Number.isFinite(Number(trimmed));
+}
+
+/**
+ * 将用户输入解析为单位转换数值
+ * @param value 输入字符串
+ * @returns 有效数值，空输入或非法输入返回 null
+ */
+export function parseUnitInput(value: string): number | null {
+  if (!validateInput(value)) return null;
+
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+
+  const parsedValue = Number(trimmed);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
 /**
@@ -165,6 +186,7 @@ export function getUnitConfig(unit: Unit, category: UnitCategory): UnitConfig {
  * @returns 基准单位的值
  */
 export function toBaseUnit(value: number, unit: Unit, category: UnitCategory): number {
+  assertFiniteUnitValue(value);
   const unitConfig = getUnitConfig(unit, category);
   return value * unitConfig.toBase;
 }
@@ -177,6 +199,7 @@ export function toBaseUnit(value: number, unit: Unit, category: UnitCategory): n
  * @returns 目标单位的值
  */
 export function fromBaseUnit(baseValue: number, unit: Unit, category: UnitCategory): number {
+  assertFiniteUnitValue(baseValue);
   const unitConfig = getUnitConfig(unit, category);
   return baseValue / unitConfig.toBase;
 }
@@ -190,7 +213,8 @@ export function fromBaseUnit(baseValue: number, unit: Unit, category: UnitCatego
  */
 export function formatValue(value: number): string {
   if (value === 0) return '0';
-  if (!isFinite(value)) return 'Infinity';
+  if (Number.isNaN(value)) return 'NaN';
+  if (!Number.isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity';
   
   const absValue = Math.abs(value);
   
