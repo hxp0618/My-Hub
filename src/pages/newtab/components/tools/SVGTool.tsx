@@ -284,7 +284,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
           />
           <div className="mt-2 flex items-center justify-between">
             {error ? (
-              <p className="text-sm text-[color:var(--nb-accent-pink)]">{error}</p>
+              <p className="text-sm text-[color:var(--color-error-text)]">{error}</p>
             ) : svgInfo ? (
               <p className="text-sm nb-text-secondary">
                 {t('tools.svgTool.originalSize')}: {svgInfo.width} × {svgInfo.height}
@@ -307,7 +307,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
               </span>
             )}
           </div>
-          <div className="flex-1 nb-border rounded-none nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-border)] flex items-center justify-center overflow-hidden relative min-h-[300px]">
+          <div className="flex-1 nb-border rounded-none nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-shadow-color)] flex items-center justify-center overflow-hidden relative min-h-[300px]">
             {/* 棋盘格背景，用于显示透明区域 */}
             <div 
               className="absolute inset-0 opacity-10"

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface ConfirmDialogProps {
@@ -24,6 +24,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const titleId = useId();
+  const descriptionId = useId();
   const confirmLabel = confirmText ?? t('common.confirm');
   const cancelLabel = cancelText ?? t('common.cancel');
 
@@ -50,57 +52,53 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <div
-      className="fixed inset-0 modal-overlay flex items-center justify-center z-50 transition-colors"
+      className="confirm-dialog-overlay modal-overlay"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="dialog-title"
-      aria-describedby="dialog-description"
     >
       <div
         ref={dialogRef}
-        className="nb-card-static p-8 max-w-md w-full mx-4 animate-modal-appear shadow-[8px_8px_0px_0px_var(--nb-border)] relative overflow-hidden"
+        className="confirm-dialog nb-card-static animate-modal-appear"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         tabIndex={-1}
       >
-        {/* 装饰性元素 */}
-        <div className={`absolute -top-3 -right-3 w-12 h-12 ${danger ? 'bg-[color:var(--nb-accent-pink)]' : 'bg-[color:var(--nb-accent-yellow)]'} border-2 border-[color:var(--nb-border)] opacity-40 rounded-full pointer-events-none`}></div>
-        <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-[color:var(--nb-accent-blue)]/20 border-3 border-[color:var(--nb-border)]/30 nb-sticker-2 pointer-events-none" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }}></div>
-
         {/* 标题区域 */}
-        <div className="flex items-center gap-3 mb-4 relative z-10">
-          <div className={`w-10 h-10 flex items-center justify-center ${danger ? 'bg-[color:var(--nb-accent-pink)]' : 'bg-[color:var(--nb-accent-yellow)]'} border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]`}>
-            <span className="material-symbols-outlined text-xl nb-text">
+        <div className="confirm-dialog-header">
+          <div className={`confirm-dialog-icon ${danger ? 'confirm-dialog-icon--danger' : 'confirm-dialog-icon--default'}`}>
+            <span className="material-symbols-outlined text-xl nb-text" aria-hidden="true">
               {danger ? 'warning' : 'help'}
             </span>
           </div>
-          <h3 id="dialog-title" className="text-xl font-black nb-text uppercase tracking-tight">
+          <h3 id={titleId} className="confirm-dialog-title">
             {title}
           </h3>
         </div>
 
         {/* 消息内容 */}
-        <div className="mb-6 pl-13 relative z-10">
-          <p id="dialog-description" className="nb-text-secondary font-medium leading-relaxed">
-            {message}
-          </p>
-        </div>
+        <p id={descriptionId} className="confirm-dialog-message">
+          {message}
+        </p>
 
         {/* 操作按钮 */}
-        <div className="flex justify-end gap-4 relative z-10">
+        <div className="confirm-dialog-actions">
           <button
+            type="button"
             onClick={onClose}
-            className="nb-btn nb-btn-secondary px-5 py-2.5"
+            className="nb-btn nb-btn-secondary confirm-dialog-button"
             autoFocus={!danger}
           >
             {cancelLabel}
           </button>
           <button
+            type="button"
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className={`nb-btn px-5 py-2.5 ${
+            className={`nb-btn confirm-dialog-button ${
               danger
                 ? 'nb-btn-danger'
                 : 'nb-btn-primary'

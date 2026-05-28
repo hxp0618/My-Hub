@@ -102,7 +102,7 @@ export const NumberBaseTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
 
         {values.error && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{t('tools.numberBase.invalidInput')}</p>
+            <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>{t('tools.numberBase.invalidInput')}</p>
           </div>
         )}
 

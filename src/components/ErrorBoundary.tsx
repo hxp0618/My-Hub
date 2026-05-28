@@ -75,7 +75,7 @@ class ErrorBoundaryComponent extends Component<ErrorBoundaryProps, ErrorBoundary
         <div className="flex flex-col items-center justify-center min-h-screen p-8 nb-bg nb-text">
           <div className="nb-card-static max-w-2xl w-full p-8">
             <div className="flex items-center mb-6">
-              <span className="material-symbols-outlined text-[color:var(--nb-accent-pink)] text-4xl mr-4">
+              <span className="material-symbols-outlined text-[color:var(--color-error-text)] text-4xl mr-4">
                 error
               </span>
               <h1 className="text-2xl font-bold">{t('errorBoundary.title')}</h1>

@@ -237,12 +237,12 @@ const LLMSettings: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col nb-text">
-      <h2 className="text-xl font-bold mb-6">{t('settings.llmTitle')}</h2>
+    <section className="settings-section settings-section--llm nb-text">
+      <h2 className="settings-section-title">{t('settings.llmTitle')}</h2>
       
-      <div className="flex-1 overflow-y-auto">
+      <div className="settings-form-stack">
         {/* Gemini Nano Toggle - Neo-Brutalism 风格 */}
-        <div className="nb-card-static mb-6 p-4">
+        <div className="nb-card-static p-4">
           <div className="flex items-center justify-between">
             <label htmlFor="prioritizeGeminiNano" className="text-sm font-medium text-[color:var(--nb-text)]">
               {t('settings.geminiNanoPriority')}
@@ -284,7 +284,7 @@ const LLMSettings: React.FC = () => {
         </div>
 
         {/* Provider Selection - Neo-Brutalism 风格 */}
-        <div className="mb-6">
+        <div>
           <label htmlFor="provider" className="block text-sm font-medium text-[color:var(--nb-text)] mb-2">
             {t('settings.providerLabel')}
           </label>
@@ -301,7 +301,7 @@ const LLMSettings: React.FC = () => {
 
         {/* Custom API URL - Neo-Brutalism 风格 */}
         {isCustomProvider && (
-          <div className="mb-6">
+          <div>
             <label htmlFor="customApiUrl" className="block text-sm font-medium text-[color:var(--nb-text)] mb-2">
               {t('settings.apiUrlLabel')}
             </label>
@@ -319,7 +319,7 @@ const LLMSettings: React.FC = () => {
 
         {/* Model Selection - Neo-Brutalism 风格 */}
         {settings.selectedProvider && (
-          <div className="mb-6">
+          <div>
             <label htmlFor="model" className="block text-sm font-medium text-[color:var(--nb-text)] mb-2">
               {t('settings.modelLabel')}
             </label>
@@ -337,7 +337,7 @@ const LLMSettings: React.FC = () => {
 
         {/* Custom Model - Neo-Brutalism 风格 */}
         {isCustomModel && (
-          <div className="mb-6">
+          <div>
             <label htmlFor="customModel" className="block text-sm font-medium text-[color:var(--nb-text)] mb-2">
               {t('settings.customModelLabel')}
             </label>
@@ -355,7 +355,7 @@ const LLMSettings: React.FC = () => {
 
         {/* API Key - Neo-Brutalism 风格 */}
         {settings.selectedProvider && (
-          <div className="mb-6">
+          <div>
             <label htmlFor="apiKey" className="block text-sm font-medium text-[color:var(--nb-text)] mb-2">
               {t('settings.apiKeyLabel')}
             </label>
@@ -372,6 +372,7 @@ const LLMSettings: React.FC = () => {
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center nb-text-secondary hover:text-[color:var(--nb-text)] transition"
+                aria-label={showApiKey ? t('settings.hideApiKey') : t('settings.showApiKey')}
               >
                 <span className="material-symbols-outlined icon-linear">
                   {showApiKey ? 'visibility_off' : 'visibility'}
@@ -397,16 +398,17 @@ const LLMSettings: React.FC = () => {
 
       {/* Test Result - Neo-Brutalism 风格 */}
       {testResult && (
-        <div className={`nb-card-static mb-4 p-3 ${testResult.success ? 'bg-[color:var(--nb-accent-green)]/20 border-[color:var(--nb-accent-green)]' : 'bg-[color:var(--nb-accent-pink)]/20 border-[color:var(--nb-accent-pink)]'}`}>
-          <span className={testResult.success ? 'text-[color:var(--nb-accent-green)]' : 'text-[color:var(--nb-accent-pink)]'}>
+        <div className={`nb-card-static p-3 ${testResult.success ? 'bg-[color:var(--nb-accent-green)]/20 border-[color:var(--nb-accent-green)]' : 'bg-[color:var(--nb-accent-pink)]/20 border-[color:var(--nb-accent-pink)]'}`}>
+          <span className={testResult.success ? 'text-[color:var(--nb-accent-green)]' : 'text-[color:var(--color-error-text)]'}>
             {testResult.message}
           </span>
         </div>
       )}
 
       {/* Action Buttons - Neo-Brutalism 风格 */}
-      <div className="flex justify-end space-x-3 pt-4 border-t-[length:var(--nb-border-width)] border-[color:var(--nb-border)]">
+      <div className="settings-action-row">
         <button
+          type="button"
           onClick={handleTest}
           disabled={!settings.selectedProvider || !settings.apiKey || isLoading}
           className="nb-btn nb-btn-secondary px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
@@ -414,13 +416,14 @@ const LLMSettings: React.FC = () => {
           {isLoading ? t('settings.testing') : t('settings.testConnectionButton')}
         </button>
         <button
+          type="button"
           onClick={handleSave}
           className="nb-btn nb-btn-primary px-4 py-2 text-sm font-medium"
         >
           {t('settings.saveButton')}
         </button>
       </div>
-    </div>
+    </section>
   );
 };
 

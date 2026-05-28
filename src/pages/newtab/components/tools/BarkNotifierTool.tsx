@@ -237,7 +237,7 @@ const NotificationHistory: React.FC<{
                       {record.status === 'success' ? (
                         <span className="text-xs" style={{ color: 'var(--nb-accent-green)' }}>✓</span>
                       ) : (
-                        <span className="text-xs" style={{ color: 'var(--nb-accent-pink)' }}>✗</span>
+                        <span className="text-xs" style={{ color: 'var(--color-error-text)' }}>✗</span>
                       )}
                     </div>
 
@@ -257,7 +257,7 @@ const NotificationHistory: React.FC<{
                         </p>
                       )}
                       {errorMessage && (
-                        <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--nb-accent-pink)' }}>
+                        <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--color-error-text)' }}>
                           {errorMessage}
                         </p>
                       )}
@@ -677,7 +677,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
             <p
               className={`text-sm ${messageType === 'success'
                 ? 'text-[color:var(--nb-accent-green)]'
-                : 'text-[color:var(--nb-accent-pink)]'
+                : 'text-[color:var(--color-error-text)]'
                 }`}
             >
               {message}
@@ -754,7 +754,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
                   <div className="rounded-lg p-2.5 nb-border" style={{ backgroundColor: 'var(--nb-bg)' }}>
                     <div className="flex items-start gap-2">
                       <div className="w-8 h-8 nb-border rounded-lg bg-[color:var(--nb-accent-blue)] flex items-center justify-center flex-shrink-0">
-                        <span className="material-symbols-outlined text-white text-sm">notifications</span>
+                        <span className="material-symbols-outlined text-[color:var(--nb-text-on-accent)] text-sm">notifications</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm nb-text truncate">

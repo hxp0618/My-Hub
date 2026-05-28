@@ -501,20 +501,21 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
   }, [allItems, itemOrder]);
 
   return (
-    <div className="p-6 nb-bg">
-      {/* 顶部工具栏 - 紧凑布局 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-xl nb-text">schedule</span>
-          <h2 className="text-xl font-bold nb-text">{t('home.momentsInHistory')}</h2>
-          <span className="text-sm nb-text-secondary">{t('home.momentsDescription')}</span>
-          <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] nb-text font-medium">
+    <div className="home-page-shell nb-bg">
+      <header className="home-page-toolbar">
+        <div className="home-page-title-group">
+          <div className="home-page-title-main">
+            <span className="material-symbols-outlined text-xl nb-text">schedule</span>
+            <h2 className="text-xl font-bold nb-text">{t('home.momentsInHistory')}</h2>
+          </div>
+          <span className="home-page-description text-sm nb-text-secondary">{t('home.momentsDescription')}</span>
+          <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] nb-text-on-accent font-medium">
             {timeRange}
           </span>
         </div>
         
-        <div className="flex items-center space-x-3">
-          <div className="w-56">
+        <div className="home-page-actions">
+          <div className="home-page-search">
             <UnifiedSearchBar
               mode="global"
               value={searchTerm}
@@ -525,9 +526,10 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
           </div>
 
           {/* 网格选择器 */}
-          <div className="nb-card-static flex items-center space-x-2 px-3 py-2">
+          <div className="home-page-density-select nb-card-static flex items-center space-x-2 px-3 py-2">
             <span className="material-symbols-outlined text-sm nb-text-secondary">grid_view</span>
             <select
+              aria-label={t('settings.cardsPerRow')}
               value={cardsPerRow}
               onChange={(e) => {
                 const newValue = parseCardsPerRowValue(e.target.value);
@@ -548,27 +550,33 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
 
           <div className="relative" ref={moreMenuRef}>
               <button
+                type="button"
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
-                className="nb-btn nb-btn-ghost p-2"
+                className="home-page-more-button nb-btn nb-btn-ghost p-2"
+                aria-label={t('home.moreActions')}
+                aria-expanded={showMoreMenu}
+                aria-haspopup="menu"
               >
                   <span className="material-symbols-outlined nb-text text-lg">more_vert</span>
               </button>
               {showMoreMenu && (
-                  <div className="absolute right-0 mt-2 w-48 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-border)] z-30">
+                  <div className="absolute right-0 mt-2 w-48 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-shadow-color)] z-30" role="menu">
                       <div className="py-1">
-                          <div
+                          <button
+                              type="button"
                               onClick={handleOpenCreateComboModal}
-                              className="flex items-center px-4 py-2.5 text-sm nb-text hover:bg-[color:var(--nb-accent-yellow)] cursor-pointer transition-colors"
+                              className="w-full flex items-center px-4 py-2.5 text-sm nb-text hover:bg-[color:var(--nb-accent-yellow)] cursor-pointer transition-colors"
+                              role="menuitem"
                           >
                               <span className="material-symbols-outlined mr-2 text-base">add_circle</span>
                               {t('home.createWebCombo')}
-                          </div>
+                          </button>
                       </div>
                   </div>
               )}
           </div>
         </div>
-      </div>
+      </header>
 
       {searchTerm ? (
         <div>
@@ -593,7 +601,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                   >
                     <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-green)] opacity-60 pointer-events-none"></div>
                     <div className="flex items-start">
-                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
                         <span className="material-symbols-outlined nb-text text-xl">{item.icon}</span>
                       </div>
                       <div className="min-w-0 flex-1">
@@ -627,7 +635,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                   >
                     <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] opacity-60 pointer-events-none"></div>
                     <div className="flex items-start">
-                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
                         <span className="material-symbols-outlined nb-text text-xl">{item.icon}</span>
                       </div>
                       <div className="min-w-0 flex-1">
@@ -753,11 +761,11 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
 
       {/* AI生成标签进度模态框 - 增强 Neo-Brutalism 风格 */}
       {tagGenerationItem && (
-      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="nb-card-static w-full max-w-md p-8 shadow-[8px_8px_0px_0px_var(--nb-border)] animate-modal-appear">
+      <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
+          <div className="nb-card-static w-full max-w-md p-8 shadow-[8px_8px_0px_0px_var(--nb-shadow-color)] animate-modal-appear">
             {/* 标题区域 */}
             <div className="flex items-center mb-6">
-              <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)] mr-4">
+              <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] mr-4">
                 <span className="material-symbols-outlined nb-text text-xl icon-linear">auto_awesome</span>
               </div>
               <h3 className="text-xl font-black nb-text uppercase tracking-tight">
@@ -780,7 +788,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                   <div className="absolute top-0 left-0 w-16 h-16 border-4 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
                 </div>
               ) : (
-                <div className="w-16 h-16 flex items-center justify-center bg-[color:var(--nb-accent-green)] border-4 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-border)]">
+                <div className="w-16 h-16 flex items-center justify-center bg-[color:var(--nb-accent-green)] border-4 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]">
                   <span className="material-symbols-outlined text-4xl nb-text">check</span>
                 </div>
               )}

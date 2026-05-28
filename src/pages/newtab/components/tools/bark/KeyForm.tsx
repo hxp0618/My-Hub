@@ -79,7 +79,7 @@ export const KeyForm: React.FC<KeyFormProps> = ({
       {/* 备注 */}
       <div>
         <label className="block text-sm font-bold nb-text mb-1.5">
-          {t('tools.barkNotifier.keys.label')} <span style={{ color: 'var(--nb-accent-pink)' }}>*</span>
+          {t('tools.barkNotifier.keys.label')} <span style={{ color: 'var(--color-error-text)' }}>*</span>
         </label>
         <input
           type="text"
@@ -96,7 +96,7 @@ export const KeyForm: React.FC<KeyFormProps> = ({
             {t('tools.barkNotifier.keys.labelHint', { current: label.length })}
           </span>
           {errors.label && (
-            <span className="text-xs font-medium" style={{ color: 'var(--nb-accent-pink)' }}>{errors.label}</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--color-error-text)' }}>{errors.label}</span>
           )}
         </div>
       </div>
@@ -104,7 +104,7 @@ export const KeyForm: React.FC<KeyFormProps> = ({
       {/* 设备密钥 */}
       <div>
         <label className="block text-sm font-bold nb-text mb-1.5">
-          {t('tools.barkNotifier.keys.deviceKey')} <span style={{ color: 'var(--nb-accent-pink)' }}>*</span>
+          {t('tools.barkNotifier.keys.deviceKey')} <span style={{ color: 'var(--color-error-text)' }}>*</span>
         </label>
         <input
           type="text"
@@ -116,7 +116,7 @@ export const KeyForm: React.FC<KeyFormProps> = ({
           }`}
         />
         {errors.deviceKey && (
-          <span className="text-xs font-medium mt-1.5 block" style={{ color: 'var(--nb-accent-pink)' }}>{errors.deviceKey}</span>
+          <span className="text-xs font-medium mt-1.5 block" style={{ color: 'var(--color-error-text)' }}>{errors.deviceKey}</span>
         )}
       </div>
 
@@ -135,7 +135,7 @@ export const KeyForm: React.FC<KeyFormProps> = ({
           }`}
         />
         {errors.server && (
-          <span className="text-xs font-medium mt-1.5 block" style={{ color: 'var(--nb-accent-pink)' }}>{errors.server}</span>
+          <span className="text-xs font-medium mt-1.5 block" style={{ color: 'var(--color-error-text)' }}>{errors.server}</span>
         )}
       </div>
 

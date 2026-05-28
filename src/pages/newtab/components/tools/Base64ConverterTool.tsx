@@ -236,7 +236,7 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
         {/* 错误提示（仅非批量模式） */}
         {!batchMode.enabled && error && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{error}</p>
+            <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>{error}</p>
           </div>
         )}
 

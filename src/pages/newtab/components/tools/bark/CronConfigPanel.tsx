@@ -229,7 +229,7 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                   onClick={() => toggleSpecificValue(value)}
                   className={`px-1 py-1 text-xs font-medium rounded border-2 transition-all ${
                     isSelected
-                      ? 'border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-border)]'
+                      ? 'border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow-color)]'
                       : 'border-[var(--nb-border)] opacity-60 hover:opacity-100'
                   }`}
                   style={{
@@ -331,7 +331,7 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
         ) : (
           <span
             className="material-symbols-outlined text-lg"
-            style={{ color: 'var(--nb-accent-pink)' }}
+            style={{ color: 'var(--color-error-text)' }}
           >
             error
           </span>
@@ -349,9 +349,9 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
               key={template.key}
               type="button"
               onClick={() => applyTemplate(template.expression)}
-              className={`px-2 py-1 text-xs rounded-md nb-border transition-all hover:shadow-[2px_2px_0px_0px_var(--nb-border)] ${
+              className={`px-2 py-1 text-xs rounded-md nb-border transition-all hover:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] ${
                 generatedExpression === template.expression
-                  ? 'shadow-[2px_2px_0px_0px_var(--nb-border)]'
+                  ? 'shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
                   : ''
               }`}
               style={{
@@ -375,7 +375,7 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
             onClick={() => setActiveTab(meta.key)}
             className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-md transition-all border-2 ${
               activeTab === meta.key
-                ? 'border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]'
+                ? 'border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
                 : 'border-transparent hover:border-[var(--nb-border)]'
             }`}
             style={{

@@ -106,18 +106,21 @@ export const BookmarkPageHeader: React.FC<{
   };
 
   return (
-    <header className="sticky top-0 z-5 flex items-center justify-between nb-bg nb-border nb-shadow py-4 px-6 rounded-b-[8px]">
-      <div className="flex items-center gap-3">
+    <header className="bookmark-page-header nb-bg nb-border nb-shadow">
+      <div className="bookmark-page-title-row">
         <button
+          type="button"
           onClick={onToggleSidebar}
-          className="nb-btn nb-btn-ghost p-2 rounded-md"
+          className="bookmark-page-sidebar-toggle nb-btn nb-btn-ghost p-2 rounded-md"
           title={isSidebarCollapsed ? t('bookmarks.expand') : t('bookmarks.collapse')}
+          aria-label={isSidebarCollapsed ? t('bookmarks.expand') : t('bookmarks.collapse')}
+          aria-expanded={!isSidebarCollapsed}
         >
           <span className="material-symbols-outlined icon-linear text-lg">
             {isSidebarCollapsed ? 'menu_open' : 'menu'}
           </span>
         </button>
-        <h2 className="text-xl font-bold nb-text">{title}</h2>
+        <h2 className="bookmark-page-title text-xl font-bold nb-text">{title}</h2>
         {activeHealthIssue && (
           <button
             type="button"
@@ -129,17 +132,18 @@ export const BookmarkPageHeader: React.FC<{
         )}
         <FailedBookmarksIndicator failureCount={failureCount} onRetryClick={onRetryFailedTags} />
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="bookmark-page-actions">
         {!isMultiSelectMode && (
           <button
+            type="button"
             onClick={onAddBookmark}
-            className="nb-btn nb-btn-primary flex items-center gap-2 px-4 py-2"
+            className="bookmark-page-add-button nb-btn nb-btn-primary flex items-center gap-2 px-4 py-2"
           >
             <span className="material-symbols-outlined icon-linear text-lg">add</span>
             <span className="font-medium">{t('history.addBookmark')}</span>
           </button>
         )}
-        <div className="w-64">
+        <div className="bookmark-page-search">
           <UnifiedSearchBar
             mode="bookmark"
             value={searchTerm}
@@ -148,11 +152,12 @@ export const BookmarkPageHeader: React.FC<{
             loading={loading}
           />
         </div>
-        <div className="relative">
+        <div className="bookmark-page-sort">
           <select
+            aria-label={t('bookmarks.sortBy')}
             value={`${sortOrder.key}-${sortOrder.order}`}
             onChange={onSortChange}
-            className="nb-input px-4 py-2 appearance-none cursor-pointer"
+            className="bookmark-page-select nb-input px-4 py-2 appearance-none cursor-pointer"
           >
             <option value="dateAdded-desc">{t('bookmarks.sortByDateAddedDesc')}</option>
             <option value="dateAdded-asc">{t('bookmarks.sortByDateAddedAsc')}</option>
@@ -162,9 +167,10 @@ export const BookmarkPageHeader: React.FC<{
             <option value="title-desc">{t('bookmarks.sortByNameDesc')}</option>
           </select>
         </div>
-        <div className="nb-card-static flex items-center space-x-2 px-3 py-2">
+        <div className="bookmark-page-density-select nb-card-static flex items-center space-x-2 px-3 py-2">
           <span className="material-symbols-outlined icon-linear text-sm text-[color:var(--nb-text)]">grid_view</span>
           <select
+            aria-label={t('settings.cardsPerRow')}
             value={cardsPerRow}
             onChange={handleCardsPerRowChange}
             className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer text-[color:var(--nb-text)]"
@@ -177,52 +183,67 @@ export const BookmarkPageHeader: React.FC<{
           </select>
         </div>
         <div className="relative" ref={moreMenuRef}>
-          <button onClick={onToggleMoreMenu} className="nb-btn nb-btn-ghost p-2 rounded-full">
+          <button
+            type="button"
+            onClick={onToggleMoreMenu}
+            className="bookmark-page-more-button nb-btn nb-btn-ghost p-2 rounded-full"
+            aria-label={t('bookmarks.moreActions')}
+            aria-expanded={showMoreMenu}
+            aria-haspopup="menu"
+          >
             <span className="material-symbols-outlined icon-linear text-lg">more_vert</span>
           </button>
           {showMoreMenu && (
-            <div className="nb-dropdown absolute right-0 mt-2 w-56 z-10">
+            <div className="nb-dropdown absolute right-0 mt-2 w-56 z-10" role="menu">
               <div className="py-1">
-                <div
+                <button
+                  type="button"
                   onClick={() => {
                     onToggleMultiSelectMode();
                     onCloseMoreMenu();
                   }}
-                  className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  role="menuitem"
                 >
                   <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">checklist</span>
                   {t('bookmarks.select')}
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     onRegenerateAllTags();
                     onCloseMoreMenu();
                   }}
-                  className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  role="menuitem"
                 >
                   <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">refresh</span>
                   {t('bookmarks.regenerateAllTags')}
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     onStartDeduplicate();
                     onCloseMoreMenu();
                   }}
-                  className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  role="menuitem"
                 >
                   <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">content_copy</span>
                   {t('bookmarks.deduplicate')}
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     onOpenReorderConfirm();
                     onCloseMoreMenu();
                   }}
-                  className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
+                  role="menuitem"
                 >
                   <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">sort</span>
                   {t('bookmarks.updateChromeOrder')}
-                </div>
+                </button>
               </div>
             </div>
           )}
@@ -258,7 +279,7 @@ export const BookmarkGrid: React.FC<{
   const { t } = useTranslation();
 
   return (
-    <div className={`mt-8 ${getGridClass(cardsPerRow)} px-8`}>
+    <div className={`bookmark-page-grid ${getGridClass(cardsPerRow)}`}>
       {bookmarks.length > 0 ? bookmarks.map(item => {
         const dateToDisplay = sortOrder.key === 'dateLastUsed' ? item.dateLastUsed : item.dateAdded;
 
@@ -358,7 +379,7 @@ export const BookmarkMainContent: React.FC<{
   onBookmarkDragStart,
   onBookmarkDragEnd,
 }) => (
-  <main className="flex-1 h-full overflow-y-auto pr-6">
+  <main className="bookmark-main-content">
     <BookmarkPageHeader
       title={headerTitle}
       isSidebarCollapsed={isSidebarCollapsed}

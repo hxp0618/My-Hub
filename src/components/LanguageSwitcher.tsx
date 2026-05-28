@@ -1,54 +1,132 @@
-import React from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export const LanguageSwitcher: React.FC = () => {
+type LanguageCode = 'zh-CN' | 'en';
+
+interface LanguageSwitcherBaseProps {
+  compact?: boolean;
+}
+
+const LANGUAGE_CODES: LanguageCode[] = ['zh-CN', 'en'];
+
+const getLanguageShortLabel = (code: LanguageCode) => (
+  code === 'zh-CN' ? '中' : 'EN'
+);
+
+const LanguageSwitcherBase: React.FC<LanguageSwitcherBaseProps> = ({ compact = false }) => {
   const { i18n, t } = useTranslation();
+  const menuId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const languages = [
-    { code: 'zh-CN', name: t('settings.languageOptions.zh-CN'), flag: '🇨🇳' },
-    { code: 'en', name: t('settings.languageOptions.en'), flag: '🇺🇸' }
-  ];
+  const languages = LANGUAGE_CODES.map((code) => ({
+    code,
+    name: t(`settings.languageOptions.${code}`),
+    shortLabel: getLanguageShortLabel(code),
+  }));
 
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[1];
+  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
 
-  const handleLanguageChange = (langCode: string) => {
+  const handleLanguageChange = (langCode: LanguageCode) => {
     i18n.changeLanguage(langCode);
+    setIsOpen(false);
   };
 
+  const focusMenuItem = (index: number) => {
+    window.requestAnimationFrame(() => {
+      itemRefs.current[index]?.focus();
+    });
+  };
+
+  const handleButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setIsOpen(true);
+      focusMenuItem(0);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setIsOpen(true);
+      focusMenuItem(languages.length - 1);
+    }
+  };
+
+  const handleItemKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusMenuItem((index + 1) % languages.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusMenuItem((index - 1 + languages.length) % languages.length);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      focusMenuItem(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      focusMenuItem(languages.length - 1);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      setIsOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [isOpen]);
+
   return (
-    <div className="relative group">
+    <div ref={containerRef} className="language-switcher">
       <button
-        className="nb-btn nb-btn-secondary gap-2 px-3 py-2"
+        type="button"
+        className={`nb-btn nb-btn-secondary language-switcher-button ${compact ? 'language-switcher-button--compact' : ''}`}
         aria-label={t('settings.languageAriaLabel')}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={menuId}
+        title={currentLanguage.name}
+        onClick={() => setIsOpen(open => !open)}
+        onKeyDown={handleButtonKeyDown}
       >
-        <span className="text-lg">{currentLanguage.flag}</span>
-        <span className="text-sm nb-text">{currentLanguage.name}</span>
-        <svg className="w-4 h-4 nb-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <span className="material-symbols-outlined text-xl" aria-hidden="true">translate</span>
+        {!compact && <span className="language-switcher-current">{currentLanguage.name}</span>}
+        {compact && <span className="language-switcher-short">{currentLanguage.shortLabel}</span>}
+        <span className="material-symbols-outlined text-lg" aria-hidden="true">
+          {isOpen ? 'expand_less' : 'expand_more'}
+        </span>
       </button>
 
-      {/* 下拉菜单 */}
-      <div className="nb-dropdown absolute right-0 mt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+      <div
+        id={menuId}
+        className={`nb-dropdown language-switcher-menu ${isOpen ? 'is-open' : ''}`}
+        role="menu"
+        aria-label={t('settings.language')}
+      >
         {languages.map((lang) => (
           <button
             key={lang.code}
+            ref={(node) => {
+              itemRefs.current[languages.findIndex(item => item.code === lang.code)] = node;
+            }}
+            type="button"
+            role="menuitemradio"
+            aria-checked={i18n.language === lang.code}
             onClick={() => handleLanguageChange(lang.code)}
-            className={`
-              nb-dropdown-item w-full flex items-center gap-3 text-left transition-colors
-              ${i18n.language === lang.code ? 'nb-selected' : ''}
-            `}
+            onKeyDown={(event) => handleItemKeyDown(event, languages.findIndex(item => item.code === lang.code))}
+            className={`nb-dropdown-item language-switcher-option ${i18n.language === lang.code ? 'nb-selected' : ''}`}
           >
-            <span className="text-lg">{lang.flag}</span>
-            <span className="text-sm font-medium">{lang.name}</span>
+            <span className="language-switcher-mark" aria-hidden="true">{lang.shortLabel}</span>
+            <span className="language-switcher-option-name">{lang.name}</span>
             {i18n.language === lang.code && (
-              <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <span className="material-symbols-outlined text-base ml-auto" aria-hidden="true">check</span>
             )}
           </button>
         ))}
@@ -57,43 +135,7 @@ export const LanguageSwitcher: React.FC = () => {
   );
 };
 
-// 紧凑版语言切换器（仅显示图标）
-export const LanguageSwitcherCompact: React.FC = () => {
-  const { i18n, t } = useTranslation();
+export const LanguageSwitcher: React.FC = () => <LanguageSwitcherBase />;
 
-  const languages = [
-    { code: 'zh-CN', name: t('settings.languageOptions.zh-CN'), flag: '🇨🇳' },
-    { code: 'en', name: t('settings.languageOptions.en'), flag: '🇺🇸' }
-  ];
-
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[1];
-
-  return (
-    <div className="relative group">
-      <button
-        className="nb-btn nb-btn-secondary p-2"
-        aria-label={t('settings.language')}
-        title={currentLanguage.name}
-      >
-        <span className="text-xl">{currentLanguage.flag}</span>
-      </button>
-
-      {/* 下拉菜单 */}
-      <div className="nb-dropdown absolute right-0 mt-2 w-40 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-        {languages.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
-            className={`
-              nb-dropdown-item w-full flex items-center gap-2 text-left transition-colors
-              ${i18n.language === lang.code ? 'nb-selected' : ''}
-            `}
-          >
-            <span className="text-lg">{lang.flag}</span>
-            <span className="text-sm">{lang.name}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
+// 紧凑版语言切换器（仅显示当前语言短标识）
+export const LanguageSwitcherCompact: React.FC = () => <LanguageSwitcherBase compact />;

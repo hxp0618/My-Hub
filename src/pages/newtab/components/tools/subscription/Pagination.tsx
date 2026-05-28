@@ -78,43 +78,54 @@ export const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="flex items-center justify-between mt-4 px-2">
+    <nav
+      className="subscription-pagination"
+      aria-label={t('subscriptions.pagination.page', {
+        current: currentPage,
+        total: totalPages,
+      })}
+    >
       {/* 左侧：总数信息 */}
-      <div className="text-sm nb-text-secondary">
+      <div className="subscription-pagination-total nb-text-secondary">
         {t('subscriptions.pagination.total', { count: totalItems })}
       </div>
 
       {/* 中间：页码按钮 */}
-      <div className="flex items-center gap-1">
+      <div className="subscription-pagination-pages">
         {/* 上一页 */}
         <button
+          type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className={`p-1.5 rounded border-2 border-[var(--nb-border)] transition-all ${
+          className={`subscription-pagination-button ${
             currentPage === 1
-              ? 'opacity-40 cursor-not-allowed bg-[var(--nb-card)]'
-              : 'nb-card hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_var(--nb-border)]'
+              ? 'subscription-pagination-button--disabled'
+              : 'subscription-pagination-button--idle'
           }`}
           title={t('subscriptions.pagination.prev')}
+          aria-label={t('subscriptions.pagination.prev')}
         >
-          <span className="material-symbols-outlined text-sm">chevron_left</span>
+          <span className="material-symbols-outlined text-sm" aria-hidden="true">chevron_left</span>
         </button>
 
         {/* 页码 */}
         {pageNumbers.map((page, index) => (
           page === 'ellipsis' ? (
-            <span key={`ellipsis-${index}`} className="px-2 nb-text-secondary">
+            <span key={`ellipsis-${index}`} className="subscription-pagination-ellipsis nb-text-secondary">
               ...
             </span>
           ) : (
             <button
+              type="button"
               key={page}
               onClick={() => onPageChange(page)}
-              className={`min-w-[32px] h-8 px-2 rounded border-2 border-[var(--nb-border)] text-sm font-medium transition-all ${
+              className={`subscription-pagination-button ${
                 currentPage === page
-                  ? 'bg-[var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-border)]'
-                  : 'nb-card hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_var(--nb-border)]'
+                  ? 'subscription-pagination-button--active'
+                  : 'subscription-pagination-button--idle'
               }`}
+              aria-current={currentPage === page ? 'page' : undefined}
+              aria-label={t('subscriptions.pagination.goToPage', { page })}
             >
               {page}
             </button>
@@ -123,28 +134,30 @@ export const Pagination: React.FC<PaginationProps> = ({
 
         {/* 下一页 */}
         <button
+          type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className={`p-1.5 rounded border-2 border-[var(--nb-border)] transition-all ${
+          className={`subscription-pagination-button ${
             currentPage === totalPages
-              ? 'opacity-40 cursor-not-allowed bg-[var(--nb-card)]'
-              : 'nb-card hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_var(--nb-border)]'
+              ? 'subscription-pagination-button--disabled'
+              : 'subscription-pagination-button--idle'
           }`}
           title={t('subscriptions.pagination.next')}
+          aria-label={t('subscriptions.pagination.next')}
         >
-          <span className="material-symbols-outlined text-sm">chevron_right</span>
+          <span className="material-symbols-outlined text-sm" aria-hidden="true">chevron_right</span>
         </button>
       </div>
 
       {/* 右侧：每页数量选择 */}
-      <div className="flex items-center gap-2">
+      <label className="subscription-pagination-size">
         <span className="text-sm nb-text-secondary">
           {t('subscriptions.pagination.pageSize')}
         </span>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(parsePageSizeOption(e.target.value))}
-          className="nb-input text-sm py-1 px-2 min-w-[70px]"
+          className="nb-input subscription-pagination-select"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>
@@ -152,8 +165,8 @@ export const Pagination: React.FC<PaginationProps> = ({
             </option>
           ))}
         </select>
-      </div>
-    </div>
+      </label>
+    </nav>
   );
 };
 

@@ -111,40 +111,88 @@ export const DateNavigator = React.memo(function DateNavigator({ onDateChange, a
   const canNavigateLeft = currentDateIndex > -1;
   const canNavigateRight = currentDateIndex < availableDates.length - 1;
 
+  const handleNavigatorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      navigateDates('left');
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      navigateDates('right');
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      handleDatePresetClick(null, -1);
+      setVisibleStartIndex(0);
+    }
+
+    if (event.key === 'End' && availableDates.length > 0) {
+      event.preventDefault();
+      const lastIndex = availableDates.length - 1;
+      const nextVisibleStart = Math.max(0, availableDates.length - DATES_PER_PAGE);
+      const date = parseISO(availableDates[lastIndex]);
+      setVisibleStartIndex(nextVisibleStart);
+      setCurrentDateIndex(lastIndex);
+      onDateChange({
+        startTime: startOfDay(date).getTime(),
+        endTime: endOfDay(date).getTime(),
+      });
+    }
+  };
+
   return (
-    <div className="flex items-center space-x-2 relative">
+    <nav
+      className="date-navigator"
+      aria-label={t('history.dateNavigator')}
+      onKeyDown={handleNavigatorKeyDown}
+    >
       <button 
+        type="button"
         onClick={() => navigateDates('left')} 
-        className="nb-btn nb-btn-ghost p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="date-navigator-arrow nb-btn nb-btn-ghost"
         disabled={!canNavigateLeft}
+        aria-label={t('history.previousDate')}
       >
-        <span className="material-symbols-outlined">chevron_left</span>
+        <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
       </button>
 
-      <div className="flex items-center space-x-2">
-        {datePresets.map((preset) => (
-          <button
-            key={preset.label + preset.subLabel + preset.absoluteIndex}
-            onClick={() => handleDatePresetClick(preset.date, preset.absoluteIndex)}
-            className={`nb-btn px-3 py-2 text-sm text-center ${
-              currentDateIndex === preset.absoluteIndex
-                ? 'nb-btn-primary'
-                : 'nb-btn-secondary'
-            }`}
-          >
-            <div className="font-semibold">{preset.label}</div>
-            <div className="text-xs opacity-80">{preset.subLabel}</div>
-          </button>
-        ))}
+      <div className="date-navigator-scroll" role="group" aria-label={t('history.dateNavigator')}>
+        {datePresets.map((preset) => {
+          const isActive = currentDateIndex === preset.absoluteIndex;
+          const dateLabel = preset.date
+            ? t('history.filterByDate', { date: format(preset.date, 'PPPP', { locale }) })
+            : t('history.showAllHistory');
+
+          return (
+            <button
+              key={preset.label + preset.subLabel + preset.absoluteIndex}
+              type="button"
+              onClick={() => handleDatePresetClick(preset.date, preset.absoluteIndex)}
+              className={`date-navigator-preset nb-btn ${
+                isActive ? 'nb-btn-primary' : 'nb-btn-secondary'
+              }`}
+              aria-label={dateLabel}
+              aria-pressed={isActive}
+              aria-current={isActive && preset.date ? 'date' : undefined}
+            >
+              <span className="date-navigator-label">{preset.label}</span>
+              <span className="date-navigator-sub-label">{preset.subLabel}</span>
+            </button>
+          );
+        })}
       </div>
 
       <button 
+        type="button"
         onClick={() => navigateDates('right')} 
-        className="nb-btn nb-btn-ghost p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="date-navigator-arrow nb-btn nb-btn-ghost"
         disabled={!canNavigateRight}
+        aria-label={t('history.nextDate')}
       >
-        <span className="material-symbols-outlined">chevron_right</span>
+        <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
       </button>
-    </div>
+    </nav>
   );
 });

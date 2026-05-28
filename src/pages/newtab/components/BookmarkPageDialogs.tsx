@@ -100,7 +100,7 @@ export const DeduplicateModal: React.FC<{
                 {bookmarks.map(bookmark => (
                   <label
                     key={bookmark.id}
-                    className="flex items-center gap-3 p-3 nb-bg-card border-2 border-[color:var(--nb-border)] cursor-pointer hover:bg-[color:var(--nb-bg)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] transition-all duration-150"
+                    className="flex items-center gap-3 p-3 nb-bg-card border-2 border-[color:var(--nb-border)] cursor-pointer hover:bg-[color:var(--nb-bg)] hover:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] transition-all duration-150"
                   >
                     <input
                       type="radio"

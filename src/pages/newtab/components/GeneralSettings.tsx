@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { exportData, importData } from '../../../lib/dataSync';
 import { sanitizeBrightnessInput, useTheme } from '../../../contexts/ThemeContext';
@@ -34,6 +34,7 @@ const GeneralSettings: React.FC = () => {
   const [cardsPerRow, setCardsPerRow] = useState<StorageValues[StorageKey.CARDS_PER_ROW]>(4);
   const [includeSensitiveExport, setIncludeSensitiveExport] = useState<boolean>(false);
   const [showSensitiveExportConfirm, setShowSensitiveExportConfirm] = useState(false);
+  const languageSelectId = useId();
 
   useEffect(() => {
     setAutoSuggest(autoSuggestBookmark.get());
@@ -117,10 +118,10 @@ const GeneralSettings: React.FC = () => {
   };
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">{t('settings.generalTitle')}</h2>
+    <section className="settings-section">
+      <h2 className="settings-section-title">{t('settings.generalTitle')}</h2>
 
-      <div className="space-y-4">
+      <div className="settings-card-stack">
         {/* Theme Selection - Neo-Brutalism 风格 */}
         <div className="nb-card-static p-4">
           <div className="mb-4">
@@ -143,6 +144,7 @@ const GeneralSettings: React.FC = () => {
               </span>
               {brightness < 1.0 && (
                 <button
+                  type="button"
                   onClick={handleResetBrightness}
                   className="nb-btn nb-btn-ghost px-2 py-1 text-xs"
                   title={t('settings.brightnessReset')}
@@ -169,8 +171,8 @@ const GeneralSettings: React.FC = () => {
                 [&::-webkit-slider-thumb]:border-2
                 [&::-webkit-slider-thumb]:border-[color:var(--nb-border)]
                 [&::-webkit-slider-thumb]:cursor-pointer
-                [&::-webkit-slider-thumb]:shadow-[2px_2px_0px_0px_var(--nb-border)]
-                [&::-webkit-slider-thumb]:hover:shadow-[1px_1px_0px_0px_var(--nb-border)]
+                [&::-webkit-slider-thumb]:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]
+                [&::-webkit-slider-thumb]:hover:shadow-[1px_1px_0px_0px_var(--nb-shadow-color)]
                 [&::-webkit-slider-thumb]:hover:translate-x-[1px]
                 [&::-webkit-slider-thumb]:hover:translate-y-[1px]
                 [&::-webkit-slider-thumb]:transition-all
@@ -186,15 +188,19 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Language Selection - Neo-Brutalism 风格 */}
-        <div className="nb-card-static flex items-center justify-between p-4">
-          <div>
-            <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.language')}</h3>
+        <div className="settings-option-row nb-card-static">
+          <div className="settings-option-copy">
+            <h3 className="font-semibold text-[color:var(--nb-text)]">
+              <label htmlFor={languageSelectId}>{t('settings.language')}</label>
+            </h3>
             <p className="text-sm nb-text-secondary">{t('settings.languageDesc')}</p>
           </div>
           <select
+            id={languageSelectId}
             value={currentLanguage}
             onChange={handleLanguageChange}
-            className="nb-input px-4 py-2"
+            className="settings-language-select nb-input px-4 py-2"
+            aria-label={t('settings.languageAriaLabel')}
           >
             <option value="zh-CN">{t('settings.languageOptions.zh-CN')}</option>
             <option value="en">{t('settings.languageOptions.en')}</option>
@@ -245,17 +251,17 @@ const GeneralSettings: React.FC = () => {
         </div>
       </div>
 
-      <h2 className="text-xl font-bold mt-8 mb-4 text-[color:var(--nb-text)]">{t('settings.notificationTitle')}</h2>
-      <p className="text-sm nb-text-secondary mb-4">{t('settings.notificationDesc')}</p>
+      <h2 className="settings-section-title settings-section-title--spaced">{t('settings.notificationTitle')}</h2>
+      <p className="settings-section-desc">{t('settings.notificationDesc')}</p>
       <NotificationSettings />
 
-      <h2 className="text-xl font-bold mt-8 mb-4 text-[color:var(--nb-text)]">{t('settings.permissionsTitle')}</h2>
-      <p className="text-sm nb-text-secondary mb-4">{t('settings.permissionsDesc')}</p>
+      <h2 className="settings-section-title settings-section-title--spaced">{t('settings.permissionsTitle')}</h2>
+      <p className="settings-section-desc">{t('settings.permissionsDesc')}</p>
       <div className="nb-card-static p-4">
         <div className="divide-y-2 divide-[color:var(--nb-border)]">
           {PERMISSION_ITEMS.map((item) => (
             <div key={item.key} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
                 <span className="material-symbols-outlined text-base nb-text">{item.icon}</span>
               </div>
               <div className="min-w-0 flex-1">
@@ -276,8 +282,8 @@ const GeneralSettings: React.FC = () => {
         </div>
       </div>
 
-      <h2 className="text-xl font-bold mt-8 mb-4 text-[color:var(--nb-text)]">{t('settings.dataManagement')}</h2>
-      <div className="space-y-4">
+      <h2 className="settings-section-title settings-section-title--spaced">{t('settings.dataManagement')}</h2>
+      <div className="settings-card-stack">
         <div className="nb-card-static p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -285,6 +291,7 @@ const GeneralSettings: React.FC = () => {
               <p className="text-sm nb-text-secondary">{t('settings.exportDataDesc')}</p>
             </div>
             <button
+              type="button"
               onClick={handleExport}
               className="nb-btn nb-btn-primary px-4 py-2 self-start"
             >
@@ -301,7 +308,7 @@ const GeneralSettings: React.FC = () => {
                 </p>
               )}
               {includeSensitiveExport && (
-                <p className="mt-1 text-xs font-medium" style={{ color: 'var(--nb-accent-pink)' }}>
+                <p className="mt-1 text-xs font-medium" style={{ color: 'var(--color-error-text)' }}>
                   {t('settings.exportSensitiveWarning')}
                 </p>
               )}
@@ -326,6 +333,7 @@ const GeneralSettings: React.FC = () => {
             <p className="text-sm nb-text-secondary">{t('settings.importDataDesc')}</p>
           </div>
           <button
+            type="button"
             onClick={handleImport}
             className="nb-btn nb-btn-secondary px-4 py-2"
           >
@@ -341,7 +349,7 @@ const GeneralSettings: React.FC = () => {
         </div>
       </div>
 
-      <p className="nb-text-secondary mt-8">{t('settings.moreFeaturesComing')}</p>
+      <p className="settings-more-note nb-text-secondary">{t('settings.moreFeaturesComing')}</p>
 
       <ConfirmDialog
         isOpen={showSensitiveExportConfirm}
@@ -352,7 +360,7 @@ const GeneralSettings: React.FC = () => {
         confirmText={t('settings.exportButton')}
         danger
       />
-    </div>
+    </section>
   );
 };
 

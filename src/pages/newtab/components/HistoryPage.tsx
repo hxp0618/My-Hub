@@ -308,24 +308,22 @@ export const HistoryPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 h-full flex flex-col relative nb-bg">
-      {/* 装饰性背景元素 */}
-      <div className="absolute top-20 right-16 w-20 h-20 bg-[color:var(--nb-accent-blue)]/15 border-3 border-[color:var(--nb-border)] nb-sticker-2 nb-float pointer-events-none shadow-[4px_4px_0px_0px_var(--nb-border)]" style={{ borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%' }}></div>
-      <div className="absolute bottom-32 left-8 w-16 h-16 bg-[color:var(--nb-accent-pink)]/15 border-2 border-[color:var(--nb-border)] rounded-full nb-float pointer-events-none shadow-[3px_3px_0px_0px_var(--nb-border)]"></div>
-
-      <header className="nb-card-static sticky top-0 z-20 -mx-8 -mt-8 px-8 pt-8 pb-5 shadow-[0_6px_0px_0px_var(--nb-border)] relative overflow-hidden">
+    <div className="history-page-shell nb-bg">
+      <header className="history-page-header nb-card-static">
         {/* 顶部装饰条 */}
-        <div className="absolute top-0 left-0 right-0 flex h-1">
+        <div className="history-page-accent-bar" aria-hidden="true">
           <div className="flex-1 bg-[color:var(--nb-accent-pink)]"></div>
           <div className="flex-1 bg-[color:var(--nb-accent-yellow)]"></div>
           <div className="flex-1 bg-[color:var(--nb-accent-blue)]"></div>
           <div className="flex-1 bg-[color:var(--nb-accent-green)]"></div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <DateNavigator onDateChange={handleDateChange} availableDates={availableDates} />
-          <div className="flex items-center space-x-3">
-            <div className="w-64">
+        <div className="history-page-toolbar">
+          <div className="history-page-date-nav">
+            <DateNavigator onDateChange={handleDateChange} availableDates={availableDates} />
+          </div>
+          <div className="history-page-actions">
+            <div className="history-page-search">
               <UnifiedSearchBar
                 mode="history"
                 value={filters.search}
@@ -335,11 +333,12 @@ export const HistoryPage: React.FC = () => {
               />
             </div>
             {/* Neo-Brutalism 风格网格选择器 */}
-            <div className="nb-card-static flex items-center space-x-2 px-3 py-2.5 shadow-[3px_3px_0px_0px_var(--nb-border)]">
+            <div className="history-page-density-select nb-card-static flex items-center space-x-2 px-3 py-2.5 shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
               <div className="w-7 h-7 flex items-center justify-center bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)]">
                 <span className="material-symbols-outlined icon-linear text-sm nb-text">grid_view</span>
               </div>
               <select
+                aria-label={t('settings.cardsPerRow')}
                 value={cardsPerRow}
                 onChange={(e) => {
                   const newValue = parseCardsPerRowValue(e.target.value);
@@ -359,8 +358,10 @@ export const HistoryPage: React.FC = () => {
             </div>
             {/* Neo-Brutalism 风格选择按钮 */}
             <button
+              type="button"
               onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
-              className={`nb-btn px-5 py-2.5 text-sm transition ${
+              aria-pressed={isMultiSelectMode}
+              className={`history-page-select-button nb-btn px-5 py-2.5 text-sm transition ${
                 isMultiSelectMode
                   ? 'nb-btn-primary'
                   : 'nb-btn-secondary'
@@ -373,7 +374,7 @@ export const HistoryPage: React.FC = () => {
         </div>
       </header>
       
-      <main ref={mainContentRef} className="flex-1 overflow-y-auto pt-6 -mx-6 px-6">
+      <main ref={mainContentRef} className="history-page-content">
         {isLoading && historyItems.length === 0 ? (
           <div className="space-y-1">
             {[...Array(10)].map((_, i) => (
@@ -408,7 +409,7 @@ export const HistoryPage: React.FC = () => {
                 <div key={timeKey}>
                   {/* Neo-Brutalism 风格时间组标题 */}
                   <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]">
+                    <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
                       <span className="material-symbols-outlined text-lg nb-text">schedule</span>
                     </div>
                     <h3 className="font-black nb-text text-xl uppercase tracking-tight">{displayTitle}</h3>
@@ -477,7 +478,7 @@ export const HistoryPage: React.FC = () => {
 
       {/* AI生成标签进度模态框 - Neo-Brutalism 风格 */}
       {tagGenerationItem && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 transition-colors">
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 transition-colors">
           <div className="nb-card-static w-full max-w-md p-8">
             <h3 className="text-lg font-bold mb-4 text-[color:var(--nb-text)]">{t('bookmarks.generatingTags')}</h3>
             <p className="nb-text-secondary mb-4">{tagGenerationItem.title}</p>

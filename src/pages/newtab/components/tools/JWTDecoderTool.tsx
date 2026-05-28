@@ -120,13 +120,13 @@ export const JWTDecoderTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
 
         {result.error && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{t(`tools.jwtDecoder.errors.${result.error}`)}</p>
+            <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>{t(`tools.jwtDecoder.errors.${result.error}`)}</p>
           </div>
         )}
 
         {result.expiresAt && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: result.isExpired ? 'var(--nb-accent-pink)' : 'var(--nb-accent-green)' }}>
-            <p className="text-sm" style={{ color: result.isExpired ? 'var(--nb-accent-pink)' : 'var(--nb-accent-green)' }}>
+            <p className="text-sm" style={{ color: result.isExpired ? 'var(--color-error-text)' : 'var(--nb-accent-green)' }}>
               {result.isExpired ? t('tools.jwtDecoder.expired') : t('tools.jwtDecoder.valid')} - {t('tools.jwtDecoder.expiresAt')}: {result.expiresAt.toLocaleString()}
             </p>
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { ThemeSwitcher } from '../ThemeSwitcher';
@@ -8,6 +8,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => ({
       'settings.theme': 'Theme',
+      'settings.selectTheme': 'Select theme',
       'settings.themeLight': 'Light Mode',
       'settings.themeLightDesc': 'A bright, crisp interface for daytime use',
       'settings.themeDark': 'Dark Mode',
@@ -48,10 +49,33 @@ describe('ThemeSwitcher', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole('button', { name: 'Light Mode' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Dark Mode' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radiogroup', { name: 'Select theme' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Light Mode' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Dark Mode' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('A warmer palette that reduces blue light')).toBeInTheDocument();
     expect(screen.queryByText('浅色模式')).not.toBeInTheDocument();
     expect(screen.queryByText('护眼模式')).not.toBeInTheDocument();
+  });
+
+  it('supports keyboard theme selection in a single radio group', () => {
+    render(
+      <ThemeProvider>
+        <ThemeSwitcher variant="grid" showDescriptions />
+      </ThemeProvider>
+    );
+
+    const darkOption = screen.getByRole('radio', { name: 'Dark Mode' });
+    const systemOption = screen.getByRole('radio', { name: 'Follow System' });
+
+    expect(darkOption).toHaveAttribute('tabindex', '0');
+    expect(systemOption).toHaveAttribute('tabindex', '-1');
+
+    fireEvent.keyDown(darkOption, { key: 'ArrowRight' });
+
+    expect(systemOption).toHaveAttribute('aria-checked', 'true');
+    expect(systemOption).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(systemOption, { key: 'End' });
+    expect(screen.getByRole('radio', { name: 'Eye Care' })).toHaveAttribute('aria-checked', 'true');
   });
 });

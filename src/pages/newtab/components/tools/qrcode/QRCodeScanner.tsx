@@ -155,7 +155,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
                 {/* 删除按钮 */}
                 <button
                   onClick={() => onDelete(image.id)}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-[2px_2px_0px_0px_var(--nb-border)]"
+                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]"
                 >
                   <span className="material-symbols-outlined text-sm">close</span>
                 </button>

@@ -32,12 +32,11 @@ export const Toast: React.FC<ToastProps> = ({
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
-  // Neo-Brutalism 强调色背景
-  const bgColors = {
-    success: 'bg-[color:var(--nb-accent-green)]',
-    error: 'bg-[color:var(--nb-accent-pink)]',
-    warning: 'bg-[color:var(--nb-accent-yellow)]',
-    info: 'bg-[color:var(--nb-accent-blue)]'
+  const toneClasses: Record<ToastType, string> = {
+    success: 'toast--success',
+    error: 'toast--error',
+    warning: 'toast--warning',
+    info: 'toast--info'
   };
 
   const icons = {
@@ -49,36 +48,27 @@ export const Toast: React.FC<ToastProps> = ({
 
   return (
     <div
-      className={`
-        ${bgColors[type]} px-5 py-4
-        border-3 border-[color:var(--nb-border)]
-        shadow-[6px_6px_0px_0px_var(--nb-border)]
-        flex items-center gap-4 min-w-[280px] max-w-md
-        transition-all duration-300 ease-out
-        ${isVisible 
-          ? 'translate-y-0 opacity-100' 
-          : 'translate-y-4 opacity-0 pointer-events-none'
-        }
-      `}
-      role="alert"
-      aria-live="polite"
+      className={`toast ${toneClasses[type]} ${isVisible ? 'toast--visible' : 'toast--hidden'}`}
+      role={type === 'error' ? 'alert' : 'status'}
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
     >
       {/* 图标容器 - Neo-Brutalism 风格 */}
-      <div className="w-8 h-8 flex items-center justify-center bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] flex-shrink-0">
+      <div className="toast-icon">
         <span className="material-symbols-outlined text-lg nb-text" aria-hidden="true">{icons[type]}</span>
       </div>
       
       {/* 消息内容 */}
-      <span className="flex-1 font-bold text-sm nb-text uppercase tracking-wide">{message}</span>
+      <span className="toast-message">{message}</span>
       
       {/* 操作按钮 */}
       {actionText && onAction && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onAction();
           }}
-          className="px-3 py-1.5 bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] font-bold text-xs nb-text uppercase tracking-wide transition-all duration-100 flex-shrink-0"
+          className="toast-action"
         >
           {actionText}
         </button>
@@ -86,14 +76,15 @@ export const Toast: React.FC<ToastProps> = ({
       
       {/* 关闭按钮 - Neo-Brutalism 风格 */}
       <button
+        type="button"
         onClick={() => {
           setIsVisible(false);
           setTimeout(onClose, 300);
         }}
-        className="w-7 h-7 flex items-center justify-center bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100 flex-shrink-0"
+        className="toast-close"
         aria-label={t('common.closeNotification')}
       >
-        <span className="material-symbols-outlined text-base nb-text">close</span>
+        <span className="material-symbols-outlined text-base nb-text" aria-hidden="true">close</span>
       </button>
     </div>
   );
@@ -104,17 +95,16 @@ export const ToastContainer: React.FC<{
   onRemove: (id: string) => void;
 }> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-      {toasts.map((toast, index) => (
-        <div key={toast.id} style={{ transform: `translateY(-${index * 80}px)` }}>
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => onRemove(toast.id)}
-            actionText={toast.actionText}
-            onAction={toast.onAction}
-          />
-        </div>
+    <div className="toast-container">
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => onRemove(toast.id)}
+          actionText={toast.actionText}
+          onAction={toast.onAction}
+        />
       ))}
     </div>
   );

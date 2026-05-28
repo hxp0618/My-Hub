@@ -49,7 +49,7 @@ const FolderModal: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 bg-[rgba(36,36,37,0.35)] flex items-center justify-center z-50">
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
             <div className="nb-card-static w-full max-w-sm p-6">
                 <h3 className="text-lg font-bold nb-text mb-6">{mode === 'create' ? t('bookmarks.newFolder') : t('bookmarks.renameFolder')}</h3>
                 <input
@@ -90,7 +90,7 @@ const DeleteConfirmModal: React.FC<{
     const totalItems = countAllItems(folder);
     
     return (
-        <div className="fixed inset-0 bg-[rgba(36,36,37,0.35)] flex items-center justify-center z-50">
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
             <div className="nb-card-static w-full max-w-md p-6">
                 <h3 className="text-lg font-bold nb-text mb-2">{t('bookmarks.deleteFolder')}</h3>
                 <p className="nb-text-secondary mb-6">{t('bookmarks.deleteFolderConfirm', { folderName: folder.title })}</p>
@@ -242,19 +242,20 @@ const FolderNode: React.FC<FolderNodeProps> = ({
   const isDraggingSelf = dragController.enabled && dragController.draggingId === node.id;
   const isRootFolder = node.parentId === '0';
   const draggable = dragController.allowFolderDrag && !isRootFolder;
+  // Quiet 响度（per §4 设计规范）：用 .nb-card-data 模式，
+  // 不加硬阴影，不做 hover 位移；选中态由 aria-selected 触发左侧 4px 黄 bar
   const baseRowClasses =
-    'nb-bg-card nb-border rounded-lg flex items-center py-2.5 px-3 text-sm transition-all shadow-[var(--nb-shadow-none,0px_0px_0px_0px_#242425)]';
-  const selectedClasses = isSelected ? ' nb-selected font-semibold shadow-[var(--nb-shadow)]' : '';
+    'nb-card-data flex items-center py-2.5 px-3 text-sm cursor-pointer';
+  const selectedClasses = isSelected ? ' font-semibold' : '';
   const dragHighlightClasses = !dragController.enabled
     ? ''
     : isDragOver
       ? (isDropAllowed
-          ? ' border-[color:var(--nb-accent-green)] shadow-[var(--nb-shadow)]'
-          : ' border-[color:var(--nb-accent-pink)] shadow-[var(--nb-shadow)]')
+          ? ' border-[color:var(--nb-accent-green)]'
+          : ' border-[color:var(--color-error-text)]')
       : '';
   const draggingClasses = isDraggingSelf ? ' opacity-60' : '';
-  const hoverClasses = isSelected ? '' : ' hover:shadow-[var(--nb-shadow)] hover:-translate-y-[1px]';
-  const rowClasses = `${baseRowClasses}${selectedClasses}${dragHighlightClasses}${draggingClasses}${hoverClasses}`;
+  const rowClasses = `${baseRowClasses}${selectedClasses}${dragHighlightClasses}${draggingClasses}`;
 
   const rowStyle = useMemo(() => ({ '--indent-level': String(level) } as React.CSSProperties), [level]);
   const indentGuides = useMemo(() => {
@@ -278,10 +279,12 @@ const FolderNode: React.FC<FolderNodeProps> = ({
     <>
       <div className={`group relative ${menuOpen ? 'z-50' : ''}`}>
         <div
-          className={`${rowClasses} folder-node-row cursor-pointer`}
+          className={`${rowClasses} folder-node-row`}
           style={rowStyle}
           data-level={level}
           draggable={draggable}
+          role="treeitem"
+          aria-selected={isSelected}
           onClick={() => onSelectFolder(node.id)}
           onDragStart={draggable ? (event) => dragController.onFolderDragStart(event, node) : undefined}
           onDragEnd={draggable ? () => dragController.onDragEnd() : undefined}
@@ -567,7 +570,7 @@ export const BookmarkFolderTree: React.FC<BookmarkFolderTreeProps> = ({
   };
 
   return (
-    <nav className="space-y-1 pr-4">
+    <nav className="space-y-1 pr-4" role="tree" aria-label="bookmark folders">
       {folders.map(node => (
         <FolderNode
           key={node.id}

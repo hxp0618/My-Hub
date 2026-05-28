@@ -47,11 +47,11 @@ export const TagList: React.FC<TagListProps> = ({
   const hasTags = tags.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="tag-list-panel">
       {/* 工具栏 - 紧凑布局 */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="tag-list-toolbar nb-card-static">
         {/* 搜索框 */}
-        <div className="flex-1 min-w-[200px] relative">
+        <div className="tag-list-search">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-base nb-text-secondary">search</span>
           <input
             type="text"
@@ -60,6 +60,7 @@ export const TagList: React.FC<TagListProps> = ({
             placeholder={t('tags.searchPlaceholder')}
             className="nb-input w-full pr-4 py-2 text-sm"
             style={{ paddingLeft: '2.5rem' }}
+            aria-label={t('tags.search')}
           />
         </div>
 
@@ -67,7 +68,8 @@ export const TagList: React.FC<TagListProps> = ({
         <select
           value={sortBy}
           onChange={e => onSortChange(e.target.value as TagSortBy)}
-          className="nb-input px-3 py-2 text-sm"
+          className="tag-list-sort nb-input px-3 py-2 text-sm"
+          aria-label={t('tags.sortBy')}
         >
           <option value="name">{t('tags.sortByName')}</option>
           <option value="count">{t('tags.sortByCount')}</option>
@@ -76,8 +78,10 @@ export const TagList: React.FC<TagListProps> = ({
 
         {/* 多选模式按钮 */}
         <button
-          className={`nb-btn px-3 py-2 text-sm ${isMultiSelectMode ? 'nb-btn-primary' : 'nb-btn-secondary'}`}
+          type="button"
+          className={`tag-list-multi-button nb-btn px-3 py-2 text-sm ${isMultiSelectMode ? 'nb-btn-primary' : 'nb-btn-secondary'}`}
           onClick={onToggleMultiSelect}
+          aria-pressed={isMultiSelectMode}
         >
           <span className="material-symbols-outlined text-sm mr-1">checklist</span>
           {isMultiSelectMode ? t('tags.exitMultiSelect') : t('tags.multiSelectMode')}
@@ -86,18 +90,19 @@ export const TagList: React.FC<TagListProps> = ({
 
       {/* 多选操作栏 - 紧凑版 */}
       {isMultiSelectMode && (
-        <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-[color:var(--nb-accent-yellow)]/30 border-2 border-[color:var(--nb-border)]">
+        <div className="tag-list-selection-bar">
           <span className="text-sm font-bold nb-text">
             {t('tags.selectedCount', { count: selectedTags.length })}
           </span>
-          <button className="text-sm nb-text hover:underline" onClick={onSelectAll}>
+          <button type="button" className="tag-list-link-button nb-text" onClick={onSelectAll}>
             {t('tags.selectAll')}
           </button>
-          <button className="text-sm nb-text hover:underline" onClick={onClearSelection}>
+          <button type="button" className="tag-list-link-button nb-text" onClick={onClearSelection}>
             {t('tags.clearSelection')}
           </button>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="tag-list-selection-actions">
             <button
+              type="button"
               className="nb-btn nb-btn-info px-3 py-1.5 text-sm disabled:opacity-50"
               onClick={onMergeSelected}
               disabled={selectedTags.length < 2}
@@ -106,6 +111,7 @@ export const TagList: React.FC<TagListProps> = ({
               {t('tags.merge')}
             </button>
             <button
+              type="button"
               className="nb-btn nb-btn-danger px-3 py-1.5 text-sm disabled:opacity-50"
               onClick={onDeleteSelected}
               disabled={selectedTags.length === 0}
@@ -119,14 +125,14 @@ export const TagList: React.FC<TagListProps> = ({
 
       {/* 加载状态 */}
       {loading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="w-8 h-8 border-3 border-[color:var(--nb-border)]/20 border-t-[color:var(--nb-accent-yellow)] animate-spin"></div>
+        <div className="tag-list-loading">
+          <div className="w-8 h-8 border-2 border-[color:var(--nb-border)]/20 border-t-[color:var(--nb-accent-yellow)] animate-spin"></div>
         </div>
       )}
 
       {/* 空状态 */}
       {!loading && !hasTags && (
-        <div className="text-center py-8">
+        <div className="tag-list-empty nb-card-static">
           <span className="material-symbols-outlined text-4xl nb-text-secondary mb-2">label_off</span>
           <div className="text-base nb-text-secondary">
             {searchTerm ? t('tags.noResults') : t('tags.noTags')}
@@ -134,7 +140,7 @@ export const TagList: React.FC<TagListProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="tag-list-grid">
         {tags.map(tag => (
           <TagCard
             key={tag.name}

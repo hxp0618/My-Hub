@@ -376,64 +376,69 @@ export const SubscriptionsPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 h-full flex flex-col">
+    <div className="subscriptions-page-shell nb-bg nb-text">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-3xl text-[var(--nb-accent-yellow)]">
-            subscriptions
-          </span>
-          <h1 className="text-2xl font-bold nb-text">
-            {t('subscriptions.title')}
-          </h1>
+      <header className="subscriptions-page-header nb-card-static">
+        <div className="subscriptions-page-title-group">
+          <div className="subscriptions-page-title-main">
+            <span className="material-symbols-outlined text-3xl text-[var(--nb-accent-yellow)]">
+              subscriptions
+            </span>
+            <h1 className="text-2xl font-bold nb-text">
+              {t('subscriptions.title')}
+            </h1>
+          </div>
         </div>
-        
+
         {/* 操作按钮 */}
-        <div className="flex items-center gap-2">
+        <div className="subscriptions-page-actions">
           <button
+            type="button"
             onClick={() => setShowSettingsModal(true)}
-            className="nb-btn nb-btn-ghost"
+            className="subscriptions-page-icon-button nb-btn nb-btn-ghost"
             title={t('subscriptions.settings')}
+            aria-label={t('subscriptions.settings')}
           >
             <span className="material-symbols-outlined text-sm">settings</span>
           </button>
           <button
+            type="button"
             onClick={() => {
               setEditingSubscription(undefined);
               setShowFormModal(true);
             }}
-            className="nb-btn nb-btn-primary"
+            className="subscriptions-page-add-button nb-btn nb-btn-primary"
           >
             <span className="material-symbols-outlined text-sm mr-1">add</span>
             {t('subscriptions.add')}
           </button>
         </div>
-      </div>
+      </header>
 
       {/* 内容区域 */}
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div className="subscriptions-page-content">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="subscriptions-page-loading">
             <span className="material-symbols-outlined animate-spin text-4xl nb-text-secondary">
               progress_activity
             </span>
           </div>
         ) : (
           <>
-            <div className="mb-5 space-y-4">
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+            <section className="subscriptions-page-overview" aria-label={t('subscriptions.calendar.overview')}>
+              <div className="subscriptions-summary-grid">
                 {summaryCards.map((card) => (
-                  <div key={card.key} className="nb-card-static p-4 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg border-2 border-[var(--nb-border)] flex items-center justify-center ${card.colorClass}`}>
+                  <div key={card.key} className="subscriptions-summary-card nb-card-static">
+                    <div className={`subscriptions-summary-icon ${card.colorClass}`}>
                       <span className="material-symbols-outlined text-xl text-[var(--nb-border)]">
                         {card.icon}
                       </span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="text-2xl font-bold nb-text leading-none">
+                    <div className="subscriptions-summary-copy">
+                      <div className="subscriptions-summary-value nb-text">
                         {card.value}
                       </div>
-                      <div className="text-xs font-semibold nb-text-secondary mt-1 truncate">
+                      <div className="subscriptions-summary-label nb-text-secondary">
                         {card.label}
                       </div>
                     </div>
@@ -441,9 +446,9 @@ export const SubscriptionsPage: React.FC = () => {
                 ))}
               </div>
 
-              <div className="nb-card-static p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2">
+              <div className="subscriptions-calendar-card nb-card-static">
+                <div className="subscriptions-calendar-header">
+                  <div className="subscriptions-calendar-title">
                     <span className="material-symbols-outlined text-xl text-[var(--nb-accent-blue)]">
                       date_range
                     </span>
@@ -461,7 +466,7 @@ export const SubscriptionsPage: React.FC = () => {
                   {selectedMonthKey && (
                     <button
                       type="button"
-                      className="nb-btn nb-btn-ghost px-3 py-1.5 text-sm"
+                      className="subscriptions-calendar-clear nb-btn nb-btn-ghost px-3 py-1.5 text-sm"
                       onClick={() => {
                         setSelectedMonthKey(null);
                         setCurrentPage(1);
@@ -472,28 +477,38 @@ export const SubscriptionsPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+                <div className="subscriptions-calendar-grid">
                   {calendarMonths.map((month) => {
                     const hasSubscriptions = month.subscriptions.length > 0;
                     const isSelected = selectedMonthKey === month.key;
+                    const monthLabel = formatMonthLabel(month.startDate);
 
                     return (
                       <button
                         key={month.key}
                         type="button"
+                        disabled={!hasSubscriptions}
                         onClick={() => hasSubscriptions && handleMonthSelect(month.key)}
-                        className={`text-left nb-card-subtle p-4 transition-all ${
+                        aria-pressed={isSelected}
+                        aria-label={hasSubscriptions
+                          ? t('subscriptions.calendar.filterByMonth', {
+                            month: monthLabel,
+                            count: month.subscriptions.length,
+                          })
+                          : t('subscriptions.calendar.emptyMonthLabel', { month: monthLabel })
+                        }
+                        className={`subscriptions-calendar-month nb-card-subtle ${
                           isSelected
-                            ? 'bg-[color:var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-border)] translate-x-[1px] translate-y-[1px]'
+                            ? 'is-selected'
                             : hasSubscriptions
-                              ? 'bg-[color:var(--nb-card)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px]'
-                              : 'bg-[color:var(--nb-bg)] opacity-70 cursor-default'
+                              ? 'has-subscriptions'
+                              : 'is-empty'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="subscriptions-calendar-month-header">
                           <div>
                             <div className="text-sm font-bold nb-text">
-                              {formatMonthLabel(month.startDate)}
+                              {monthLabel}
                             </div>
                             <div className="text-xs nb-text-secondary mt-1">
                               {hasSubscriptions
@@ -504,26 +519,26 @@ export const SubscriptionsPage: React.FC = () => {
                           </div>
                           <div className="flex gap-1">
                             {month.expiredCount > 0 && (
-                              <span className="nb-badge nb-badge-pink">
+                              <span className="nb-badge nb-badge-pink" title={t('subscriptions.calendar.expired')}>
                                 {month.expiredCount}
                               </span>
                             )}
                             {month.upcomingCount > 0 && (
-                              <span className="nb-badge nb-badge-green">
+                              <span className="nb-badge nb-badge-green" title={t('subscriptions.calendar.next30Days')}>
                                 {month.upcomingCount}
                               </span>
                             )}
                             {month.disabledCount > 0 && (
-                              <span className="nb-badge nb-badge-yellow">
+                              <span className="nb-badge nb-badge-yellow" title={t('subscriptions.disabled')}>
                                 {month.disabledCount}
                               </span>
                             )}
                           </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="subscriptions-calendar-items">
                           {month.subscriptions.slice(0, 3).map((subscription) => (
-                            <div key={subscription.id} className="flex items-center justify-between gap-3 text-xs">
+                            <div key={subscription.id} className="subscriptions-calendar-item">
                               <span className="font-medium nb-text truncate">
                                 {subscription.name}
                               </span>
@@ -545,9 +560,9 @@ export const SubscriptionsPage: React.FC = () => {
                   })}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="flex-1">
+            <section className="subscriptions-list-section" aria-label={t('subscriptions.tabs.list')}>
               <SubscriptionList
                 subscriptions={paginationData.currentPageData}
                 emptyTitle={selectedMonthKey ? t('subscriptions.calendar.filterEmpty') : undefined}
@@ -557,7 +572,7 @@ export const SubscriptionsPage: React.FC = () => {
                 onToggleEnabled={handleToggleEnabled}
                 onRenew={handleRenew}
               />
-            </div>
+            </section>
             
             {/* 分页组件 */}
             <Pagination
@@ -615,7 +630,7 @@ export const SubscriptionsPage: React.FC = () => {
         onClose={() => setShowSettingsModal(false)}
         title={t('subscriptions.settings')}
       >
-        <div className="space-y-4">
+        <div className="subscriptions-settings-panel">
           {/* 每日重复提醒 */}
           <div className="flex items-center justify-between">
             <div>
@@ -625,8 +640,11 @@ export const SubscriptionsPage: React.FC = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => handleUpdateSettings({ ...settings, dailyReminder: !settings.dailyReminder })}
               className="nb-toggle"
+              aria-label={t('subscriptions.dailyReminder')}
+              aria-pressed={settings.dailyReminder}
             >
               <span className={`nb-toggle-track ${settings.dailyReminder ? 'active' : ''}`}>
                 <span className="nb-toggle-thumb" />
@@ -649,6 +667,7 @@ export const SubscriptionsPage: React.FC = () => {
                 ),
               })}
               className="nb-input w-full text-sm"
+              aria-label={t('subscriptions.defaultReminderDays')}
             >
               {[1, 3, 5, 7, 14, 30].map((days) => (
                 <option key={days} value={days}>
@@ -667,7 +686,7 @@ export const SubscriptionsPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="subscriptions-backup-actions">
               <button
                 type="button"
                 className="nb-btn nb-btn-info"

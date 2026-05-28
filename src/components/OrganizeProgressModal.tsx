@@ -41,7 +41,7 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
             <span className="font-bold uppercase tracking-wide">{t('organizeProgress.overallProgress')}</span>
             <span className="font-mono font-bold">{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-[color:var(--nb-bg)] border-3 border-[color:var(--nb-border)] h-4 relative overflow-hidden">
+          <div className="w-full bg-[color:var(--nb-bg)] border-2 border-[color:var(--nb-border)] h-4 relative overflow-hidden">
             <div
               className="bg-[color:var(--nb-accent-yellow)] h-full transition-all duration-300 ease-out absolute left-0 top-0 border-r-2 border-[color:var(--nb-border)]"
               style={{ width: `${progress}%` }}
@@ -63,7 +63,7 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
         {/* 当前状态 */}
         <div>
           <div className="text-sm nb-text-secondary mb-2 font-bold uppercase tracking-wide">{t('organizeProgress.currentStatus')}</div>
-          <div className="text-sm nb-bg-card nb-text p-3 border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]">
+          <div className="text-sm nb-bg-card nb-text p-3 border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
             {currentStatus}
           </div>
         </div>
@@ -72,8 +72,8 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
         {!canClose && (
           <div className="flex items-center justify-center gap-3">
             <div className="relative w-8 h-8">
-              <div className="w-8 h-8 border-3 border-[color:var(--nb-border)]/20"></div>
-              <div className="absolute top-0 left-0 w-8 h-8 border-3 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
+              <div className="w-8 h-8 border-2 border-[color:var(--nb-border)]/20"></div>
+              <div className="absolute top-0 left-0 w-8 h-8 border-2 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
             </div>
             <span className="text-sm nb-text-secondary font-medium">{t('organizeProgress.processing')}</span>
           </div>

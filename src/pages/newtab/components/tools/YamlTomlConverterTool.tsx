@@ -264,7 +264,7 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
         {/* 错误提示 */}
         {error && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>
+            <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>
               {error.line && (
                 <span className="font-medium">{t('tools.yamlTomlConverter.line')} {error.line}: </span>
               )}

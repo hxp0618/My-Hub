@@ -188,7 +188,7 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
           {/* 错误提示 */}
           {result.error && (
             <div className="p-3 nb-bg-card nb-border rounded-lg" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-              <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>
                 <span className="font-medium">{t('tools.regexTester.error')}:</span> {t(`tools.regexTester.errors.${result.error}`)}
               </p>
             </div>

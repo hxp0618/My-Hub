@@ -69,20 +69,40 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   useClickOutside(dropdownRef, () => setShowActions(false));
 
+  const cardLabel = isMultiSelectMode
+    ? t('itemCard.select', { title })
+    : t('itemCard.open', { title });
+
+  const activateCard = () => {
+    if (isMultiSelectMode) {
+      onSelect?.();
+    } else {
+      window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleWrapperClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Don't navigate if clicking on an interactive element or drag handle
+    // 避免菜单、复选框和拖拽手柄触发卡片打开。
     if (
         dropdownRef.current?.contains(e.target as Node) ||
         (e.target as HTMLElement).closest('button') ||
+        (e.target as HTMLElement).closest('input') ||
         (e.target as HTMLElement).closest('.drag-handle')
     ) {
         return;
     }
 
-    if (isMultiSelectMode) {
-      onSelect?.();
-    } else {
-      window.open(href, '_blank', 'noopener,noreferrer');
+    activateCard();
+  };
+
+  const handleWrapperKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+
+    if (event.key === 'Enter' || (isMultiSelectMode && event.key === ' ')) {
+      event.preventDefault();
+      activateCard();
     }
   };
 
@@ -105,31 +125,37 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   const actionMenu = actions && (
     <div className="absolute top-2 right-2 z-10">
       <button
+        type="button"
         onClick={e => {
           e.stopPropagation();
           setShowActions(!showActions);
         }}
-        className={`p-2 rounded-full transition-opacity ${isMultiSelectMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100 hover:nb-bg-card'}`}
+        className={`item-card-action-trigger ${isMultiSelectMode ? 'is-hidden' : ''}`}
         disabled={isMultiSelectMode}
+        aria-label={t('itemCard.moreActions', { title })}
+        aria-haspopup="menu"
+        aria-expanded={showActions}
       >
-        <span className="material-symbols-outlined icon-linear text-lg">more_vert</span>
+        <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">more_vert</span>
       </button>
       {showActions && (
-        <div ref={dropdownRef} className="nb-dropdown absolute right-0 mt-2 w-48 z-20">
+        <div ref={dropdownRef} className="item-card-menu nb-dropdown" role="menu">
           <div className="py-1">
             {actions.map(action => (
-              <div
+              <button
                 key={action.label}
+                type="button"
                 onClick={e => {
                   e.stopPropagation();
                   action.onClick();
                   setShowActions(false);
                 }}
-                className="nb-dropdown-item flex items-center cursor-pointer"
+                className="nb-dropdown-item item-card-menu-item"
+                role="menuitem"
               >
-                <span className="material-symbols-outlined icon-linear text-lg mr-3">{action.icon}</span>
+                <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">{action.icon}</span>
                 {action.label}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -137,51 +163,42 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     </div>
   );
 
-  // 随机选择一个轻微的旋转角度，用于 sticker 效果
-  const rotationClass = React.useMemo(() => {
-    const rotations = ['nb-sticker-1', 'nb-sticker-2', 'nb-sticker-3', ''];
-    return rotations[Math.floor(Math.random() * rotations.length)];
-  }, []);
-
   return (
     <div
       ref={wrapperRef}
       onClick={handleWrapperClick}
+      onKeyDown={handleWrapperKeyDown}
       {...dragProps}
-      className={`nb-card relative flex flex-col p-5 no-underline group min-h-[140px] ${rotationClass} ${
-        isMultiSelectMode ? 'cursor-pointer' : 'cursor-pointer'
-      } ${isSelected ? 'nb-selected' : ''} ${
+      className={`item-card nb-card-data ${isMultiSelectMode ? 'item-card--selectable' : ''} ${isSelected ? 'nb-selected' : ''} ${
         isDragging ? 'opacity-50 scale-105' : ''
       } ${showActions ? 'z-30' : ''}`}
+      role={isMultiSelectMode ? 'button' : 'link'}
+      aria-pressed={isMultiSelectMode ? isSelected : undefined}
+      aria-label={cardLabel}
+      tabIndex={0}
     >
       {isMultiSelectMode && (
-        <div className="absolute top-4 left-4 z-10" onClick={e => e.stopPropagation()}>
+        <div className="item-card-selection" onClick={e => e.stopPropagation()}>
            <input
             type="checkbox"
             checked={isSelected}
             onChange={onSelect}
-            className="h-5 w-5 border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-card)] text-[color:var(--nb-border)] accent-[color:var(--nb-border)] cursor-pointer focus:outline-none focus:ring-0"
+            aria-hidden="true"
+            tabIndex={-1}
+            className="item-card-checkbox"
           />
         </div>
-      )}
-
-      {/* 装饰性小方块 - 随机颜色 */}
-      {!isMultiSelectMode && !isDraggable && (
-        <div
-          className={`absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] opacity-40 pointer-events-none ${
-            ['bg-[color:var(--nb-accent-pink)]', 'bg-[color:var(--nb-accent-yellow)]', 'bg-[color:var(--nb-accent-blue)]', 'bg-[color:var(--nb-accent-green)]'][Math.floor(href.length % 4)]
-          }`}
-        ></div>
       )}
 
       {/* -- Drag Handle -- */}
       {isDraggable && !isMultiSelectMode && (
         <div
-          className="drag-handle absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          className="drag-handle item-card-drag-handle"
           {...dragHandleProps}
-        onClick={e => e.stopPropagation()}
-      >
-          <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary hover:nb-text">
+          aria-label={dragHandleProps?.['aria-label'] ?? t('itemCard.dragHandle', { title })}
+          onClick={e => e.stopPropagation()}
+        >
+          <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">
             drag_indicator
           </span>
         </div>
@@ -189,7 +206,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
 
       {/* -- Header -- */}
       <div className={`flex items-start ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
-        <div className="w-8 h-8 mr-3 flex-shrink-0 rounded-full overflow-hidden border-3 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+        <div className="item-card-favicon">
           <img alt={`${title} favicon`} className="w-full h-full object-cover" src={faviconUrl} />
         </div>
         <div className="min-w-0 flex-1">
@@ -203,7 +220,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 onMouseEnter={() => setShowFailureTooltip(true)}
                 onMouseLeave={() => setShowFailureTooltip(false)}
               >
-                <span className="material-symbols-outlined text-error text-base">warning</span>
+                <span className="material-symbols-outlined text-error text-base" aria-hidden="true">warning</span>
                 {showFailureTooltip && tagGenerationFailureReason && (
                   <div className="nb-card-static absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 px-3 py-2 text-xs whitespace-nowrap z-50 max-w-xs">
                     {t('bookmarks.tagGenerationFailed')}: {tagGenerationFailureReason}
@@ -225,7 +242,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
       {tags && tags.length > 0 && (
           <div className={`flex items-center flex-wrap gap-2 text-xs mt-4 ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
               {tags.map((tag, index) => (
-                  <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100`}>
+                  <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] hover:shadow-[1px_1px_0px_0px_var(--nb-shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100`}>
                       {tag}
                   </span>
               ))}

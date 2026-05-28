@@ -20,6 +20,8 @@
     "success": "Success",
     "warning": "Warning",
     "info": "Info",
+    "tags": "Tags",
+    "removeTag": "Remove {{tag}}",
     "tagInputPlaceholder": "Add tags (press Enter or comma)"
   },
   "errorBoundary": {
@@ -44,6 +46,7 @@
     "tools": "Tools",
     "settings": "Settings",
     "navigation": "Main navigation",
+    "resizeSidebar": "Resize sidebar",
     "openNavigation": "Open navigation menu",
     "closeNavigation": "Close navigation menu"
   },
@@ -55,6 +58,12 @@
     "results": "{{count}} results",
     "clear": "Clear search"
   },
+  "itemCard": {
+    "open": "Open {{title}}",
+    "select": "Select {{title}}",
+    "moreActions": "More actions for {{title}}",
+    "dragHandle": "Drag {{title}}"
+  },
   "history": {
     "title": "History",
     "loading": "Loading history...",
@@ -63,6 +72,10 @@
     "deleteSuccess": "Successfully deleted {{count}} history items",
     "deleteSingle": "History item deleted successfully",
     "showAllHistory": "Show all history",
+    "dateNavigator": "History date filters",
+    "previousDate": "Previous date filter",
+    "nextDate": "Next date filter",
+    "filterByDate": "Filter history by {{date}}",
     "today": "Today",
     "yesterday": "Yesterday",
     "daysAgo": "{{count}} days ago",
@@ -127,8 +140,10 @@
     "aiGenerateFolderStructure": "AI Generate Folder Structure",
     "aiOrganizeBookmarks": "AI Organize Bookmarks",
     "select": "Select",
+    "moreActions": "More actions",
     "updateChromeOrder": "Update Chrome Bookmark Order",
     "searchPlaceholder": "Search in bookmarks...",
+    "sortBy": "Bookmark sort order",
     "sortByDateAddedDesc": "By Date Added (Desc)",
     "sortByDateAddedAsc": "By Date Added (Asc)",
     "sortByDateLastUsedDesc": "By Last Used (Desc)",
@@ -217,6 +232,7 @@
     "selectedCount": "{{count}} selected",
     "selectAll": "Select all",
     "clearSelection": "Clear selection",
+    "selectTag": "Select tag {{name}}",
     "selectedModeHint": "Select tags to merge or delete",
     "backToList": "Back to list",
     "relatedBookmarks": "Related bookmarks",
@@ -286,6 +302,7 @@
       }
     },
     "fromClipboard": "From Clipboard",
+    "moreActions": "More actions",
     "createWebCombo": "Create Web Combo",
     "editWebCombo": "Edit Web Combo",
     "deleteWebComboConfirm": "Are you sure you want to delete this web combo?",
@@ -406,6 +423,8 @@
     "selectModel": "Please select a model",
     "customModelLabel": "Custom Model",
     "apiKeyLabel": "API Key",
+    "showApiKey": "Show API Key",
+    "hideApiKey": "Hide API Key",
     "getApiKeyFrom": "Get your API key from {{provider}} website.",
     "testing": "Testing...",
     "testConnectionButton": "Test Connection",
@@ -1676,6 +1695,13 @@
     "emptyHint": "Click \"Add Subscription\" to create your first subscription",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "actionLabels": {
+      "enable": "Enable {{name}}",
+      "disable": "Disable {{name}}",
+      "renew": "Renew {{name}}",
+      "edit": "Edit {{name}}",
+      "delete": "Delete {{name}}"
+    },
     "settings": "Subscription Settings",
     "dailyReminder": "Daily Reminder",
     "dailyReminderHint": "When enabled, reminders will be sent daily from the advance notice date until expiry",
@@ -1711,7 +1737,8 @@
       "pageSize": "Per page",
       "prev": "Previous",
       "next": "Next",
-      "page": "Page {{current}} / {{total}}"
+      "page": "Page {{current}} / {{total}}",
+      "goToPage": "Go to page {{page}}"
     },
     "calendar": {
       "overview": "Expiry Calendar",
@@ -1725,7 +1752,9 @@
       "clearFilter": "Clear Filter",
       "filterTitle": "Viewing {{month}}",
       "filterEmpty": "No subscriptions in this month",
-      "filterEmptyHint": "Clear the filter to view all subscriptions"
+      "filterEmptyHint": "Clear the filter to view all subscriptions",
+      "filterByMonth": "View {{count}} subscriptions in {{month}}",
+      "emptyMonthLabel": "No expiring subscriptions in {{month}}"
     },
     "backup": {
       "title": "Backup & Restore",

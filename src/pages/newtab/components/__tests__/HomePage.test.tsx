@@ -103,7 +103,7 @@ describe('HomePage web combo delete confirmation', () => {
 
     render(<HomePage recommendations={[]} timeRange="day" />);
 
-    const comboCard = screen.getByText('Daily Stack').closest('.nb-card');
+    const comboCard = screen.getByText('Daily Stack').closest('.item-card');
     expect(comboCard).toBeTruthy();
 
     fireEvent.click(within(comboCard as HTMLElement).getByText('more_vert'));

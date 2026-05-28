@@ -59,7 +59,7 @@ export const BookmarkHealthOverview: React.FC<{
     <section className="px-8 mt-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
         <div className="nb-card-static p-4 min-w-[180px] flex items-center gap-4">
-          <div className={`w-12 h-12 flex items-center justify-center border-3 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)] ${scoreTone}`}>
+          <div className={`w-12 h-12 flex items-center justify-center border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] ${scoreTone}`}>
             <span className="material-symbols-outlined nb-text">health_and_safety</span>
           </div>
           <div>
@@ -75,10 +75,10 @@ export const BookmarkHealthOverview: React.FC<{
               type="button"
               onClick={() => onSelectIssue(card.issue)}
               className={`nb-card-subtle p-4 flex items-start gap-3 text-left transition-all ${
-                activeIssue === card.issue ? 'shadow-[3px_3px_0px_0px_var(--nb-border)] translate-x-[-1px] translate-y-[-1px]' : ''
+                activeIssue === card.issue ? 'shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] translate-x-[-1px] translate-y-[-1px]' : ''
               }`}
             >
-              <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)] ${card.accent}`}>
+              <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] ${card.accent}`}>
                 <span className="material-symbols-outlined nb-text text-lg">{card.icon}</span>
               </div>
               <div className="min-w-0">

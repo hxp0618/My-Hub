@@ -101,7 +101,7 @@ export const ExecutionHistoryModal: React.FC<ExecutionHistoryModalProps> = ({
                       {t('tools.barkNotifier.scheduled.successCount', { count: record.successCount })}
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm" style={{ color: 'var(--nb-accent-pink)' }}>
+                      <span className="material-symbols-outlined text-sm" style={{ color: 'var(--color-error-text)' }}>
                         cancel
                       </span>
                       {t('tools.barkNotifier.scheduled.failedCount', { count: record.failedCount })}

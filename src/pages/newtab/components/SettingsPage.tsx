@@ -7,55 +7,51 @@ interface SettingsPageProps {
   onClose: () => void;
 }
 
+type SettingsMenu = 'General' | 'LLM';
+
+const SETTINGS_MENUS: Array<{ id: SettingsMenu; icon: string; labelKey: string }> = [
+  { id: 'General', icon: 'tune', labelKey: 'settings.general' },
+  { id: 'LLM', icon: 'psychology', labelKey: 'settings.llm' },
+];
+
 const SettingsPage: React.FC<SettingsPageProps> = () => {
   const { t } = useTranslation();
-  const [activeMenu, setActiveMenu] = useState('LLM');
+  const [activeMenu, setActiveMenu] = useState<SettingsMenu>('LLM');
 
   return (
-    <div className="flex h-[60vh] relative overflow-hidden">
-      {/* 装饰性背景元素 */}
-      <div className="absolute -top-8 -left-8 w-24 h-24 bg-[color:var(--nb-accent-blue)]/10 border-2 border-[color:var(--nb-border)]/20 rounded-full nb-float pointer-events-none"></div>
-      <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-[color:var(--nb-accent-pink)]/10 border-3 border-[color:var(--nb-border)]/20 nb-sticker-2 pointer-events-none" style={{ borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%' }}></div>
-
+    <div className="settings-page-shell">
       {/* Neo-Brutalism 风格侧边导航 */}
-      <nav className="w-48 border-r-[length:var(--nb-border-width)] border-[color:var(--nb-border)] pr-6 relative z-10">
+      <nav className="settings-page-nav" aria-label={t('sidebar.settings')}>
         {/* 导航标题 */}
-        <div className="mb-4 pb-3 border-b-2 border-[color:var(--nb-border)]">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
-              <span className="material-symbols-outlined text-base nb-text">tune</span>
+        <div className="settings-page-nav-header">
+          <div className="settings-page-nav-title">
+            <div className="settings-page-nav-icon">
+              <span className="material-symbols-outlined text-base nb-text" aria-hidden="true">tune</span>
             </div>
-            <h3 className="text-sm font-black nb-text uppercase tracking-tight">{t('sidebar.settings')}</h3>
+            <h3 className="text-sm font-black nb-text uppercase">{t('sidebar.settings')}</h3>
           </div>
         </div>
 
-        <ul className="space-y-2">
-          <li>
-            <button
-              onClick={() => setActiveMenu('General')}
-              className={`nb-settings-nav-item w-full ${activeMenu === 'General' ? 'active' : ''}`}
-            >
-              {t('settings.general')}
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={() => setActiveMenu('LLM')}
-              className={`nb-settings-nav-item w-full ${activeMenu === 'LLM' ? 'active' : ''}`}
-            >
-              {t('settings.llm')}
-            </button>
-          </li>
+        <ul className="settings-page-nav-list">
+          {SETTINGS_MENUS.map((menu) => (
+            <li key={menu.id}>
+              <button
+                type="button"
+                onClick={() => setActiveMenu(menu.id)}
+                className={`settings-page-nav-button nb-settings-nav-item ${activeMenu === menu.id ? 'active' : ''}`}
+                aria-current={activeMenu === menu.id ? 'page' : undefined}
+              >
+                <span className="material-symbols-outlined text-base" aria-hidden="true">{menu.icon}</span>
+                <span>{t(menu.labelKey)}</span>
+              </button>
+            </li>
+          ))}
         </ul>
       </nav>
-      <main className="flex-1 pl-6 flex flex-col overflow-hidden relative z-10">
-        {/* 内容区装饰 */}
-        <div className="absolute top-2 right-2 w-10 h-10 bg-[color:var(--nb-accent-green)]/20 border-2 border-[color:var(--nb-border)]/30 nb-rotate-slow pointer-events-none" style={{ clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' }}></div>
 
-        <div className="flex-1 overflow-y-auto pr-2">
-          {activeMenu === 'General' && <GeneralSettings />}
-          {activeMenu === 'LLM' && <LLMSettings />}
-        </div>
+      <main className="settings-page-content" aria-live="polite">
+        {activeMenu === 'General' && <GeneralSettings />}
+        {activeMenu === 'LLM' && <LLMSettings />}
       </main>
     </div>
   );

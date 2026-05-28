@@ -20,6 +20,8 @@
     "success": "成功",
     "warning": "警告",
     "info": "信息",
+    "tags": "标签",
+    "removeTag": "移除 {{tag}}",
     "tagInputPlaceholder": "添加标签（按回车或逗号）"
   },
   "errorBoundary": {
@@ -44,6 +46,7 @@
     "tools": "工具",
     "settings": "设置",
     "navigation": "主导航",
+    "resizeSidebar": "调整侧边栏宽度",
     "openNavigation": "打开导航菜单",
     "closeNavigation": "关闭导航菜单"
   },
@@ -55,6 +58,12 @@
     "results": "{{count}} 个结果",
     "clear": "清除搜索"
   },
+  "itemCard": {
+    "open": "打开 {{title}}",
+    "select": "选择 {{title}}",
+    "moreActions": "{{title}} 的更多操作",
+    "dragHandle": "拖拽 {{title}}"
+  },
   "history": {
     "title": "历史记录",
     "loading": "正在加载历史记录...",
@@ -63,6 +72,10 @@
     "deleteSuccess": "成功删除 {{count}} 条历史记录",
     "deleteSingle": "历史记录删除成功",
     "showAllHistory": "显示所有历史",
+    "dateNavigator": "历史日期筛选",
+    "previousDate": "上一个日期筛选",
+    "nextDate": "下一个日期筛选",
+    "filterByDate": "筛选 {{date}} 的历史记录",
     "today": "今天",
     "yesterday": "昨天",
     "daysAgo": "{{count}} 天前",
@@ -127,8 +140,10 @@
     "aiGenerateFolderStructure": "AI生成文件夹结构",
     "aiOrganizeBookmarks": "AI整理书签",
     "select": "选择",
+    "moreActions": "更多操作",
     "updateChromeOrder": "更新Chrome书签顺序",
     "searchPlaceholder": "在书签中搜索...",
+    "sortBy": "书签排序方式",
     "sortByDateAddedDesc": "按添加日期(降序)",
     "sortByDateAddedAsc": "按添加日期(升序)",
     "sortByDateLastUsedDesc": "按最近使用(降序)",
@@ -217,6 +232,7 @@
     "selectedCount": "已选择 {{count}} 个",
     "selectAll": "全选",
     "clearSelection": "清除选择",
+    "selectTag": "选择标签 {{name}}",
     "selectedModeHint": "选择需要合并或删除的标签",
     "backToList": "返回列表",
     "relatedBookmarks": "关联书签",
@@ -286,6 +302,7 @@
       }
     },
     "fromClipboard": "来自剪贴板",
+    "moreActions": "更多操作",
     "createWebCombo": "创建网页Combo",
     "editWebCombo": "编辑网页Combo",
     "deleteWebComboConfirm": "确定要删除此网页Combo吗？",
@@ -406,6 +423,8 @@
     "selectModel": "请选择模型",
     "customModelLabel": "自定义模型",
     "apiKeyLabel": "API Key",
+    "showApiKey": "显示 API Key",
+    "hideApiKey": "隐藏 API Key",
     "getApiKeyFrom": "从 {{provider}} 官网获取您的 API 密钥。",
     "testing": "测试中...",
     "testConnectionButton": "测试连接",
@@ -1676,6 +1695,13 @@
     "emptyHint": "点击\"添加订阅\"按钮创建第一个订阅",
     "enabled": "已启用",
     "disabled": "已停用",
+    "actionLabels": {
+      "enable": "启用 {{name}}",
+      "disable": "停用 {{name}}",
+      "renew": "续订 {{name}}",
+      "edit": "编辑 {{name}}",
+      "delete": "删除 {{name}}"
+    },
     "settings": "订阅设置",
     "dailyReminder": "每日重复提醒",
     "dailyReminderHint": "开启后，从提前通知日到到期日每天都会发送提醒",
@@ -1711,7 +1737,8 @@
       "pageSize": "每页显示",
       "prev": "上一页",
       "next": "下一页",
-      "page": "第 {{current}} / {{total}} 页"
+      "page": "第 {{current}} / {{total}} 页",
+      "goToPage": "前往第 {{page}} 页"
     },
     "calendar": {
       "overview": "到期日历",
@@ -1725,7 +1752,9 @@
       "clearFilter": "清除筛选",
       "filterTitle": "正在查看 {{month}}",
       "filterEmpty": "该月份暂无订阅",
-      "filterEmptyHint": "清除筛选后可查看全部订阅"
+      "filterEmptyHint": "清除筛选后可查看全部订阅",
+      "filterByMonth": "查看 {{month}} 的 {{count}} 项订阅",
+      "emptyMonthLabel": "{{month}} 暂无到期订阅"
     },
     "backup": {
       "title": "备份与恢复",

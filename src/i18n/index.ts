@@ -36,6 +36,14 @@ const getBrowserLanguage = (): string => {
   return 'en';
 };
 
+const initialLanguage = getBrowserLanguage();
+
+// 在 i18n init 之前同步设置 HTML lang 属性，确保 :lang(zh) CSS 规则首屏就生效，
+// 避免中文用户首屏出现 letter-spacing/uppercase 异常的"歪歪扭扭"问题。
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = initialLanguage;
+}
+
 i18n
   .use(initReactI18next)
   .init({
@@ -47,7 +55,7 @@ i18n
         translation: zhCNTranslation
       }
     },
-    lng: getBrowserLanguage(),
+    lng: initialLanguage,
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false // React 已经处理了 XSS

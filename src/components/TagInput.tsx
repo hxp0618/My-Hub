@@ -28,25 +28,23 @@ const TagInput: React.FC<TagInputProps> = React.memo(({ tags, setTags }) => {
   }, [tags, setTags]);
 
   return (
-    <div className={`nb-card-static p-0 overflow-hidden transition-all duration-150 ${
-      isFocused 
-        ? 'shadow-[6px_6px_0px_0px_var(--nb-border)] -translate-x-[1px] -translate-y-[1px]' 
-        : 'shadow-[4px_4px_0px_0px_var(--nb-border)]'
-    }`}>
+    <div className={`tag-input nb-card-static ${isFocused ? 'is-focused' : ''}`}>
       {/* 标签显示区域 */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-4 border-b-2 border-[color:var(--nb-border)]">
+        <div className="tag-input-list" aria-label={t('common.tags')}>
           {tags.map((tag, index) => (
             <span 
               key={tag} 
-              className={getTagClassName(index, 'flex items-center shadow-[2px_2px_0px_0px_var(--nb-border)] hover:shadow-[1px_1px_0px_0px_var(--nb-border)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100')}
+              className={getTagClassName(index, 'tag-input-badge')}
             >
               <span className="font-bold uppercase tracking-wide">{tag}</span>
               <button 
+                type="button"
                 onClick={() => removeTag(tag)} 
-                className="ml-2 w-5 h-5 flex items-center justify-center bg-[color:var(--nb-card)] border border-[color:var(--nb-border)] hover:bg-[color:var(--nb-accent-pink)] transition-colors"
+                className="tag-input-remove"
+                aria-label={t('common.removeTag', { tag })}
               >
-                <span className="text-xs font-bold">×</span>
+                <span className="material-symbols-outlined text-base" aria-hidden="true">close</span>
               </button>
             </span>
           ))}
@@ -54,9 +52,9 @@ const TagInput: React.FC<TagInputProps> = React.memo(({ tags, setTags }) => {
       )}
       
       {/* 输入区域 */}
-      <div className="relative">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)]">
-          <span className="material-symbols-outlined text-xs nb-text">add</span>
+      <div className="tag-input-field">
+        <div className="tag-input-icon" aria-hidden="true">
+          <span className="material-symbols-outlined text-sm nb-text">add</span>
         </div>
         <input
           type="text"
@@ -66,7 +64,8 @@ const TagInput: React.FC<TagInputProps> = React.memo(({ tags, setTags }) => {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={t('common.tagInputPlaceholder')}
-          className="w-full pl-14 pr-4 py-4 bg-[color:var(--nb-card)] text-[color:var(--nb-text)] focus:outline-none transition-colors font-medium text-sm uppercase tracking-wide placeholder:normal-case placeholder:tracking-normal"
+          aria-label={t('common.tagInputPlaceholder')}
+          className="tag-input-control"
         />
       </div>
     </div>

@@ -30,6 +30,12 @@ import {
 
 // 定义页面类型的联合类型
 type Page = 'home' | 'history' | 'bookmarks' | 'tags' | 'tools' | 'subscriptions';
+const SIDEBAR_KEYBOARD_STEP = 16;
+const SIDEBAR_KEYBOARD_LARGE_STEP = 48;
+
+const clampSidebarWidth = (width: number): number => (
+  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, Math.round(width)))
+);
 
 /**
  * Newtab 组件是新标签页面的主组件。
@@ -85,6 +91,12 @@ export default function Newtab() {
     setIsMobileSidebarOpen(false);
   };
 
+  const updateSidebarWidth = (nextWidth: number) => {
+    const clampedWidth = clampSidebarWidth(nextWidth);
+    setSidebarWidth(clampedWidth);
+    sidebarWidthStorage.set(clampedWidth);
+  };
+
   // 处理拖拽开始
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,11 +108,7 @@ export default function Newtab() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
 
-      const newWidth = e.clientX;
-      if (newWidth >= MIN_SIDEBAR_WIDTH && newWidth <= MAX_SIDEBAR_WIDTH) {
-        setSidebarWidth(newWidth);
-        sidebarWidthStorage.set(newWidth);
-      }
+      updateSidebarWidth(e.clientX);
     };
 
     const handleMouseUp = () => {
@@ -121,6 +129,24 @@ export default function Newtab() {
       document.body.style.userSelect = '';
     };
   }, [isResizing]);
+
+  const handleResizeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? SIDEBAR_KEYBOARD_LARGE_STEP : SIDEBAR_KEYBOARD_STEP;
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      updateSidebarWidth(sidebarWidth - step);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      updateSidebarWidth(sidebarWidth + step);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      updateSidebarWidth(MIN_SIDEBAR_WIDTH);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      updateSidebarWidth(MAX_SIDEBAR_WIDTH);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -218,6 +244,10 @@ export default function Newtab() {
     }
   };
 
+  const contentCardClassName = page === 'tools'
+    ? 'newtab-content-card newtab-content-card--tools flex-1 overflow-hidden'
+    : 'newtab-content-card flex-1 nb-card-static p-8 nb-bg-halftone overflow-auto';
+
   return (
     <ThemeProvider>
       <ToastProvider>
@@ -269,28 +299,14 @@ export default function Newtab() {
             ref={sidebarRef}
             aria-label={t('sidebar.navigation')}
             style={{ width: `${sidebarWidth}px` }}
-            className={`newtab-sidebar nb-card-static nb-bg-halftone p-8 flex flex-col relative flex-shrink-0 transition-none m-4 mr-0 rounded-none overflow-hidden ${
+            className={`newtab-sidebar nb-card-static nb-bg-halftone p-8 flex flex-col relative flex-shrink-0 transition-none m-4 mr-0 overflow-hidden ${
               isMobileSidebarOpen ? 'mobile-open' : ''
             }`}
           >
-            {/* 装饰元素 - 增强版 */}
-            {/* 浮动粉色圆形 */}
-            <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[color:var(--nb-accent-pink)] border-3 border-[color:var(--nb-border)] opacity-20 nb-float"></div>
-
-            {/* 蓝色有机形状 */}
-            <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-[color:var(--nb-accent-blue)] border-3 border-[color:var(--nb-border)] opacity-15 nb-sticker-2" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }}></div>
-
-            {/* 黄色星星装饰 */}
-            <div className="absolute top-1/3 -right-4 w-12 h-12 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] opacity-25 nb-rotate-slow" style={{ clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' }}></div>
-
-            {/* 绿色方块装饰 */}
-            <div className="absolute bottom-1/4 -left-6 w-14 h-14 bg-[color:var(--nb-accent-green)] border-3 border-[color:var(--nb-border)] opacity-20 nb-sticker-3 shadow-[3px_3px_0px_0px_var(--nb-border)]"></div>
-
-            {/* Logo / App Name - 增强版 */}
-            <div className="mb-12 relative z-10">
-              {/* Logo 背景框 */}
-              <div className="inline-block p-4 -ml-2 border-3 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[4px_4px_0px_0px_var(--nb-border)] nb-sticker-1">
-                <h1 className="text-3xl font-black nb-text uppercase tracking-tighter leading-none">
+            {/* Logo / App Name */}
+            <div className="newtab-sidebar-brand relative z-10">
+              <div className="newtab-sidebar-logo">
+                <h1 className="font-black uppercase leading-none">
                   {t('sidebar.appName')}
                 </h1>
               </div>
@@ -304,17 +320,15 @@ export default function Newtab() {
                   const displayIcon = getItemIcon(itemId, item.icon);
                   return (
                     <li key={itemId}>
-                      <a
+                      <button
+                        type="button"
                         className={`nb-nav-item ${page === itemId ? 'active' : ''}`}
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleNavigate(itemId as Page);
-                        }}
+                        aria-current={page === itemId ? 'page' : undefined}
+                        onClick={() => handleNavigate(itemId as Page)}
                       >
-                        <span className="material-symbols-outlined text-xl">{displayIcon}</span>
+                        <span className="material-symbols-outlined text-xl" aria-hidden="true">{displayIcon}</span>
                         <span className="font-bold text-sm uppercase tracking-wide">{t(item.labelKey)}</span>
-                      </a>
+                      </button>
                     </li>
                   );
                 })}
@@ -323,34 +337,38 @@ export default function Newtab() {
 
             {/* Settings Entry */}
             <div className="mt-6">
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleOpenSettings();
-                }}
+              <button
+                type="button"
+                onClick={handleOpenSettings}
                 className="nb-nav-item"
               >
-                <span className="material-symbols-outlined text-xl">settings</span>
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">settings</span>
                 <span className="font-bold text-sm uppercase tracking-wide">{t('sidebar.settings')}</span>
-              </a>
+              </button>
             </div>
 
             {/* 拖拽把手 */}
             <div
+              role="separator"
+              tabIndex={0}
+              aria-label={t('sidebar.resizeSidebar')}
+              aria-orientation="vertical"
+              aria-valuemin={MIN_SIDEBAR_WIDTH}
+              aria-valuemax={MAX_SIDEBAR_WIDTH}
+              aria-valuenow={sidebarWidth}
+              aria-controls="newtab-main-content"
               onMouseDown={handleMouseDown}
-              className={`absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-[color:var(--nb-accent-yellow)] transition-colors group ${
+              onKeyDown={handleResizeKeyDown}
+              className={`newtab-sidebar-resizer absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-[color:var(--nb-accent-yellow)] transition-colors group ${
                 isResizing ? 'bg-[color:var(--nb-accent-pink)]' : ''
               }`}
-            >
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-[color:var(--nb-border)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
+            />
           </aside>
 
           {/* 主内容区域 */}
-          <main className="newtab-main flex-1 overflow-hidden nb-bg p-4">
+          <main id="newtab-main-content" className="newtab-main flex-1 overflow-hidden nb-bg p-4">
             <div className="h-full flex flex-col gap-4">
-              <div className="newtab-content-card flex-1 nb-card-static p-8 rounded-none nb-bg-halftone overflow-auto">
+              <div className={contentCardClassName}>
                 {renderPageContent()}
               </div>
             </div>

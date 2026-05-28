@@ -526,7 +526,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
         {/* 错误提示 */}
         {error && (
           <div className="p-3 nb-bg-card nb-border rounded-none flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
-            <p className="text-sm text-[color:var(--nb-accent-pink)]">{error}</p>
+            <p className="text-sm text-[color:var(--color-error-text)]">{error}</p>
           </div>
         )}
 
@@ -566,7 +566,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                         <p className="text-xs nb-text-secondary">{image.width}×{image.height} · {formatFileSize(image.size)}</p>
                       </div>
                       {result && (
-                        <span className={`text-sm ${result.success ? 'text-[color:var(--nb-accent-green)]' : 'text-[color:var(--nb-accent-pink)]'}`}>
+                        <span className={`text-sm ${result.success ? 'text-[color:var(--nb-accent-green)]' : 'text-[color:var(--color-error-text)]'}`}>
                           {result.success ? '✓' : '✗'}
                         </span>
                       )}
@@ -599,7 +599,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                 <div className="flex justify-between items-center mt-2">
                   <div className="flex gap-3 text-xs">
                     <span className="text-[color:var(--nb-accent-green)]">{t('tools.imageConverter.successCount', { count: batchState.successful })}</span>
-                    <span className="text-[color:var(--nb-accent-pink)]">{t('tools.imageConverter.failedCount', { count: batchState.failed })}</span>
+                    <span className="text-[color:var(--color-error-text)]">{t('tools.imageConverter.failedCount', { count: batchState.failed })}</span>
                   </div>
                   {batchState.completed === batchState.total && batchState.successful > 0 && (
                     <button onClick={handleDownloadAll} className="nb-btn nb-btn-primary text-xs px-3 py-1">

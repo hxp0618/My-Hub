@@ -31,10 +31,24 @@ export const TagCard: React.FC<TagCardProps> = ({
     onViewDetails(tag);
   };
 
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    handleCardClick();
+  };
+
   return (
     <div
-      className={`nb-card-static p-4 cursor-pointer hover:shadow-[2px_2px_0px_0px_var(--nb-border)] transition-all ${isSelected ? 'bg-[color:var(--nb-accent-yellow)]/30' : ''}`}
+      className={`tag-card nb-card-data ${isSelected ? 'is-selected' : ''}`}
       onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isMultiSelectMode ? isSelected : undefined}
+      aria-label={isMultiSelectMode
+        ? t('tags.selectTag', { name: tag.name })
+        : `${t('tags.viewDetails')} ${tag.name}`
+      }
     >
       <div className="flex items-center gap-3">
         {isMultiSelectMode && (
@@ -44,6 +58,8 @@ export const TagCard: React.FC<TagCardProps> = ({
             onChange={() => onToggleSelect(tag.name)}
             onClick={e => e.stopPropagation()}
             className="h-4 w-4 border-2 border-[color:var(--nb-border)] accent-[color:var(--nb-accent-yellow)] cursor-pointer"
+            tabIndex={-1}
+            aria-hidden="true"
           />
         )}
 
@@ -59,22 +75,24 @@ export const TagCard: React.FC<TagCardProps> = ({
         {!isMultiSelectMode && (
           <div className="flex items-center gap-1">
             <button
-              className="p-1.5 hover:bg-[color:var(--nb-accent-yellow)] border border-transparent hover:border-[color:var(--nb-border)] transition-all"
+              type="button"
+              className="tag-card-action hover:bg-[color:var(--nb-accent-yellow)]"
               onClick={e => {
                 e.stopPropagation();
                 onRename(tag);
               }}
-              aria-label={t('tags.rename')}
+              aria-label={`${t('tags.rename')} ${tag.name}`}
             >
               <span className="material-symbols-outlined text-base nb-text">edit</span>
             </button>
             <button
-              className="p-1.5 hover:bg-[color:var(--nb-accent-pink)] border border-transparent hover:border-[color:var(--nb-border)] transition-all"
+              type="button"
+              className="tag-card-action hover:bg-[color:var(--nb-accent-pink)]"
               onClick={e => {
                 e.stopPropagation();
                 onDelete(tag);
               }}
-              aria-label={t('tags.delete')}
+              aria-label={`${t('tags.delete')} ${tag.name}`}
             >
               <span className="material-symbols-outlined text-base nb-text">delete</span>
             </button>

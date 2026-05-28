@@ -54,7 +54,7 @@ export const CurlImportModal: React.FC<CurlImportModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 背景遮罩 */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 modal-overlay"
         onClick={handleClose}
       />
       
@@ -93,7 +93,7 @@ export const CurlImportModal: React.FC<CurlImportModalProps> = ({
 
         {/* 错误提示 */}
         {error && (
-          <p className="text-sm mt-2" style={{ color: 'var(--nb-accent-pink)' }}>
+          <p className="text-sm mt-2" style={{ color: 'var(--color-error-text)' }}>
             {error}
           </p>
         )}

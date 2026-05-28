@@ -243,7 +243,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                 className={`nb-input w-full ${urlError ? 'border-[color:var(--nb-accent-pink)]' : ''}`}
               />
               {urlError && (
-                <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
                   {urlError}
                 </p>
               )}
@@ -338,7 +338,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                 }`}
               />
               {bodyError && (
-                <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
                   {bodyError}
                 </p>
               )}
@@ -364,7 +364,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
               </div>
               {response.error ? (
                 <div className="p-3 nb-bg rounded-lg">
-                  <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>
+                  <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>
                     {response.error}
                   </p>
                 </div>

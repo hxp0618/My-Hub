@@ -17,54 +17,66 @@
 :root,
 :root.light {
     color-scheme: light;
-    
-    /* 主要颜色 */
-    --color-main: #1A1A1A;
-    --color-secondary: #F3F4F6;
-    --color-text-secondary: #6B7280;
-    
-    /* 背景颜色 */
-    --color-bg: #f6f3f1;
-    --color-card: #FFFFFF;
-    
-    /* 边框和阴影 */
-    --color-border: #E5E7EB;
-    --shadow-card: 6px 6px 0px 0px var(--nb-border);
 
-    /* ==================== Neo-Brutalism 设计令牌 ==================== */
+    /* ==================== Neo-Brutalism 设计令牌（真理源） ==================== */
     /* 颜色 */
     --nb-bg: #f6f3f1;
     --nb-card: #ffffff;
+    --nb-panel-muted: #f0eeeb;
     --nb-border: #242425;
     --nb-text: #242425;
     --nb-text-secondary: #6B7280;
-    
+    --nb-text-on-accent: #242425;
+
+    /* 阴影颜色（独立令牌，按主题独立定义，不复用 --nb-border） */
+    --nb-shadow-color: #242425;
+
     /* 强调色 */
     --nb-accent-pink: #f771a7;
     --nb-accent-yellow: #f8d773;
     --nb-accent-blue: #71b4ea;
     --nb-accent-green: #5fe0a8;
-    
+
+    /* 装饰色板（用于标签、分类等非语义场景，饱和度 < 60%） */
+    --nb-deco-rose:     #fbcbd9;
+    --nb-deco-peach:    #fcd9b6;
+    --nb-deco-mint:     #c4ebd3;
+    --nb-deco-sky:      #c5dff5;
+    --nb-deco-lavender: #d9d0ee;
+    --nb-deco-sand:     #ebe4cc;
+
     /* 边框 */
     --nb-border-width: 2px;
     --nb-border-width-thick: 3px;
+    --nb-border-width-hairline: 1px;
     --nb-border-radius-lg: 12px;
     --nb-border-radius-md: 8px;
+    --nb-border-radius-sm: 4px;
     --nb-border-radius-full: 9999px;
-    
-    /* 阴影 */
-    --nb-shadow: 4px 4px 0px 0px #242425;
-    --nb-shadow-hover: 2px 2px 0px 0px #242425;
-    --nb-shadow-none: 0px 0px 0px 0px #242425;
-    
+
+    /* 阴影（基于 --nb-shadow-color） */
+    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-hover: 2px 2px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-modal: 8px 8px 0px 0px var(--nb-shadow-color);
+
+    /* ==================== 兼容别名（旧 --color-* 指向 --nb-* 单一来源） ==================== */
+    --color-main: var(--nb-text);
+    --color-text-secondary: var(--nb-text-secondary);
+    --color-bg: var(--nb-bg);
+    --color-card: var(--nb-card);
+    --shadow-card: 6px 6px 0px 0px var(--nb-shadow-color);
+
+    /* 仅以下三个保留独立值（语义不同于 nb-*） */
+    --color-secondary: #F3F4F6;        /* 浅灰背景（区别于 nb-panel-muted 的米色调） */
+    --color-border: #E5E7EB;           /* 细分隔线灰（区别于 nb-border 的主描边） */
+    --color-hover: #F3F4F6;
+    --color-active: #E5E7EB;
+
     /* 骨架屏 */
     --color-skeleton: #E5E7EB;
     --color-skeleton-sub: #D1D5DB;
-    
-    /* 悬停和交互状态 */
-    --color-hover: #F3F4F6;
-    --color-active: #E5E7EB;
-    
+
     /* 链接颜色 */
     --color-link: #3B82F6;
     --color-link-hover: #2563EB;
@@ -127,52 +139,64 @@
 .dark {
     color-scheme: dark;
 
-    /* 主要颜色 */
-    --color-main: #E5E5E5;
-    --color-secondary: #374151;
-    --color-text-secondary: #9CA3AF;
-
-    /* 背景颜色 */
-    --color-bg: #1a1a1a;
-    --color-card: #2a2a2a;
-
-    /* 边框和阴影 */
-    --color-border: #374151;
-    --shadow-card: 6px 6px 0px 0px var(--nb-border);
-
-    /* ==================== Neo-Brutalism 设计令牌 ==================== */
+    /* ==================== Neo-Brutalism 设计令牌（真理源） ==================== */
     /* 颜色 */
     --nb-bg: #1a1a1a;
     --nb-card: #2a2a2a;
-    --nb-border: #4a4a4a;
+    --nb-panel-muted: #202020;
+    --nb-border: #5c5c5c;
     --nb-text: #e5e5e5;
     --nb-text-secondary: #9CA3AF;
-    
-    /* 强调色 */
-    --nb-accent-pink: #f771a7;
-    --nb-accent-yellow: #f8d773;
-    --nb-accent-blue: #71b4ea;
-    --nb-accent-green: #5fe0a8;
-    
+    --nb-text-on-accent: #242425;
+
+    /* 阴影颜色（深色模式用纯黑，确保阴影对 #1a1a1a bg 仍有强对比） */
+    --nb-shadow-color: #000000;
+
+    /* 强调色（深色模式饱和度降低 15-25%，避免暗背景上炸眼） */
+    --nb-accent-pink: #e85a93;
+    --nb-accent-yellow: #e6c25a;
+    --nb-accent-blue: #5a9bd4;
+    --nb-accent-green: #4cc098;
+
+    /* 装饰色板（深色模式低明度版本） */
+    --nb-deco-rose:     #7a3a4d;
+    --nb-deco-peach:    #7a523a;
+    --nb-deco-mint:     #36664f;
+    --nb-deco-sky:      #3a567a;
+    --nb-deco-lavender: #4d4566;
+    --nb-deco-sand:     #5e5743;
+
     /* 边框 */
     --nb-border-width: 2px;
     --nb-border-width-thick: 3px;
+    --nb-border-width-hairline: 1px;
     --nb-border-radius-lg: 12px;
     --nb-border-radius-md: 8px;
+    --nb-border-radius-sm: 4px;
     --nb-border-radius-full: 9999px;
-    
-    /* 阴影 */
-    --nb-shadow: 4px 4px 0px 0px #000000;
-    --nb-shadow-hover: 2px 2px 0px 0px #000000;
-    --nb-shadow-none: 0px 0px 0px 0px #000000;
+
+    /* 阴影（基于 --nb-shadow-color） */
+    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-hover: 2px 2px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-modal: 8px 8px 0px 0px var(--nb-shadow-color);
+
+    /* ==================== 兼容别名（旧 --color-* 指向 --nb-* 单一来源） ==================== */
+    --color-main: var(--nb-text);
+    --color-text-secondary: var(--nb-text-secondary);
+    --color-bg: var(--nb-bg);
+    --color-card: var(--nb-card);
+    --shadow-card: 6px 6px 0px 0px var(--nb-shadow-color);
+
+    /* 仅以下保留独立值（语义不同于 nb-*） */
+    --color-secondary: #374151;
+    --color-border: #374151;
+    --color-hover: #374151;
+    --color-active: #4B5563;
 
     /* 骨架屏 */
     --color-skeleton: rgba(255, 255, 255, 0.18);
     --color-skeleton-sub: rgba(255, 255, 255, 0.12);
-
-    /* 悬停和交互状态 */
-    --color-hover: #374151;
-    --color-active: #4B5563;
 
     /* 链接颜色 */
     --color-link: #60A5FA;
@@ -235,54 +259,66 @@
 /* 护眼模式 */
 .eye-care {
     color-scheme: light;
-    
-    /* 主要颜色 - 暖色调 */
-    --color-main: #3E2723;
-    --color-secondary: #FFF3E0;
-    --color-text-secondary: #6D4C41;
-    
-    /* 背景颜色 - 温暖的米黄色 */
-    --color-bg: #faf5e8;
-    --color-card: #fffbf0;
-    
-    /* 边框和阴影 */
-    --color-border: #FFE0B2;
-    --shadow-card: 6px 6px 0px 0px var(--nb-border);
 
-    /* ==================== Neo-Brutalism 设计令牌 ==================== */
+    /* ==================== Neo-Brutalism 设计令牌（真理源） ==================== */
     /* 颜色 */
     --nb-bg: #faf5e8;
     --nb-card: #fffbf0;
+    --nb-panel-muted: #f4ead8;
     --nb-border: #5d4037;
     --nb-text: #3e2723;
     --nb-text-secondary: #6D4C41;
-    
+    --nb-text-on-accent: #242425;
+
+    /* 阴影颜色（护眼模式用深褐色，与边框同色系但独立令牌） */
+    --nb-shadow-color: #5d4037;
+
     /* 强调色 */
     --nb-accent-pink: #d4648a;
     --nb-accent-yellow: #e6c566;
     --nb-accent-blue: #5a9bd4;
     --nb-accent-green: #4cc98f;
-    
+
+    /* 装饰色板（护眼模式暖色系） */
+    --nb-deco-rose:     #f5d4dd;
+    --nb-deco-peach:    #f5e1c8;
+    --nb-deco-mint:     #d4ebd9;
+    --nb-deco-sky:      #d2e1ef;
+    --nb-deco-lavender: #e0d7ed;
+    --nb-deco-sand:     #ede4cd;
+
     /* 边框 */
     --nb-border-width: 2px;
     --nb-border-width-thick: 3px;
+    --nb-border-width-hairline: 1px;
     --nb-border-radius-lg: 12px;
     --nb-border-radius-md: 8px;
+    --nb-border-radius-sm: 4px;
     --nb-border-radius-full: 9999px;
-    
-    /* 阴影 */
-    --nb-shadow: 4px 4px 0px 0px #5d4037;
-    --nb-shadow-hover: 2px 2px 0px 0px #5d4037;
-    --nb-shadow-none: 0px 0px 0px 0px #5d4037;
-    
+
+    /* 阴影（基于 --nb-shadow-color） */
+    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-hover: 2px 2px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-modal: 8px 8px 0px 0px var(--nb-shadow-color);
+
+    /* ==================== 兼容别名（旧 --color-* 指向 --nb-* 单一来源） ==================== */
+    --color-main: var(--nb-text);
+    --color-text-secondary: var(--nb-text-secondary);
+    --color-bg: var(--nb-bg);
+    --color-card: var(--nb-card);
+    --shadow-card: 6px 6px 0px 0px var(--nb-shadow-color);
+
+    /* 仅以下保留独立值（语义不同于 nb-*） */
+    --color-secondary: #FFF3E0;
+    --color-border: #FFE0B2;
+    --color-hover: #FFF3E0;
+    --color-active: #FFE0B2;
+
     /* 骨架屏 */
     --color-skeleton: #FFE0B2;
     --color-skeleton-sub: #FFCC80;
-    
-    /* 悬停和交互状态 */
-    --color-hover: #FFF3E0;
-    --color-active: #FFE0B2;
-    
+
     /* 链接颜色 - 深褐色 */
     --color-link: #5D4037;
     --color-link-hover: #4E342E;
@@ -395,7 +431,7 @@ body {
 
 .card:hover {
     transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0px 0px var(--nb-border);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
 }
 
 /* 边框 */
@@ -599,11 +635,11 @@ a:hover,
 @keyframes nb-pulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 4px 4px 0px 0px var(--nb-border);
+        box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
     }
     50% {
         transform: scale(1.05);
-        box-shadow: 6px 6px 0px 0px var(--nb-border);
+        box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
     }
 }
 
@@ -653,18 +689,18 @@ a:hover,
     transition: background-color 0.2s linear, color 0.2s linear;
 }
 
-/* 模态框遮罩 */
+/* 模态框遮罩 — 各主题独立定义，确保前景与背景有足够隔离 */
 .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.4);
     transition: background-color 0.2s linear;
 }
 
 .dark .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.6);
 }
 
 .eye-care .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
 /* ==================== 按钮样式增强 ==================== */
@@ -680,7 +716,7 @@ button:active {
 /* 兼容旧按钮类，视觉对齐 Neo-Brutalism 令牌 */
 .btn-primary {
     background-color: var(--nb-accent-yellow);
-    color: var(--nb-border);
+    color: var(--nb-text-on-accent);
     border: var(--nb-border-width) solid var(--nb-border);
     border-radius: var(--nb-border-radius-md);
     box-shadow: var(--nb-shadow);
@@ -711,7 +747,7 @@ button:active {
 
 .btn-secondary {
     background-color: var(--nb-card);
-    color: var(--nb-border);
+    color: var(--nb-text);
     border: var(--nb-border-width) solid var(--nb-border);
     border-radius: var(--nb-border-radius-md);
     box-shadow: var(--nb-shadow);
@@ -742,7 +778,7 @@ textarea,
 select {
     background-color: var(--nb-card);
     color: var(--nb-text);
-    border-color: var(--nb-border);
+    border: var(--nb-border-width, 2px) solid var(--nb-border);
     transition:
         background-color 0.2s linear,
         color 0.2s linear,
@@ -762,30 +798,43 @@ select:focus {
 
 /* ==================== 滚动条样式 ==================== */
 
+/* Firefox 兜底 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--nb-border) var(--nb-bg);
+}
+
+/* WebKit (Chrome / Safari / Edge) */
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--color-bg);
+    background: var(--nb-bg);
+    border-left: 1px solid var(--nb-border);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 5px;
+    background: var(--nb-border);
+    border: 2px solid var(--nb-bg);
+    border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-secondary);
+    background: var(--nb-text);
+}
+
+::-webkit-scrollbar-corner {
+    background: var(--nb-bg);
 }
 
 /* ==================== 护眼模式特殊处理 ==================== */
 
-.eye-care {
-    /* 减少蓝光 */
-    filter: sepia(0.05);
-}
+/* 护眼模式的视觉效果完全通过设计令牌（--nb-bg / --nb-card / --nb-text 等暖色调）实现。
+   不再使用全局 filter: sepia()，因为它会：
+   1) 影响 favicon / 缩略图 / 装饰元素 — 所有图片都会变黄
+   2) 创建新的 stacking context — 破坏 fixed 定位的 modal、toast、selection-action-bar */
 
 /* ==================== Neo-Brutalism 背景纹理 ==================== */
 
@@ -869,7 +918,7 @@ select:focus {
 /* Success 按钮 (绿色) */
 .nb-btn-success {
     background-color: var(--nb-accent-green, #5fe0a8);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition:
         transform 0.1s ease,
         box-shadow 0.1s ease,
@@ -886,7 +935,7 @@ select:focus {
 /* Info 按钮 (蓝色) */
 .nb-btn-info {
     background-color: var(--nb-accent-blue, #71b4ea);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition:
         transform 0.1s ease,
         box-shadow 0.1s ease,
@@ -903,7 +952,7 @@ select:focus {
 /* Outlined 按钮 */
 .nb-btn-outline {
     background-color: transparent;
-    color: var(--nb-border, #242425);
+    color: var(--nb-text, #242425);
     border: 3px solid var(--nb-border, #242425);
 }
 
@@ -936,7 +985,7 @@ select:focus {
     height: 4px;
     background-color: var(--nb-accent-yellow);
     border: 2px solid var(--nb-border);
-    box-shadow: 3px 3px 0px 0px var(--nb-border);
+    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color);
 }
 
 /* ==================== Neo-Brutalism 分隔线 ==================== */
@@ -973,35 +1022,53 @@ select:focus {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* 色卡 1 - 粉色系 (Neo-Brutalism) */
+/* 色卡 1-6 — 使用 Neo-Brutalism 装饰色板（rose/peach/mint/sky/lavender/sand）。
+   ⚠️ 不复用 4 个语义强调色（pink/yellow/blue/green），避免与"主操作/成功/危险/信息"语义混淆。
+   文字色使用 var(--nb-text) 自动适配三主题。 */
 .tag-color-1 {
-    background-color: var(--nb-accent-pink, #f771a7);
-    color: var(--nb-border, #242425);
+    background-color: var(--nb-deco-rose);
+    color: var(--nb-text);
 }
 
-/* 色卡 2 - 绿色系 (Neo-Brutalism) */
 .tag-color-2 {
-    background-color: var(--nb-accent-green, #5fe0a8);
-    color: var(--nb-border, #242425);
+    background-color: var(--nb-deco-peach);
+    color: var(--nb-text);
 }
 
-/* 色卡 3 - 黄色系 (Neo-Brutalism) */
 .tag-color-3 {
-    background-color: var(--nb-accent-yellow, #f8d773);
-    color: var(--nb-border, #242425);
+    background-color: var(--nb-deco-mint);
+    color: var(--nb-text);
 }
 
-/* 色卡 4 - 蓝色系 (Neo-Brutalism) */
 .tag-color-4 {
-    background-color: var(--nb-accent-blue, #71b4ea);
-    color: var(--nb-border, #242425);
+    background-color: var(--nb-deco-sky);
+    color: var(--nb-text);
+}
+
+.tag-color-5 {
+    background-color: var(--nb-deco-lavender);
+    color: var(--nb-text);
+}
+
+.tag-color-6 {
+    background-color: var(--nb-deco-sand);
+    color: var(--nb-text);
 }
 
 /* ==================== 可访问性增强 ==================== */
 
-/* 聚焦指示器 */
+/* 聚焦指示器 — 使用品牌色（黄色描边 + 黑色偏移）与设计语言一致 */
 *:focus-visible {
-    outline: 2px solid var(--color-link);
+    outline: 3px solid var(--nb-accent-yellow);
+    outline-offset: 2px;
+}
+
+/* 输入元素的聚焦由 .nb-input 自身的硬阴影处理，避免黄圈与阴影打架 */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.nb-input:focus-visible {
+    outline: 2px solid var(--nb-accent-yellow);
     outline-offset: 2px;
 }
 
@@ -1013,6 +1080,94 @@ select:focus {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+}
+
+/* ==================== 国际化与中文适配 ==================== */
+
+/* 中文环境下关闭 latin 的 uppercase 与 letter-spacing 特征
+   原因：letter-spacing 会在汉字间插入额外间距，造成"歪歪扭扭"的视觉；
+   uppercase 对汉字无效但 letter-spacing 仍会触发，必须显式重置。 */
+:lang(zh) :is(
+    .nb-btn,
+    .nb-nav-item,
+    .nb-settings-nav-item,
+    .nb-badge,
+    .nb-table-header,
+    .toast-action,
+    .selection-action-bar-count
+) {
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* 同时覆盖 JSX 中直接写的 Tailwind 类（uppercase / tracking-*）
+   这些类在汉字上的效果几乎都是负面的。 */
+:lang(zh) .uppercase {
+    text-transform: none;
+}
+
+:lang(zh) .tracking-tight,
+:lang(zh) .tracking-normal,
+:lang(zh) .tracking-wide,
+:lang(zh) .tracking-wider,
+:lang(zh) .tracking-widest {
+    letter-spacing: 0;
+}
+
+/* 中文环境下标题字重降级，避免 black (900) 笔画糊在一起 */
+:lang(zh) h1,
+:lang(zh) h2,
+:lang(zh) h3,
+:lang(zh) .nb-title-stroke,
+:lang(zh) .font-black {
+    font-weight: 700;
+}
+
+/* tabular 数字保留（与语言无关，防止数字列宽抖动） */
+.nb-table-number,
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==================== 主题切换瞬间抑制 transition ==================== */
+
+/* ThemeContext 切换主题时短暂添加 .theme-switching，避免几十个组件同时跑过渡 */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+    transition: none !important;
+}
+
+/* ==================== 触控设备：禁用 hover 位移 ==================== */
+
+/* 触控设备上 hover 状态会"sticky" — 点击后位移残留直到下次 tap。
+   关键交互元素的 hover transform 必须只在真正的 hover 设备上生效。 */
+@media (hover: none) {
+    .nb-card:hover,
+    .nb-card-interactive:hover,
+    .nb-card-data:hover,
+    .nb-btn:hover,
+    .nb-btn-ghost:hover,
+    .nb-nav-item:hover,
+    .nb-settings-nav-item:hover,
+    .nb-badge:hover,
+    .nb-toggle:hover,
+    .theme-switcher-compact-option:hover,
+    .theme-switcher-option--idle:hover,
+    .item-card:hover,
+    .tag-card:hover,
+    .toast-action:hover,
+    .toast-close:hover,
+    .selection-action-bar-close:hover,
+    .selection-action-bar-button:hover,
+    .newtab-mobile-icon-button:hover,
+    .unified-search-clear:hover,
+    .btn-primary:hover,
+    .btn-secondary:hover {
+        transform: none !important;
+        /* 保留 hover 时的颜色变化，仅取消位移 */
     }
 }
 
@@ -1035,7 +1190,7 @@ select:focus {
     background-color: var(--nb-card, #ffffff);
     border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-lg, 12px);
-    box-shadow: 6px 6px 0px 0px var(--nb-border, #242425);
+    box-shadow: var(--nb-shadow);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear,
@@ -1044,26 +1199,151 @@ select:focus {
         color 0.2s linear;
 }
 
-.nb-card:hover {
-    transform: translate(3px, 3px);
-    box-shadow: 3px 3px 0px 0px var(--nb-border, #242425);
+@media (hover: hover) {
+    .nb-card:hover {
+        transform: translate(2px, 2px);
+        box-shadow: var(--nb-shadow-hover);
+    }
 }
 
 .nb-card:active {
-    transform: translate(6px, 6px);
-    box-shadow: 0px 0px 0px 0px var(--nb-border, #242425);
+    transform: translate(4px, 4px);
+    box-shadow: var(--nb-shadow-none);
 }
 
 .nb-card-static {
     background-color: var(--nb-card, #ffffff);
     border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-lg, 12px);
-    box-shadow: 6px 6px 0px 0px var(--nb-border, #242425);
+    box-shadow: var(--nb-shadow);
     transition:
         background-color 0.2s linear,
         border-color 0.2s linear,
         box-shadow 0.2s linear,
         color 0.2s linear;
+}
+
+/* 静态卡片获取焦点时给予明确视觉提示（用于 tabIndex=0 的展示容器） */
+.nb-card-static:focus-visible {
+    outline: none;
+    box-shadow: var(--nb-shadow), 0 0 0 3px var(--nb-accent-yellow);
+}
+
+/* Quiet 层级：用于数据密集列表卡（书签/历史/标签等 >10 张同屏的场景）。
+   规则：无硬阴影、hover 不位移，仅做背景色变化；选中态在左侧加 4px 黄色 bar。 */
+.nb-card-data {
+    position: relative;
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    transition:
+        background-color 0.15s ease,
+        border-color 0.2s linear,
+        color 0.2s linear;
+}
+
+@media (hover: hover) {
+    .nb-card-data:hover {
+        background-color: var(--nb-panel-muted);
+    }
+}
+
+.nb-card-data:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--nb-accent-yellow);
+}
+
+.nb-card-data[aria-selected="true"],
+.nb-card-data.is-selected {
+    background-color: var(--nb-panel-muted);
+    box-shadow: inset 4px 0 0 0 var(--nb-accent-yellow);
+}
+
+/* Quiet 层级（更安静）：用于设置项行、表单内分组、二级容器等不需要"凸起"的场景。
+   规则：hairline 1px 边框、无硬阴影、无 hover 位移；背景与卡片色一致，靠边框定界。 */
+.nb-card-subtle {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width-hairline, 1px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    transition:
+        background-color 0.15s ease,
+        border-color 0.2s linear,
+        color 0.2s linear;
+}
+
+.nb-card-subtle:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--nb-accent-yellow);
+}
+
+/* Medium 层级：可点击的展示卡（介于 .nb-card 与 .nb-card-data 之间）。
+   规则：2px 边框 + 4×4 硬阴影 + hover 位移；用于次要 CTA 卡或非高密度网格中的卡片。 */
+.nb-card-interactive {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    box-shadow: var(--nb-shadow);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.2s linear,
+        border-color 0.2s linear,
+        color 0.2s linear;
+}
+
+@media (hover: hover) {
+    .nb-card-interactive:hover {
+        transform: translate(2px, 2px);
+        box-shadow: var(--nb-shadow-hover);
+    }
+}
+
+.nb-card-interactive:active {
+    transform: translate(4px, 4px);
+    box-shadow: var(--nb-shadow-none);
+}
+
+.nb-card-interactive:focus-visible {
+    outline: none;
+    box-shadow: var(--nb-shadow), 0 0 0 3px var(--nb-accent-yellow);
+}
+
+/* 深色模式内描边补强：硬阴影对 #1a1a1a bg 对比下降，
+   给关键容器加 1px 内描边模拟"凸起感"，与 §5 设计规范一致 */
+.dark .nb-card {
+    box-shadow:
+        var(--nb-shadow),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .nb-card-static {
+    box-shadow:
+        var(--nb-shadow),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .nb-card:hover {
+    box-shadow:
+        var(--nb-shadow-hover),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .nb-card:active {
+    box-shadow:
+        var(--nb-shadow-none),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .nb-card-interactive {
+    box-shadow:
+        var(--nb-shadow),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .nb-card-interactive:hover {
+    box-shadow:
+        var(--nb-shadow-hover),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.dark .nb-card-interactive:active {
+    box-shadow:
+        var(--nb-shadow-none),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* Neo-Brutalism 按钮基础样式 */
@@ -1072,9 +1352,9 @@ select:focus {
     align-items: center;
     justify-content: center;
     padding: 0.625rem 1.25rem;
-    border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
-    box-shadow: 4px 4px 0px 0px var(--nb-border, #242425);
+    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
     font-weight: 700;
     font-size: 0.875rem;
     text-transform: uppercase;
@@ -1090,12 +1370,12 @@ select:focus {
 
 .nb-btn:hover {
     transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0px 0px var(--nb-border, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
 }
 
 .nb-btn:active {
     transform: translate(4px, 4px);
-    box-shadow: 0px 0px 0px 0px var(--nb-border, #242425);
+    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
 }
 
 .nb-btn:disabled {
@@ -1109,7 +1389,7 @@ select:focus {
 /* 按钮变体 - Primary (黄色) */
 .nb-btn-primary {
     background-color: var(--nb-accent-yellow, #f8d773);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition: 
         transform 0.1s linear, 
         box-shadow 0.15s linear, 
@@ -1127,7 +1407,7 @@ select:focus {
 /* 按钮变体 - Secondary (白色/卡片色) */
 .nb-btn-secondary {
     background-color: var(--nb-card, #ffffff);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text, #242425);
     transition: 
         transform 0.1s linear, 
         box-shadow 0.15s linear, 
@@ -1143,7 +1423,7 @@ select:focus {
 /* 按钮变体 - Danger (粉色) */
 .nb-btn-danger {
     background-color: var(--nb-accent-pink, #f771a7);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition: 
         transform 0.1s linear, 
         box-shadow 0.15s linear, 
@@ -1161,7 +1441,7 @@ select:focus {
 /* 按钮变体 - Ghost (透明) */
 .nb-btn-ghost {
     background-color: transparent;
-    color: var(--nb-border, #242425);
+    color: var(--nb-text, #242425);
     box-shadow: none;
     transition: 
         transform 0.1s linear, 
@@ -1185,7 +1465,7 @@ select:focus {
 /* Neo-Brutalism 输入框样式 */
 .nb-input {
     background-color: var(--nb-card, #ffffff);
-    border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
     padding: 0.75rem 1rem;
     color: var(--nb-text, #242425);
@@ -1201,13 +1481,202 @@ select:focus {
 
 .nb-input:focus {
     outline: none;
-    box-shadow: 4px 4px 0px 0px var(--nb-border, #242425);
+    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
     transform: translate(-1px, -1px);
 }
 
 .nb-input::placeholder {
     color: var(--nb-text-secondary, #6B7280);
     font-weight: 500;
+}
+
+/* 统一搜索框 */
+.unified-search {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.unified-search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    z-index: 1;
+    display: flex;
+    width: 2rem;
+    height: 2rem;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    color: var(--nb-text-secondary, #6B7280);
+    pointer-events: none;
+}
+
+.unified-search-input {
+    width: 100%;
+    min-height: 56px;
+    padding: 0.875rem 4.25rem 0.875rem 3.5rem;
+    border-radius: var(--nb-border-radius-md, 8px);
+    font-size: 1rem;
+    line-height: 1.5;
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+}
+
+.unified-search-input:focus {
+    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    transform: translate(-1px, -1px);
+}
+
+.unified-search-input::placeholder {
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.unified-search-action {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    z-index: 2;
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    color: var(--nb-text, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.2s linear,
+        border-color 0.2s linear,
+        color 0.2s linear;
+}
+
+.unified-search-clear {
+    background-color: var(--nb-card, #ffffff);
+}
+
+.unified-search-clear:hover,
+.unified-search-clear:focus-visible {
+    background-color: var(--nb-accent-pink, #f771a7);
+    transform: translate(1px, calc(-50% + 1px));
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+}
+
+.unified-search-loading {
+    background-color: var(--nb-accent-yellow, #f8d773);
+}
+
+.unified-search-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 3px solid var(--nb-border, #242425);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 480px) {
+    .unified-search-input {
+        min-height: 52px;
+        padding-left: 3rem;
+        padding-right: 3.75rem;
+        font-size: 0.9375rem;
+    }
+
+    .unified-search-icon {
+        left: 0.75rem;
+    }
+
+    .unified-search-action {
+        right: 0.375rem;
+    }
+}
+
+/* 历史日期导航 */
+.date-navigator {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    width: 100%;
+}
+
+.date-navigator-arrow {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
+.date-navigator-scroll {
+    display: flex;
+    min-width: 0;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.125rem 0.25rem 0.5rem;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+}
+
+.date-navigator-preset {
+    flex: 0 0 auto;
+    min-width: 132px;
+    min-height: 56px;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.5rem 0.875rem;
+    text-align: center;
+    scroll-snap-align: start;
+    white-space: nowrap;
+}
+
+.date-navigator-preset.nb-btn-secondary {
+    color: var(--nb-text, #242425);
+}
+
+.date-navigator-preset.nb-btn-primary {
+    color: var(--nb-text-on-accent, var(--nb-border, #242425));
+}
+
+.date-navigator-label,
+.date-navigator-sub-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.date-navigator-label {
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.date-navigator-sub-label {
+    color: currentColor;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    opacity: 0.78;
+}
+
+@media (max-width: 640px) {
+    .date-navigator {
+        grid-template-columns: 44px minmax(0, 1fr) 44px;
+        gap: 0.375rem;
+    }
+
+    .date-navigator-preset {
+        min-width: 112px;
+        min-height: 52px;
+        padding-inline: 0.625rem;
+    }
 }
 
 /* Neo-Brutalism 徽章样式 */
@@ -1221,7 +1690,7 @@ select:focus {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 2px 2px 0px 0px var(--nb-border, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
     transition:
         background-color 0.3s ease,
         border-color 0.3s ease,
@@ -1232,50 +1701,57 @@ select:focus {
 
 .nb-badge:hover {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px 0px var(--nb-border, #242425);
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
 }
 
 /* 徽章颜色变体 */
 .nb-badge-pink {
     background-color: var(--nb-accent-pink, #f771a7);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .nb-badge-yellow {
     background-color: var(--nb-accent-yellow, #f8d773);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .nb-badge-blue {
     background-color: var(--nb-accent-blue, #71b4ea);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .nb-badge-green {
     background-color: var(--nb-accent-green, #5fe0a8);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Neo-Brutalism 开关样式 */
 .nb-toggle {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 44px;
-    height: 24px;
+    height: 44px;
     cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 
+/* 视觉轨道（44×24）居中渲染，外层 44×44 用于扩大触控热区 */
 .nb-toggle-track {
-    position: absolute;
-    inset: 0;
+    position: relative;
+    width: 44px;
+    height: 24px;
     background-color: var(--nb-card, #ffffff);
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-full, 9999px);
-    transition: 
+    transition:
         background-color 0.2s ease,
         border-color 0.2s ease;
 }
@@ -1303,8 +1779,15 @@ select:focus {
 .nb-selected {
     background-color: var(--nb-accent-yellow, #f8d773) !important;
     border-color: var(--nb-border, #242425) !important;
-    box-shadow: 3px 3px 0px 0px var(--nb-border, #242425) !important;
+    color: var(--nb-text-on-accent, #242425) !important;
+    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color) !important;
     transform: translate(3px, 3px) !important;
+}
+
+/* 选中态强制内部文本色，覆盖嵌套 .nb-text 在 accent 背景下的低对比度 */
+.nb-selected .nb-text,
+.nb-selected .nb-text-secondary {
+    color: var(--nb-text-on-accent, #242425) !important;
 }
 
 /* Neo-Brutalism 导航项样式 */
@@ -1314,10 +1797,10 @@ select:focus {
     gap: 0.75rem;
     padding: 0.875rem 1.25rem;
     border-radius: var(--nb-border-radius-full, 9999px);
-    border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text, #242425);
-    box-shadow: 4px 4px 0px 0px var(--nb-border, #242425);
+    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
     font-weight: 700;
     text-decoration: none;
     transition:
@@ -1330,19 +1813,19 @@ select:focus {
 
 .nb-nav-item:hover {
     background-color: var(--nb-bg, #f6f3f1);
-    box-shadow: 2px 2px 0px 0px var(--nb-border, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
     transform: translate(2px, 2px);
 }
 
 .nb-nav-item:active {
-    box-shadow: 0px 0px 0px 0px var(--nb-border, #242425);
+    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
     transform: translate(4px, 4px);
 }
 
 .nb-nav-item.active {
     background-color: var(--nb-accent-yellow, #f8d773);
-    color: var(--nb-border, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
     transform: translate(2px, 2px);
 }
 
@@ -1372,7 +1855,7 @@ select:focus {
 
 .nb-settings-nav-item.active {
     background-color: var(--nb-accent-yellow, #f8d773);
-    color: var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
     box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
     transform: translate(2px, 2px);
     font-weight: 600;
@@ -1384,8 +1867,8 @@ select:focus {
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
     box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
-    transition: 
-        background-color 0.3s ease, 
+    transition:
+        background-color 0.3s ease,
         border-color 0.3s ease,
         box-shadow 0.3s ease;
 }
@@ -1402,12 +1885,1169 @@ select:focus {
     background-color: var(--nb-bg, #f6f3f1);
 }
 
+/* 首页/历史/书签通用卡片 */
+.item-card {
+    position: relative;
+    display: flex;
+    min-height: 140px;
+    cursor: pointer;
+    flex-direction: column;
+    padding: 1.25rem;
+    color: var(--nb-text, #242425);
+    text-decoration: none;
+}
+
+/* Quiet 层级：focus 由 .nb-card-data:focus-visible 提供（inset yellow bar），
+   不再需要单独 outline。 */
+
+/* 选中态由 .nb-card-data[aria-selected="true"] 或父级 nb-selected 类提供
+   （panel-muted 背景 + 左侧 4px 黄色 bar），text 颜色保持默认 */
+.item-card.nb-selected {
+    background-color: var(--nb-panel-muted);
+    box-shadow: inset 4px 0 0 0 var(--nb-accent-yellow);
+}
+
+/* ItemCard 的选中态背景是 panel-muted 而非 accent yellow，
+   恢复默认文字颜色以保证深色模式下可读性 */
+.item-card.nb-selected,
+.item-card.nb-selected .nb-text {
+    color: var(--nb-text, #242425) !important;
+}
+
+.item-card.nb-selected .nb-text-secondary {
+    color: var(--nb-text-secondary, #6B7280) !important;
+}
+
+.item-card-selection {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    z-index: 10;
+}
+
+.item-card-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    background-color: var(--nb-card, #ffffff);
+    accent-color: var(--nb-border, #242425);
+}
+
+.item-card-action-trigger {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.2s linear,
+        opacity 0.15s linear;
+}
+
+.item-card-action-trigger:hover,
+.item-card-action-trigger:focus-visible,
+.item-card:focus-within .item-card-action-trigger {
+    background-color: var(--nb-bg, #f6f3f1);
+    opacity: 1;
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+}
+
+.item-card-action-trigger.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.item-card-menu {
+    position: absolute;
+    right: 0;
+    z-index: 20;
+    width: 12rem;
+    margin-top: 0.5rem;
+}
+
+.item-card-menu-item {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    gap: 0.75rem;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font-weight: 600;
+}
+
+.item-card-menu-item:focus-visible {
+    outline: 2px solid var(--nb-accent-blue, #71b4ea);
+    outline-offset: -2px;
+}
+
+.item-card-drag-handle {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    z-index: 10;
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text-secondary, #6B7280);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    opacity: 0;
+    transition:
+        opacity 0.15s linear,
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        color 0.2s linear;
+}
+
+.item-card:hover .item-card-drag-handle,
+.item-card:focus-within .item-card-drag-handle,
+.item-card-drag-handle:focus-visible {
+    color: var(--nb-text, #242425);
+    opacity: 1;
+}
+
+.item-card-drag-handle:active {
+    cursor: grabbing;
+}
+
+.item-card-favicon {
+    width: 2rem;
+    height: 2rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-card, #ffffff);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+}
+
+/* 标签输入控件 */
+.tag-input {
+    overflow: hidden;
+    padding: 0;
+    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.2s linear,
+        border-color 0.2s linear;
+}
+
+.tag-input.is-focused {
+    transform: translate(-1px, -1px);
+    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+}
+
+.tag-input-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-bottom: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+}
+
+.tag-input-badge {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: 0.5rem;
+    padding-right: 0.375rem;
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear;
+}
+
+.tag-input-badge:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+}
+
+.tag-input-remove {
+    position: relative;
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.2s linear,
+        color 0.2s linear;
+}
+
+/* a11y：扩展命中区到 44×44（视觉保持 32×32），覆盖 WCAG 触控目标标准。
+   垂直方向 +12px，水平方向 +8px（受相邻 chip gap 0.5rem 限制，避免命中区重叠）。 */
+.tag-input-remove::before {
+    content: '';
+    position: absolute;
+    inset-block: -6px;
+    inset-inline: -4px;
+}
+
+.tag-input-remove:hover,
+.tag-input-remove:focus-visible {
+    background-color: var(--nb-accent-pink, #f771a7);
+    color: var(--nb-text-on-accent, #242425);
+    transform: translate(1px, 1px);
+    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+}
+
+.tag-input-field {
+    position: relative;
+}
+
+.tag-input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    display: flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-accent-yellow, #f8d773);
+    pointer-events: none;
+}
+
+.tag-input-control {
+    width: 100%;
+    min-height: 56px;
+    padding: 0.875rem 1rem 0.875rem 3.5rem;
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0;
+    transition:
+        background-color 0.2s linear,
+        color 0.2s linear;
+}
+
+.tag-input-control:focus {
+    outline: none;
+}
+
+.tag-input-control::placeholder {
+    color: var(--nb-text-secondary, #6B7280);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* 订阅列表与分页 */
+.subscription-empty-state {
+    display: flex;
+    min-height: 18rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.subscription-empty-icon {
+    margin-bottom: 1rem;
+    color: var(--nb-text-secondary, #6B7280);
+    font-size: 3.75rem;
+    line-height: 1;
+}
+
+.subscription-empty-title {
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 800;
+}
+
+.subscription-empty-hint {
+    max-width: 28rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.subscription-list-card {
+    overflow: hidden;
+}
+
+.subscription-list-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.subscription-list-table {
+    width: 100%;
+    min-width: 960px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.subscription-list-header-row {
+    background-color: var(--nb-panel-muted, var(--nb-bg, #f6f3f1));
+}
+
+.subscription-list-header-cell,
+.subscription-list-cell {
+    padding: 0.875rem 1rem;
+    border-bottom: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    color: var(--nb-text, #242425);
+    vertical-align: middle;
+}
+
+.subscription-list-header-cell {
+    font-size: 0.875rem;
+    font-weight: 800;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.subscription-list-cell {
+    font-size: 0.875rem;
+}
+
+.subscription-list-row {
+    background-color: var(--nb-card, #ffffff);
+    transition:
+        background-color 0.15s linear,
+        opacity 0.15s linear;
+}
+
+.subscription-list-row:hover {
+    background-color: color-mix(in srgb, var(--nb-accent-yellow, #f8d773) 24%, var(--nb-card, #ffffff));
+}
+
+.subscription-list-row--disabled {
+    opacity: 0.62;
+}
+
+.subscription-list-table tbody tr:last-child .subscription-list-cell {
+    border-bottom: 0;
+}
+
+.subscription-list-cell--center {
+    text-align: center;
+}
+
+.subscription-list-name,
+.subscription-action-group,
+.subscription-channel-list {
+    display: flex;
+    align-items: center;
+}
+
+.subscription-list-name {
+    min-width: 0;
+    gap: 0.625rem;
+}
+
+.subscription-list-type-icon {
+    display: flex;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    color: var(--nb-text-on-accent, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+}
+
+.subscription-list-title {
+    max-width: 12rem;
+    overflow: hidden;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.subscription-list-meta,
+.subscription-list-date {
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.subscription-list-date > div:last-child {
+    font-size: 0.75rem;
+}
+
+.subscription-remaining {
+    font-weight: 800;
+}
+
+.subscription-remaining--danger {
+    color: var(--nb-accent-pink, #f771a7);
+}
+
+.subscription-remaining--warning {
+    color: var(--nb-accent-yellow, #f8d773);
+}
+
+.subscription-remaining--success {
+    color: var(--nb-accent-green, #5fe0a8);
+}
+
+.subscription-channel-list {
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.subscription-channel-badge {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+}
+
+.subscription-channel-empty {
+    font-size: 0.75rem;
+}
+
+.subscription-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+}
+
+.subscription-action-group {
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.subscription-action-button {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    background-color: var(--nb-card, #ffffff);
+    color: var(--nb-text, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.15s linear,
+        color 0.15s linear;
+}
+
+.subscription-action-button:hover,
+.subscription-action-button:focus-visible {
+    background-color: var(--nb-bg, #f6f3f1);
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+}
+
+.subscription-action-button--danger:hover,
+.subscription-action-button--danger:focus-visible {
+    background-color: var(--nb-accent-pink, #f771a7);
+    color: var(--nb-text-on-accent, #242425);
+}
+
+.subscription-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 0.5rem;
+}
+
+.subscription-pagination-total {
+    font-size: 0.875rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.subscription-pagination-pages {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+}
+
+.subscription-pagination-button {
+    display: inline-flex;
+    min-width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.75rem;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    border-radius: var(--nb-border-radius-md, 8px);
+    color: var(--nb-text, #242425);
+    font-size: 0.875rem;
+    font-weight: 800;
+    transition:
+        transform 0.15s linear,
+        box-shadow 0.15s linear,
+        background-color 0.15s linear,
+        color 0.15s linear;
+}
+
+.subscription-pagination-button--idle {
+    background-color: var(--nb-card, #ffffff);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+}
+
+.subscription-pagination-button--idle:hover,
+.subscription-pagination-button--idle:focus-visible {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+}
+
+.subscription-pagination-button--active {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    color: var(--nb-text-on-accent, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+}
+
+.subscription-pagination-button--disabled {
+    cursor: not-allowed;
+    background-color: var(--nb-card, #ffffff);
+    box-shadow: none;
+    opacity: 0.45;
+}
+
+.subscription-pagination-ellipsis {
+    display: inline-flex;
+    min-width: 32px;
+    justify-content: center;
+    font-weight: 800;
+}
+
+.subscription-pagination-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.subscription-pagination-select {
+    min-width: 76px;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+@media (max-width: 720px) {
+    .subscription-empty-state {
+        min-height: 14rem;
+        padding: 2rem 1rem;
+    }
+
+    .subscription-list-table {
+        min-width: 840px;
+    }
+
+    .subscription-pagination {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .subscription-pagination-pages {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+
+    .subscription-pagination-size {
+        justify-content: space-between;
+    }
+}
+
+/* Neo-Brutalism 语言切换器 */
+.language-switcher {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+}
+
+.language-switcher-button {
+    min-height: 44px;
+    gap: 0.5rem;
+}
+
+.language-switcher-button--compact {
+    min-width: 44px;
+    padding-inline: 0.625rem;
+}
+
+.language-switcher-current,
+.language-switcher-option-name {
+    min-width: 0;
+    color: inherit;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.language-switcher-short,
+.language-switcher-mark {
+    min-width: 1.75rem;
+    color: var(--nb-text-on-accent, #242425);
+    background-color: var(--nb-accent-blue, #71b4ea);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.language-switcher-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 50;
+    width: max-content;
+    min-width: 12rem;
+    max-width: min(18rem, calc(100vw - 2rem));
+    padding-block: 0.25rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.25rem);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease,
+        visibility 0.15s ease;
+}
+
+.language-switcher-menu.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.language-switcher-option {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: left;
+}
+
+/* Neo-Brutalism 全局通知 */
+.toast-container {
+    position: fixed;
+    right: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+    z-index: 50;
+    width: min(28rem, calc(100vw - 2rem));
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+}
+
+.toast {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
+    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    color: var(--nb-text-on-accent, #242425);
+    pointer-events: auto;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease,
+        background-color 0.3s ease,
+        border-color 0.3s ease;
+}
+
+.toast--success {
+    background-color: var(--nb-accent-green, #5fe0a8);
+}
+
+.toast--error {
+    background-color: var(--nb-accent-pink, #f771a7);
+}
+
+.toast--warning {
+    background-color: var(--nb-accent-yellow, #f8d773);
+}
+
+.toast--info {
+    background-color: var(--nb-accent-blue, #71b4ea);
+}
+
+.toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast--hidden {
+    opacity: 0;
+    transform: translateY(1rem);
+    pointer-events: none;
+}
+
+.toast-icon,
+.toast-close,
+.toast-action {
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    color: var(--nb-text, #242425);
+}
+
+.toast-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-message {
+    min-width: 0;
+    color: var(--nb-text-on-accent, #242425);
+    font-size: 0.875rem;
+    line-height: 1.35;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.toast-action,
+.toast-close {
+    min-height: 44px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.3s ease;
+}
+
+.toast-action {
+    min-width: 44px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.toast-close {
+    width: 44px;
+    height: 44px;
+}
+
+.toast-action:hover,
+.toast-close:hover,
+.toast-action:focus-visible,
+.toast-close:focus-visible {
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    transform: translate(1px, 1px);
+}
+
+@media (max-width: 520px) {
+    .toast-container {
+        right: 0.75rem;
+        bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+        width: calc(100vw - 1.5rem);
+    }
+
+    .toast {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .toast-action {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+}
+
+/* Neo-Brutalism 确认弹窗 */
+.confirm-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.confirm-dialog {
+    width: min(100%, 28rem);
+    max-height: calc(100dvh - 2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 2rem;
+    overflow-y: auto;
+    box-shadow: 8px 8px 0px 0px var(--nb-shadow-color);
+}
+
+.confirm-dialog-header {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.confirm-dialog-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color);
+}
+
+.confirm-dialog-icon--default {
+    background-color: var(--nb-accent-yellow, #f8d773);
+}
+
+.confirm-dialog-icon--danger {
+    background-color: var(--nb-accent-pink, #f771a7);
+}
+
+.confirm-dialog-title {
+    min-width: 0;
+    color: var(--nb-text, #242425);
+    font-size: 1.25rem;
+    line-height: 1.25;
+    font-weight: 900;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+
+.confirm-dialog-message {
+    color: var(--nb-text-secondary, #6B7280);
+    font-weight: 600;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.confirm-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.confirm-dialog-button {
+    min-height: 44px;
+    padding: 0.625rem 1.25rem;
+}
+
+@media (max-width: 520px) {
+    .confirm-dialog {
+        padding: 1.25rem;
+    }
+
+    .confirm-dialog-actions {
+        align-items: stretch;
+    }
+
+    .confirm-dialog-button {
+        flex: 1 1 10rem;
+    }
+}
+
+/* Neo-Brutalism 多选操作条 */
+.selection-action-bar {
+    position: fixed;
+    left: 50%;
+    bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+    z-index: 50;
+    width: min(100%, 52rem);
+    max-width: calc(100vw - 2rem);
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    box-shadow: 8px 8px 0px 0px var(--nb-shadow-color);
+    transform: translateX(-50%);
+}
+
+.selection-action-bar-summary {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.selection-action-bar-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--nb-accent-blue, #71b4ea);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+}
+
+.selection-action-bar-count {
+    min-width: 0;
+    color: var(--nb-text, #242425);
+    font-size: 0.875rem;
+    line-height: 1.3;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.selection-action-bar-divider {
+    width: var(--nb-border-width, 2px);
+    height: 2.75rem;
+    background-color: var(--nb-border, #242425);
+}
+
+.selection-action-bar-actions {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.selection-action-bar-button {
+    min-height: 44px;
+    gap: 0.375rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+}
+
+.selection-action-bar-close {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--nb-card, #ffffff);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.3s ease;
+}
+
+.selection-action-bar-close:hover,
+.selection-action-bar-close:focus-visible {
+    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    transform: translate(2px, 2px);
+}
+
+@media (max-width: 720px) {
+    .selection-action-bar {
+        bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        padding: 0.875rem;
+    }
+
+    .selection-action-bar-divider {
+        display: none;
+    }
+
+    .selection-action-bar-actions {
+        grid-column: 1 / -1;
+        justify-content: stretch;
+    }
+
+    .selection-action-bar-button {
+        flex: 1 1 10rem;
+    }
+}
+
+/* Neo-Brutalism 主题切换器 */
+.theme-switcher-compact,
+.theme-switcher-grid,
+.theme-switcher-list {
+    min-width: 0;
+}
+
+.theme-switcher-compact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.theme-switcher-compact-option {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.5rem;
+    justify-content: center;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.3s ease,
+        color 0.3s ease;
+}
+
+.theme-switcher-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 1rem;
+}
+
+.theme-switcher-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.theme-switcher-grid-option,
+.theme-switcher-list-option {
+    min-width: 0;
+    min-height: 44px;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    color: var(--nb-text, #242425);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background-color 0.3s ease,
+        color 0.3s ease,
+        border-color 0.3s ease;
+}
+
+.theme-switcher-grid-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    text-align: center;
+}
+
+.theme-switcher-list-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: left;
+}
+
+.theme-switcher-option--active {
+    background-color: var(--nb-accent-yellow, #f8d773);
+    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    transform: translate(2px, 2px);
+}
+
+.theme-switcher-option--idle {
+    background-color: var(--nb-card, #ffffff);
+    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+}
+
+.theme-switcher-option--idle:hover,
+.theme-switcher-option--idle:focus-visible {
+    box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(2px, 2px);
+}
+
+.theme-switcher-grid-icon {
+    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    transition: color 0.3s ease;
+}
+
+.theme-switcher-label {
+    min-width: 0;
+    color: inherit;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    font-weight: 800;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+
+.theme-switcher-accent-text {
+    color: var(--nb-text-on-accent, #242425);
+}
+
+.theme-switcher-list-icon {
+    width: 3rem;
+    height: 3rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    transition:
+        background-color 0.3s ease,
+        box-shadow 0.15s ease,
+        color 0.3s ease;
+}
+
+.theme-switcher-list-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.theme-switcher-check {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--nb-accent-blue, #71b4ea);
+    border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    color: var(--nb-text-on-accent, #242425);
+    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+}
+
 /* Neo-Brutalism 表格样式 */
 .nb-table-header {
     background-color: #f0f0ee;
     border-bottom: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
-    transition: 
-        background-color 0.3s ease, 
+    transition:
+        background-color 0.3s ease,
         border-color 0.3s ease;
 }
 
@@ -1422,8 +3062,8 @@ select:focus {
 .nb-table-row {
     background-color: var(--nb-card, #ffffff);
     border-bottom: 1px solid #e0e0e0;
-    transition: 
-        background-color 0.3s ease, 
+    transition:
+        background-color 0.3s ease,
         border-color 0.3s ease,
         color 0.3s ease;
 }
@@ -1440,6 +3080,11 @@ select:focus {
 
 .nb-text-secondary {
     color: var(--nb-text-secondary, #6B7280);
+    transition: color 0.3s ease;
+}
+
+.nb-text-on-accent {
+    color: var(--nb-text-on-accent, #242425);
     transition: color 0.3s ease;
 }
 

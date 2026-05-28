@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTheme, Theme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,8 @@ interface ThemeSwitcherProps {
   showDescriptions?: boolean;
 }
 
+const THEMES: Theme[] = ['light', 'dark', 'system', 'eye-care'];
+
 export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
   variant = 'default',
   showLabels = true,
@@ -15,18 +17,53 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
 }) => {
   const { theme, setTheme, getThemeMetadata } = useTheme();
   const { t } = useTranslation();
-  const [hoveredTheme, setHoveredTheme] = useState<Theme | null>(null);
-
-  const themes: Theme[] = ['light', 'dark', 'system', 'eye-care'];
 
   const handleThemeClick = (selectedTheme: Theme) => {
     setTheme(selectedTheme);
   };
 
+  const focusThemeOption = (themeId: Theme) => {
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-theme-option="${themeId}"]`)?.focus();
+    });
+  };
+
+  const moveThemeSelection = (currentTheme: Theme, nextIndex: number) => {
+    const nextTheme = THEMES[(nextIndex + THEMES.length) % THEMES.length];
+    setTheme(nextTheme);
+    focusThemeOption(nextTheme);
+  };
+
+  const handleThemeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, currentTheme: Theme) => {
+    const currentIndex = THEMES.indexOf(currentTheme);
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveThemeSelection(currentTheme, currentIndex + 1);
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveThemeSelection(currentTheme, currentIndex - 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      moveThemeSelection(currentTheme, 0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      moveThemeSelection(currentTheme, THEMES.length - 1);
+    }
+  };
+
+  const getRadioProps = (themeId: Theme, isActive: boolean) => ({
+    role: 'radio',
+    'aria-checked': isActive,
+    tabIndex: isActive ? 0 : -1,
+    'data-theme-option': themeId,
+    onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => handleThemeKeyDown(event, themeId),
+  });
+
   if (variant === 'compact') {
     return (
-      <div className="flex items-center gap-2">
-        {themes.map((themeId) => {
+      <div className="theme-switcher-compact" role="radiogroup" aria-label={t('settings.selectTheme')}>
+        {THEMES.map((themeId) => {
           const metadata = getThemeMetadata(themeId);
           const themeName = t(metadata.nameKey);
           const themeDescription = t(metadata.descriptionKey);
@@ -35,18 +72,18 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
           return (
             <button
               key={themeId}
+              type="button"
               onClick={() => handleThemeClick(themeId)}
-              onMouseEnter={() => setHoveredTheme(themeId)}
-              onMouseLeave={() => setHoveredTheme(null)}
               className={`
                 nb-btn ${isActive ? 'nb-btn-primary' : 'nb-btn-secondary'}
-                p-2 h-10 w-10 justify-center transition-all duration-200
+                theme-switcher-compact-option
                 ${isActive ? '' : 'hover:-translate-y-[1px]'}
               `}
               title={themeDescription}
               aria-label={themeName}
+              {...getRadioProps(themeId, isActive)}
             >
-              <span className="material-symbols-outlined text-xl">
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">
                 {metadata.icon}
               </span>
             </button>
@@ -58,8 +95,8 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
 
   if (variant === 'grid') {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {themes.map((themeId) => {
+      <div className="theme-switcher-grid" role="radiogroup" aria-label={t('settings.selectTheme')}>
+        {THEMES.map((themeId) => {
           const metadata = getThemeMetadata(themeId);
           const themeName = t(metadata.nameKey);
           const themeDescription = t(metadata.descriptionKey);
@@ -68,30 +105,29 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
           return (
             <button
               key={themeId}
+              type="button"
               onClick={() => handleThemeClick(themeId)}
-              onMouseEnter={() => setHoveredTheme(themeId)}
-              onMouseLeave={() => setHoveredTheme(null)}
               className={`
-                flex flex-col items-center justify-center p-4
-                border-3 border-[color:var(--nb-border)] transition-all duration-200
+                theme-switcher-grid-option
                 ${isActive
-                  ? 'bg-[color:var(--nb-accent-yellow)] shadow-[6px_6px_0px_0px_var(--nb-border)] translate-x-[2px] translate-y-[2px]'
-                  : 'bg-[color:var(--nb-card)] shadow-[4px_4px_0px_0px_var(--nb-border)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px]'
+                  ? 'theme-switcher-option--active'
+                  : 'theme-switcher-option--idle'
                 }
               `}
               aria-label={themeName}
-              aria-pressed={isActive}
+              {...getRadioProps(themeId, isActive)}
             >
               <span
                 className={`
-                  material-symbols-outlined text-4xl mb-2 transition-colors
-                  ${isActive ? 'nb-text' : 'text-[color:var(--nb-text)]'}
+                  material-symbols-outlined theme-switcher-grid-icon
+                  ${isActive ? 'theme-switcher-accent-text' : 'text-[color:var(--nb-text)]'}
                 `}
+                aria-hidden="true"
               >
                 {metadata.icon}
               </span>
               {showLabels && (
-                <span className={`text-sm font-medium ${isActive ? 'nb-text' : 'text-[color:var(--nb-text)]'}`}>
+                <span className={`theme-switcher-label ${isActive ? 'theme-switcher-accent-text' : 'text-[color:var(--nb-text)]'}`}>
                   {themeName}
                 </span>
               )}
@@ -109,51 +145,44 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
 
   // Default variant - list with full info
   return (
-    <div className="space-y-3">
-      {themes.map((themeId) => {
+    <div className="theme-switcher-list" role="radiogroup" aria-label={t('settings.selectTheme')}>
+      {THEMES.map((themeId) => {
         const metadata = getThemeMetadata(themeId);
         const themeName = t(metadata.nameKey);
         const themeDescription = t(metadata.descriptionKey);
         const isActive = theme === themeId;
-        const isHovered = hoveredTheme === themeId;
 
         return (
           <button
             key={themeId}
+            type="button"
             onClick={() => handleThemeClick(themeId)}
-            onMouseEnter={() => setHoveredTheme(themeId)}
-            onMouseLeave={() => setHoveredTheme(null)}
             className={`
-              w-full flex items-center gap-4 p-4
-              border-3 border-[color:var(--nb-border)] transition-all duration-200 text-left
+              theme-switcher-list-option
               ${isActive
-                ? 'bg-[color:var(--nb-accent-yellow)] shadow-[6px_6px_0px_0px_var(--nb-border)] translate-x-[2px] translate-y-[2px]'
-                : 'nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-border)] hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px]'
+                ? 'theme-switcher-option--active'
+                : 'theme-switcher-option--idle'
               }
             `}
             aria-label={themeName}
-            aria-pressed={isActive}
+            {...getRadioProps(themeId, isActive)}
           >
             <div
               className={`
-                flex items-center justify-center w-12 h-12
-                border-3 border-[color:var(--nb-border)]
-                transition-all duration-200
+                theme-switcher-list-icon
                 ${isActive
-                  ? 'bg-[color:var(--nb-card)] shadow-[3px_3px_0px_0px_var(--nb-border)] nb-text'
-                  : isHovered
-                    ? 'nb-bg scale-110 shadow-[2px_2px_0px_0px_var(--nb-border)] nb-text'
-                    : 'nb-bg nb-text'
+                  ? 'bg-[color:var(--nb-card)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] nb-text'
+                  : 'nb-bg nb-text'
                 }
               `}
             >
-              <span className="material-symbols-outlined text-2xl">
+              <span className="material-symbols-outlined text-2xl" aria-hidden="true">
                 {metadata.icon}
               </span>
             </div>
 
-            <div className="flex-1">
-              <div className={`font-bold text-sm uppercase tracking-wide ${isActive ? 'nb-text' : 'nb-text'}`}>
+            <div className="theme-switcher-list-copy">
+              <div className={`theme-switcher-label ${isActive ? 'theme-switcher-accent-text' : 'nb-text'}`}>
                 {themeName}
               </div>
               {showDescriptions && (
@@ -164,7 +193,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
             </div>
             
             {isActive && (
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-border)]">
+              <div className="theme-switcher-check" aria-hidden="true">
                 <span className="material-symbols-outlined text-sm">check</span>
               </div>
             )}

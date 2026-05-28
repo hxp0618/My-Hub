@@ -123,42 +123,42 @@ export const TagsPage: React.FC = () => {
   }, [allTags, detailTag]);
 
   return (
-    <div className="p-6 space-y-4 nb-bg">
+    <div className="tags-page-shell nb-bg nb-text">
       {/* 顶部工具栏 - 紧凑布局 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-xl nb-text">label</span>
-          <h1 className="text-xl font-bold nb-text">{t('tags.title')}</h1>
+      <header className="tags-page-header nb-card-static">
+        <div className="tags-page-title-group">
+          <span className="material-symbols-outlined text-2xl text-[var(--nb-accent-yellow)]">label</span>
+          <h1 className="text-2xl font-bold nb-text">{t('tags.title')}</h1>
         </div>
         
         {/* 内联统计数据 */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)]">
+        <div className="tags-page-stats" aria-label={t('tags.statistics')}>
+          <div className="tags-page-stat bg-[color:var(--nb-accent-yellow)]" title={t('tags.totalTags')}>
             <span className="material-symbols-outlined text-sm nb-text">label</span>
-            <span className="text-sm font-bold nb-text">{statistics?.totalTags ?? 0}</span>
+            <span className="tags-page-stat-value nb-text">{statistics?.totalTags ?? 0}</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)]">
+          <div className="tags-page-stat bg-[color:var(--nb-accent-blue)]" title={t('tags.totalItems')}>
             <span className="material-symbols-outlined text-sm nb-text">bookmark</span>
-            <span className="text-sm font-bold nb-text">{statistics?.totalItems ?? 0}</span>
+            <span className="tags-page-stat-value nb-text">{statistics?.totalItems ?? 0}</span>
           </div>
           {(statistics?.unusedTags ?? 0) > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)]">
+            <div className="tags-page-stat bg-[color:var(--nb-accent-pink)]" title={t('tags.unusedTags')}>
               <span className="material-symbols-outlined text-sm nb-text">label_off</span>
-              <span className="text-sm font-bold nb-text">{statistics?.unusedTags ?? 0}</span>
+              <span className="tags-page-stat-value nb-text">{statistics?.unusedTags ?? 0}</span>
             </div>
           )}
         </div>
-      </div>
+      </header>
 
       {/* 热门标签 - 紧凑单行 */}
       {statistics?.topTags && statistics.topTags.length > 0 && (
-        <div className="flex items-center gap-3 py-2 border-b border-[color:var(--nb-border)]/20">
-          <span className="text-xs font-bold nb-text-secondary uppercase">{t('tags.topTags')}:</span>
-          <div className="flex flex-wrap gap-2">
+        <section className="tags-page-top-tags nb-card-subtle" aria-label={t('tags.topTags')}>
+          <span className="tags-page-top-label nb-text-secondary">{t('tags.topTags')}</span>
+          <div className="tags-page-top-list">
             {statistics.topTags.slice(0, 8).map((tag, index) => (
               <span
                 key={tag.name}
-                className={`inline-flex items-center px-2 py-0.5 text-xs font-medium border-2 border-[color:var(--nb-border)] ${
+                className={`tags-page-top-pill ${
                   ['bg-[color:var(--nb-accent-yellow)]', 'bg-[color:var(--nb-accent-pink)]', 'bg-[color:var(--nb-accent-blue)]', 'bg-[color:var(--nb-accent-green)]'][index % 4]
                 }`}
               >
@@ -166,39 +166,41 @@ export const TagsPage: React.FC = () => {
               </span>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {detailTag ? (
-        <TagDetailView
-          tag={detailTag}
-          onBack={() => setDetailTag(null)}
-          onRename={setRenameTarget}
-          onDelete={setDeleteTarget}
-          onRemoveTag={handleRemoveTagFromBookmark}
-          onRefresh={loadTags}
-        />
-      ) : (
-        <TagList
-          tags={tags}
-          loading={loading}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          isMultiSelectMode={isMultiSelectMode}
-          onToggleMultiSelect={handleToggleMultiSelect}
-          selectedTags={selectedTagNames}
-          onToggleTagSelection={handleToggleSelection}
-          onSelectAll={handleSelectAll}
-          onClearSelection={() => setSelectedTagNames([])}
-          onViewDetails={tag => setDetailTag(tag)}
-          onRename={setRenameTarget}
-          onDelete={setDeleteTarget}
-          onMergeSelected={handleMergeSelected}
-          onDeleteSelected={handleDeleteSelected}
-        />
-      )}
+      <main className="tags-page-content">
+        {detailTag ? (
+          <TagDetailView
+            tag={detailTag}
+            onBack={() => setDetailTag(null)}
+            onRename={setRenameTarget}
+            onDelete={setDeleteTarget}
+            onRemoveTag={handleRemoveTagFromBookmark}
+            onRefresh={loadTags}
+          />
+        ) : (
+          <TagList
+            tags={tags}
+            loading={loading}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            isMultiSelectMode={isMultiSelectMode}
+            onToggleMultiSelect={handleToggleMultiSelect}
+            selectedTags={selectedTagNames}
+            onToggleTagSelection={handleToggleSelection}
+            onSelectAll={handleSelectAll}
+            onClearSelection={() => setSelectedTagNames([])}
+            onViewDetails={tag => setDetailTag(tag)}
+            onRename={setRenameTarget}
+            onDelete={setDeleteTarget}
+            onMergeSelected={handleMergeSelected}
+            onDeleteSelected={handleDeleteSelected}
+          />
+        )}
+      </main>
 
       <RenameTagDialog
         tag={renameTarget}

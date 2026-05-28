@@ -15,6 +15,7 @@ vi.mock('react-i18next', () => ({
       'sidebar.tools': '工具',
       'sidebar.settings': '设置',
       'sidebar.navigation': '主导航',
+      'sidebar.resizeSidebar': '调整侧边栏宽度',
       'sidebar.openNavigation': '打开导航菜单',
       'sidebar.closeNavigation': '关闭导航菜单',
     }[key] ?? key),
@@ -124,7 +125,7 @@ describe('Newtab mobile sidebar', () => {
     expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
 
     // 导航后立即收起抽屉，避免窄屏内容被遮罩持续挡住。
-    fireEvent.click(screen.getByRole('link', { name: /工具/ }));
+    fireEvent.click(screen.getByRole('button', { name: /工具/ }));
 
     expect(sidebar).not.toHaveClass('mobile-open');
     expect(document.body).not.toHaveClass('newtab-mobile-nav-open');
@@ -137,6 +138,26 @@ describe('Newtab mobile sidebar', () => {
     render(<Newtab />);
 
     expect(screen.getByLabelText('主导航')).toHaveStyle({ width: '256px' });
+  });
+
+  it('supports keyboard resizing for the desktop sidebar handle', () => {
+    setViewportWidth(1200);
+    render(<Newtab />);
+
+    const resizeHandle = screen.getByRole('separator', { name: '调整侧边栏宽度' });
+    const sidebar = screen.getByLabelText('主导航');
+
+    expect(resizeHandle).toHaveAttribute('aria-valuenow', '256');
+
+    fireEvent.keyDown(resizeHandle, { key: 'ArrowRight' });
+    expect(sidebar).toHaveStyle({ width: '272px' });
+    expect(resizeHandle).toHaveAttribute('aria-valuenow', '272');
+
+    fireEvent.keyDown(resizeHandle, { key: 'Home' });
+    expect(sidebar).toHaveStyle({ width: '200px' });
+
+    fireEvent.keyDown(resizeHandle, { key: 'End' });
+    expect(sidebar).toHaveStyle({ width: '400px' });
   });
 
   it('closes the mobile sidebar with Escape', async () => {

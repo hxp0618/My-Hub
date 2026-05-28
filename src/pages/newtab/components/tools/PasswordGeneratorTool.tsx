@@ -260,7 +260,7 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
           </div>
 
           {!canGenerate && (
-            <p className="text-sm" style={{ color: 'var(--nb-accent-pink)' }}>{t('tools.passwordGenerator.noOptionsSelected')}</p>
+            <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>{t('tools.passwordGenerator.noOptionsSelected')}</p>
           )}
         </div>
 

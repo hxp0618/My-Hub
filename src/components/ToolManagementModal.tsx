@@ -103,7 +103,7 @@ export const ToolManagementModal: React.FC<ToolManagementModalProps> = ({
             onClick={() => setActiveTab('enable')}
             className={`px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all duration-150 ${
               activeTab === 'enable'
-                ? 'bg-[color:var(--nb-accent-yellow)] nb-text border-3 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-border)]'
+                ? 'bg-[color:var(--nb-accent-yellow)] nb-text border-2 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]'
                 : 'nb-text-secondary hover:nb-bg-card border-2 border-transparent hover:border-[color:var(--nb-border)]'
             }`}
           >
@@ -113,7 +113,7 @@ export const ToolManagementModal: React.FC<ToolManagementModalProps> = ({
             onClick={() => setActiveTab('order')}
             className={`px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all duration-150 ${
               activeTab === 'order'
-                ? 'bg-[color:var(--nb-accent-yellow)] nb-text border-3 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-border)]'
+                ? 'bg-[color:var(--nb-accent-yellow)] nb-text border-2 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]'
                 : 'nb-text-secondary hover:nb-bg-card border-2 border-transparent hover:border-[color:var(--nb-border)]'
             }`}
           >
@@ -148,7 +148,7 @@ export const ToolManagementModal: React.FC<ToolManagementModalProps> = ({
                 return (
                   <div
                     key={tool.id}
-                    className="nb-card-static flex items-center justify-between p-3 hover:shadow-[2px_2px_0px_0px_var(--nb-border)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+                    className="nb-card-static flex items-center justify-between p-3 hover:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <span className="material-symbols-outlined text-[color:var(--nb-accent-blue)]">{tool.icon}</span>

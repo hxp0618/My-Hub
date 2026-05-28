@@ -299,18 +299,20 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
   const ToolComponent = selectedTool ? TOOL_LOADERS[selectedTool] : null;
 
   return (
-    <div className="flex h-full nb-bg nb-text overflow-hidden">
-      {/* 左侧工具列表 - 简洁风格 */}
-      <div className="w-64 nb-card-static flex-shrink-0 flex flex-col m-4 mr-2 overflow-hidden">
-        <div className="p-4 nb-border-b flex-shrink-0">
+    <div className="tools-page-shell nb-text">
+      {/* 左侧工具列表 */}
+      <section className="tools-page-rail nb-card-static" aria-label={t('tools.title')}>
+        <div className="tools-page-rail-header nb-border-b">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-xl nb-text">construction</span>
               <h2 className="text-lg font-bold nb-text">{t('tools.title')}</h2>
             </div>
             <button
+              type="button"
               onClick={() => setIsManagementOpen(true)}
               className="nb-btn nb-btn-ghost p-2"
+              aria-label={t('tools.manage')}
               title={t('tools.manage')}
             >
               <span className="material-symbols-outlined text-lg">settings</span>
@@ -324,6 +326,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
                 search
               </span>
               <input
+                aria-label={t('tools.searchPlaceholder')}
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -335,7 +338,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
           )}
         </div>
 
-        <nav className="p-2 flex-1 overflow-y-auto space-y-1">
+        <nav className="tools-page-list">
           {filteredTools.map((toolId, index) => {
             const metadata = getToolMetadata(toolId);
             const isSelected = selectedTool === toolId;
@@ -346,6 +349,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
 
             return (
               <button
+                type="button"
                 key={toolId}
                 draggable={canDrag}
                 onDragStart={canDrag ? (e) => handleDragStart(e, index) : undefined}
@@ -354,14 +358,15 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
                 onDrop={canDrag ? (e) => handleDrop(e, index) : undefined}
                 onDragEnd={canDrag ? handleDragEnd : undefined}
                 onClick={() => handleSelectTool(toolId)}
-                className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-100 border-2 ${isSelected
-                  ? 'bg-[color:var(--nb-accent-yellow)] border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-border)]'
+                aria-current={isSelected ? 'page' : undefined}
+                className={`tools-page-tool-button w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-100 border-2 ${isSelected
+                  ? 'bg-[color:var(--nb-accent-yellow)] border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]'
                   : 'bg-transparent border-transparent hover:border-[color:var(--nb-border)] hover:bg-[color:var(--nb-card)]'
                   } ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-[color:var(--nb-accent-blue)]' : ''
                   }`}
               >
                 {canDrag && (
-                  <span className="material-symbols-outlined text-sm nb-text-secondary opacity-50">
+                  <span className="tools-page-drag-handle material-symbols-outlined text-sm nb-text-secondary opacity-50">
                     drag_indicator
                   </span>
                 )}
@@ -370,7 +375,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
                   {t(metadata.nameKey)}
                 </span>
                 {isRecent && (
-                  <span className="text-xs px-1.5 py-0.5 bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] nb-text">
+                  <span className="text-xs px-1.5 py-0.5 bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] nb-text-on-accent">
                     {t('tools.recent')}
                   </span>
                 )}
@@ -400,11 +405,11 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
             </button>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* 右侧工具内容区 - 简化层级 */}
-      <div className="flex-1 overflow-hidden p-4 flex flex-col">
-        <div className="flex-1 nb-card-static overflow-y-auto p-6">
+      {/* 右侧工具内容区 */}
+      <section className="tools-page-workbench" aria-live="polite">
+        <div className="tools-page-workbench-card nb-card-static">
           {selectedTool ? (
             ToolComponent ? (
               <Suspense
@@ -412,8 +417,8 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
                   <div className="h-full flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="relative w-12 h-12">
-                        <div className="absolute inset-0 border-3 border-[color:var(--nb-border)]/20"></div>
-                        <div className="absolute inset-0 border-3 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
+                        <div className="absolute inset-0 border-2 border-[color:var(--nb-border)]/20"></div>
+                        <div className="absolute inset-0 border-2 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
                       </div>
                       <span className="font-bold nb-text-secondary text-sm">{t('common.loading')}</span>
                     </div>
@@ -441,7 +446,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* 工具管理弹窗 */}
       <ToolManagementModal

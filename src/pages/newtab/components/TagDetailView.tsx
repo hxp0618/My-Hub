@@ -141,42 +141,45 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
   }, [bookmarks, tag.name, t, handleRemoveTag]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="nb-btn nb-btn-secondary px-4 py-2">
-          ← {t('tags.backToList')}
+    <div className="tag-detail-view">
+      <header className="tag-detail-header nb-card-static">
+        <button type="button" onClick={onBack} className="tag-detail-back nb-btn nb-btn-secondary px-4 py-2">
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          {t('tags.backToList')}
         </button>
-        <h2 className="text-2xl font-semibold nb-text">{tag.name}</h2>
-        <span className="nb-text-secondary">
-          {t('tags.itemCount', { count: tag.count })}
-        </span>
-        <div className="ml-auto flex gap-2">
-          <button className="nb-btn nb-btn-secondary px-4 py-2" onClick={() => onRename(tag)}>
+        <div className="tag-detail-title">
+          <h2 className="text-2xl font-semibold nb-text">{tag.name}</h2>
+          <span className="nb-badge nb-badge-blue">
+            {t('tags.itemCount', { count: tag.count })}
+          </span>
+        </div>
+        <div className="tag-detail-actions">
+          <button type="button" className="nb-btn nb-btn-secondary px-4 py-2" onClick={() => onRename(tag)}>
             {t('tags.rename')}
           </button>
-          <button className="nb-btn nb-btn-danger px-4 py-2" onClick={() => onDelete(tag)}>
+          <button type="button" className="nb-btn nb-btn-danger px-4 py-2" onClick={() => onDelete(tag)}>
             {t('tags.delete')}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="flex flex-wrap gap-3">
-        <button className="nb-btn nb-btn-secondary px-4 py-2" onClick={handleOpenAll}>
+      <div className="tag-detail-quick-actions">
+        <button type="button" className="nb-btn nb-btn-secondary px-4 py-2" onClick={handleOpenAll}>
           {t('tags.openAll')}
         </button>
-        <button className="nb-btn nb-btn-secondary px-4 py-2" onClick={handleExport}>
+        <button type="button" className="nb-btn nb-btn-secondary px-4 py-2" onClick={handleExport}>
           {t('tags.exportList')}
         </button>
       </div>
 
       {loading ? (
-        <div className="nb-text-secondary">{t('common.loading')}</div>
+        <div className="tag-detail-loading nb-card-static nb-text-secondary">{t('common.loading')}</div>
       ) : bookmarks.length === 0 ? (
-        <div className="text-center py-12 nb-card-static border-dashed">
+        <div className="tag-detail-empty nb-card-static border-dashed">
           <div className="text-lg font-semibold nb-text mb-2">{t('tags.detailEmpty')}</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="tag-detail-grid">
           {bookmarkCards}
         </div>
       )}

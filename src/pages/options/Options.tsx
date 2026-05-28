@@ -13,8 +13,8 @@ export default function Options() {
     <div className="nb-bg nb-text min-h-screen p-6 nb-bg-grid">
       <div className="mx-auto max-w-4xl space-y-6">
         <header className="nb-card nb-bg-halftone p-6 md:p-8 relative overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[color:var(--nb-accent-yellow)] border-3 border-[color:var(--nb-border)] opacity-30 nb-rotate-slow" aria-hidden="true" />
-          <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-[color:var(--nb-accent-blue)] border-3 border-[color:var(--nb-border)] opacity-20 nb-sticker-2" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }} aria-hidden="true" />
+          <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] opacity-30 nb-rotate-slow" aria-hidden="true" />
+          <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] opacity-20 nb-sticker-2" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }} aria-hidden="true" />
           <div className="absolute right-6 bottom-4 text-5xl md:text-7xl nb-title-stroke opacity-20 pointer-events-none text-right leading-none max-w-[60%]">
             {t('options.title')}
           </div>

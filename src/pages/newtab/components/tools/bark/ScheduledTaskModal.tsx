@@ -284,7 +284,7 @@ export const ScheduledTaskModal: React.FC<ScheduledTaskModalProps> = ({
             className={`nb-input w-full ${errors.title ? 'border-[var(--nb-accent-pink)]' : ''}`}
           />
           {errors.title && (
-            <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
               {errors.title}
             </p>
           )}
@@ -303,7 +303,7 @@ export const ScheduledTaskModal: React.FC<ScheduledTaskModalProps> = ({
             className={`nb-input w-full resize-none ${errors.body ? 'border-[var(--nb-accent-pink)]' : ''}`}
           />
           {errors.body && (
-            <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
               {errors.body}
             </p>
           )}
@@ -321,7 +321,7 @@ export const ScheduledTaskModal: React.FC<ScheduledTaskModalProps> = ({
             multiSelect
           />
           {errors.targetKeyIds && (
-            <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
               {errors.targetKeyIds}
             </p>
           )}
@@ -342,7 +342,7 @@ export const ScheduledTaskModal: React.FC<ScheduledTaskModalProps> = ({
                 onChange={setScheduledTime}
               />
               {errors.scheduledTime && (
-                <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
                   {errors.scheduledTime}
                 </p>
               )}
@@ -355,7 +355,7 @@ export const ScheduledTaskModal: React.FC<ScheduledTaskModalProps> = ({
                 previewCount={5}
               />
               {errors.cronExpression && (
-                <p className="text-xs mt-1" style={{ color: 'var(--nb-accent-pink)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
                   {errors.cronExpression}
                 </p>
               )}

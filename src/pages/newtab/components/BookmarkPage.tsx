@@ -474,39 +474,50 @@ export const BookmarkPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full gap-4 pl-6 nb-bg nb-text">
-      <aside className={`transition-all duration-300 ease-in-out h-full nb-card-static relative z-20 overflow-y-auto pt-6 px-4 ${
-        isSidebarCollapsed ? 'w-0 p-0 border-0 shadow-none overflow-hidden' : 'w-1/5 min-w-[200px] max-w-[260px]'
+    <div className="bookmark-page-shell nb-bg nb-text">
+      <aside className={`bookmark-folder-sidebar transition-all duration-300 ease-in-out nb-card-static relative z-20 ${
+        isSidebarCollapsed ? 'is-collapsed' : ''
       }`}>
         {!isSidebarCollapsed && (
           <>
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-base font-bold nb-text">{t('bookmarks.folders')}</h2>
                 <div className="relative" ref={organizeMenuRef}>
-                    <button onClick={() => setOrganizeMenuOpen(!organizeMenuOpen)} className="nb-btn nb-btn-ghost p-1 rounded-md">
+                    <button
+                      type="button"
+                      onClick={() => setOrganizeMenuOpen(!organizeMenuOpen)}
+                      className="nb-btn nb-btn-ghost p-1 rounded-md"
+                      aria-label={t('bookmarks.moreActions')}
+                      aria-expanded={organizeMenuOpen}
+                      aria-haspopup="menu"
+                    >
                         <span className="material-symbols-outlined icon-linear text-lg">more_horiz</span>
                     </button>
                     {organizeMenuOpen && (
-                        <div className="nb-dropdown absolute right-0 mt-2 w-48 z-10">
+                        <div className="nb-dropdown absolute right-0 mt-2 w-48 z-10" role="menu">
                             <div className="py-1">
-                                <div
+                                <button
+                                    type="button"
                                     onClick={() => {
                                         setIsAutoOrganizeModalOpen(true);
                                         setOrganizeMenuOpen(false);
                                     }}
-                                    className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
+                                    className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
+                                    role="menuitem"
                                 >
                                     {t('bookmarks.aiGenerateFolderStructure')}
-                                </div>
-                                <div
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => {
                                         openOrganizeModal();
                                         setOrganizeMenuOpen(false);
                                     }}
-                                    className="nb-dropdown-item flex items-center gap-3 text-sm font-medium cursor-pointer"
+                                    className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
+                                    role="menuitem"
                                 >
                                     {t('bookmarks.aiOrganizeBookmarks')}
-                                </div>
+                                </button>
                             </div>
                         </div>
                     )}

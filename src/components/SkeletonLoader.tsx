@@ -32,7 +32,7 @@ export const BookmarkTreeSkeleton: React.FC = () => (
 export const SearchResultSkeleton: React.FC = () => (
   <div className="space-y-4">
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="animate-pulse p-5 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-border)]/20">
+      <div key={i} className="animate-pulse p-5 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]/20">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-[color:var(--nb-border)]/15 border-2 border-[color:var(--nb-border)]/20"></div>
           <div className="flex-1">

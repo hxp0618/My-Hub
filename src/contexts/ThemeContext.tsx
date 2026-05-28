@@ -145,6 +145,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const root = document.documentElement;
 
+    // 切换主题瞬间禁用全局 transition，避免几十个组件同时跑过渡造成"扑闪"
+    if (!isFirstLoad) {
+      root.classList.add('theme-switching');
+    }
+
     // 移除所有主题类
     root.classList.remove('dark', 'eye-care', 'light');
 
@@ -160,9 +165,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // 设置 data 属性用于 CSS 选择器
     root.setAttribute('data-theme', effectiveTheme);
 
-    // 平滑过渡效果：为 body 添加临时的高亮效果
+    // 下一帧解除抑制，让后续交互的过渡恢复
     if (!isFirstLoad) {
-      root.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+      const timer = window.setTimeout(() => {
+        root.classList.remove('theme-switching');
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [effectiveTheme, isFirstLoad]);
 
