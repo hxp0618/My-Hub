@@ -52,7 +52,7 @@ export const SelectionActionBar = React.memo(function SelectionActionBar({
             key={index}
             type="button"
             onClick={action.onClick}
-            className={`nb-btn selection-action-bar-button ${action.className || 'nb-btn-secondary'} ${action.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`nb-btn selection-action-bar-button ${action.className || 'nb-btn-secondary'} ${action.disabled ? 'cursor-not-allowed' : ''}`}
             disabled={action.disabled}
           >
             {action.icon && (

@@ -88,6 +88,7 @@ const TaskItem: React.FC<{
               className="nb-badge text-xs px-2 py-0.5"
               style={{
                 backgroundColor: task.type === 'one-time' ? 'var(--nb-accent-blue)' : 'var(--nb-accent-yellow)',
+                color: 'var(--nb-text-on-accent)',
               }}
             >
               {t(`tools.barkNotifier.scheduled.type.${task.type}`)}

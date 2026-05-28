@@ -29,7 +29,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
       {/* Neo-Brutalism 风格进度条 - 无圆角，有硬阴影 */}
       <div className="relative">
-        <div className="w-full nb-bg-card border-2 border-[color:var(--nb-border)] h-6 overflow-hidden shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
+        <div className="w-full nb-bg-card border-2 border-[color:var(--nb-border)] h-6 overflow-hidden shadow-[var(--nb-shadow-sm)]">
           <div
             className={`${variantColors[variant]} h-full transition-all duration-300 ease-out relative`}
             style={{ width: `${clampedProgress}%` }}
@@ -42,7 +42,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             <div 
               className="absolute inset-0 opacity-30"
               style={{
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.1) 4px, rgba(0,0,0,0.1) 8px)'
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, color-mix(in srgb, var(--nb-shadow-color) 14%, transparent) 4px, color-mix(in srgb, var(--nb-shadow-color) 14%, transparent) 8px)'
               }}
             ></div>
           </div>
@@ -50,7 +50,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         {/* 百分比显示 - Neo-Brutalism 风格 */}
         {showPercentage && (
           <div className="absolute right-0 top-full mt-2">
-            <span className="inline-block px-2 py-1 bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] text-xs font-bold nb-text">
+            <span className="inline-block px-2 py-1 bg-[color:var(--nb-card)] border-2 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)] text-xs font-bold nb-text">
               {Math.round(clampedProgress)}%
             </span>
           </div>
@@ -81,8 +81,8 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   return (
     <div className="flex flex-col items-center justify-center gap-4">
       {/* Neo-Brutalism 风格圆形进度 */}
-      <div 
-        className="relative border-4 border-[color:var(--nb-border)] shadow-[6px_6px_0px_0px_var(--nb-shadow-color)] bg-[color:var(--nb-card)]" 
+      <div
+        className="relative border-4 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-lg)] bg-[color:var(--nb-card)]"
         style={{ width: size + 16, height: size + 16, padding: 8 }}
       >
         <svg width={size} height={size} className="transform -rotate-90">
@@ -113,8 +113,8 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
         </svg>
         {/* Percentage text in center - Neo-Brutalism 风格 */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="px-3 py-1 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
-            <span className="text-lg font-black nb-text uppercase">
+          <div className="px-3 py-1 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)]">
+            <span className="text-lg font-black text-[color:var(--nb-text-on-accent)] uppercase">
               {Math.round(clampedProgress)}%
             </span>
           </div>

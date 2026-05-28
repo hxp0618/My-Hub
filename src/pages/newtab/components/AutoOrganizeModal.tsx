@@ -301,16 +301,16 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={t('organizeAiModal.title')} widthClass="max-w-4xl">
         {error && (
-          <div className="mb-4 p-3 nb-border bg-[color:var(--nb-accent-pink)] text-sm nb-text">
+          <div className="mb-4 p-3 nb-border bg-[color:var(--nb-accent-pink)] text-sm text-[color:var(--nb-text-on-accent)]">
             {error}
           </div>
         )}
         <div className="flex space-x-6 h-[60vh]">
-            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-none p-4 nb-bg-card">
+            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-md p-4 nb-bg-card">
                 <h4 className="text-lg font-semibold mb-2">{t('organizeAiModal.currentStructure')}</h4>
                 <BookmarkFolderTree nodes={bookmarks} selectedFolderId="" onSelectFolder={() => {}} disableContextMenu={true} createFolder={async () => {}} renameFolder={async () => {}} deleteFolder={async () => {}} />
             </div>
-            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-none p-4 nb-bg-halftone">
+            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-md p-4 nb-bg-halftone">
                 <h4 className="text-lg font-semibold mb-2">{t('organizeAiModal.generatedStructure')}</h4>
                 {finalIsLoading && !editableGeneratedTree && (
                   <div className="flex items-center justify-center h-full nb-text-secondary">

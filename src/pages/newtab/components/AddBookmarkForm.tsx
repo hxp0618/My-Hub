@@ -297,7 +297,7 @@ const AddBookmarkForm: React.FC<AddBookmarkFormProps> = ({ initialUrl, initialTi
                 <button
                   onClick={() => handleGenerateTags()}
                   disabled={!title || !url}
-                  className="nb-btn nb-btn-secondary text-xs px-3 py-1 disabled:opacity-60"
+                  className="nb-btn nb-btn-secondary text-xs px-3 py-1"
                 >
                   {t('bookmarks.generateAI')}
                 </button>

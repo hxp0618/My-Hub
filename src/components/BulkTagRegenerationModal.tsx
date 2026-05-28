@@ -41,11 +41,11 @@ export const BulkTagRegenerationModal: React.FC<BulkTagRegenerationModalProps> =
         <div>
           <div className="flex justify-between text-sm nb-text-secondary mb-3 font-medium uppercase tracking-wide">
             <span>{t('bulkRegeneration.overallProgress')}</span>
-            <span className="px-2 py-0.5 bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] text-xs font-bold nb-text">
+            <span className="px-2 py-0.5 bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] text-xs font-bold text-[color:var(--nb-text-on-accent)]">
               {Math.round(percentage)}%
             </span>
           </div>
-          <div className="w-full border-2 border-[color:var(--nb-border)] h-6 bg-[color:var(--nb-card)] overflow-hidden shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
+          <div className="w-full border-2 border-[color:var(--nb-border)] h-6 bg-[color:var(--nb-card)] overflow-hidden shadow-[var(--nb-shadow-sm)]">
             <div
               className="bg-[color:var(--nb-accent-blue)] h-full transition-all duration-150 relative"
               style={{ width: `${percentage}%` }}
@@ -53,7 +53,7 @@ export const BulkTagRegenerationModal: React.FC<BulkTagRegenerationModalProps> =
               <div 
                 className="absolute inset-0 opacity-30"
                 style={{
-                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.1) 4px, rgba(0,0,0,0.1) 8px)'
+                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, color-mix(in srgb, var(--nb-shadow-color) 14%, transparent) 4px, color-mix(in srgb, var(--nb-shadow-color) 14%, transparent) 8px)'
                 }}
               ></div>
             </div>
@@ -69,11 +69,11 @@ export const BulkTagRegenerationModal: React.FC<BulkTagRegenerationModalProps> =
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="bg-[color:var(--nb-accent-green)] border-2 border-[color:var(--nb-border)] p-4 shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]">
+            <div className="bg-[color:var(--nb-accent-green)] border-2 border-[color:var(--nb-border)] p-4 shadow-[var(--nb-shadow)]">
               <div className="font-bold nb-text uppercase tracking-wide">{t('bulkRegeneration.success')}</div>
               <div className="text-3xl font-black nb-text mt-1">{progress.successful}</div>
             </div>
-            <div className="bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] p-4 shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]">
+            <div className="bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] p-4 shadow-[var(--nb-shadow)]">
               <div className="font-bold nb-text uppercase tracking-wide">{t('bulkRegeneration.failed')}</div>
               <div className="text-3xl font-black nb-text mt-1">{progress.failed}</div>
             </div>
@@ -83,7 +83,7 @@ export const BulkTagRegenerationModal: React.FC<BulkTagRegenerationModalProps> =
         {/* 当前状态 - Neo-Brutalism 风格 */}
         <div>
           <div className="text-sm nb-text-secondary mb-2 font-medium uppercase tracking-wide">{t('bulkRegeneration.currentStatus')}</div>
-          <div className="text-sm nb-bg-card nb-text p-4 border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] break-words font-medium">
+          <div className="text-sm nb-bg-card nb-text p-4 border-2 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)] break-words font-medium">
             {getStatusMessage()}
           </div>
         </div>
@@ -101,16 +101,16 @@ export const BulkTagRegenerationModal: React.FC<BulkTagRegenerationModalProps> =
 
         {/* 完成后的总结 - Neo-Brutalism 风格 */}
         {isCompleted && (
-          <div className="bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] p-5 shadow-[4px_4px_0px_0px_var(--nb-shadow-color)] text-sm">
+          <div className="bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] p-5 shadow-[var(--nb-shadow)] text-[color:var(--nb-text-on-accent)] text-sm">
             {isCancelled ? (
               <div>
-                <div className="font-black nb-text mb-2 uppercase tracking-tight text-base">{t('bulkRegeneration.cancelled')}</div>
-                <div className="font-medium nb-text">{t('bulkRegeneration.cancelledSummary', { processed: progress.processed, successful: progress.successful, failed: progress.failed })}</div>
+                <div className="font-black text-[color:inherit] mb-2 uppercase tracking-tight text-base">{t('bulkRegeneration.cancelled')}</div>
+                <div className="font-medium text-[color:inherit]">{t('bulkRegeneration.cancelledSummary', { processed: progress.processed, successful: progress.successful, failed: progress.failed })}</div>
               </div>
             ) : (
               <div>
-                <div className="font-black nb-text mb-2 uppercase tracking-tight text-base">{t('bulkRegeneration.completed')}</div>
-                <div className="font-medium nb-text">
+                <div className="font-black text-[color:inherit] mb-2 uppercase tracking-tight text-base">{t('bulkRegeneration.completed')}</div>
+                <div className="font-medium text-[color:inherit]">
                   {t('bulkRegeneration.completedSummary', { total: progress.total, successful: progress.successful, failed: progress.failed })}
                 </div>
               </div>

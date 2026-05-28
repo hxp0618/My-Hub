@@ -247,7 +247,7 @@ export const UnitConverterTool: React.FC<ToolComponentProps> = ({
                         className="text-xs px-1.5 py-0.5 rounded"
                         style={{
                           backgroundColor: 'var(--nb-accent-yellow)',
-                          color: 'var(--nb-border)'
+                          color: 'var(--nb-text-on-accent)'
                         }}
                       >
                         {t('tools.unitConverter.source')}

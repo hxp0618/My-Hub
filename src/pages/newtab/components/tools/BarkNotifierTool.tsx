@@ -635,6 +635,9 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
               backgroundColor: activeTab === 'instant'
                 ? 'var(--nb-accent-yellow)'
                 : 'var(--nb-bg-card)',
+              color: activeTab === 'instant'
+                ? 'var(--nb-text-on-accent)'
+                : 'var(--nb-text)',
             }}
           >
             <div className="flex items-center justify-center gap-2">
@@ -652,6 +655,9 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
               backgroundColor: activeTab === 'scheduled'
                 ? 'var(--nb-accent-blue)'
                 : 'var(--nb-bg-card)',
+              color: activeTab === 'scheduled'
+                ? 'var(--nb-text-on-accent)'
+                : 'var(--nb-text)',
             }}
           >
             <div className="flex items-center justify-center gap-2">
@@ -659,7 +665,13 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
               <span className="font-medium text-sm">
                 {t('tools.barkNotifier.scheduled.title')}
                 {scheduledTasks.length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full nb-border" style={{ backgroundColor: 'var(--nb-accent-green)' }}>
+                  <span
+                    className="ml-1 px-1.5 py-0.5 text-xs rounded-full nb-border"
+                    style={{
+                      backgroundColor: 'var(--nb-accent-green)',
+                      color: 'var(--nb-text-on-accent)',
+                    }}
+                  >
                     {scheduledTasks.filter(t => t.status === 'active').length}
                   </span>
                 )}
@@ -832,7 +844,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
                 <button
                   onClick={sendNotification}
                   disabled={isSending || selectedKeyIds.length === 0}
-                  className="nb-btn nb-btn-primary w-full px-4 py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 mt-auto"
+                  className="nb-btn nb-btn-primary w-full px-4 py-3 text-base disabled:cursor-not-allowed flex-shrink-0 mt-auto"
                 >
                   {isSending
                     ? t('tools.barkNotifier.sending')

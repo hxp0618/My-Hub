@@ -212,19 +212,20 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({
             }`}
             style={{ 
               boxShadow: 'var(--nb-shadow-hover)',
-              backgroundColor: messageType === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)'
+              backgroundColor: messageType === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)',
+              color: 'var(--nb-text-on-accent)',
             }}
           >
-            <span className="material-symbols-outlined text-base nb-text">
+            <span className="material-symbols-outlined text-base text-[color:inherit]">
               {messageType === 'success' ? 'task_alt' : 'error'}
             </span>
-            <p className="text-sm flex-1 nb-text font-medium">{message}</p>
+            <p className="text-sm flex-1 text-[color:inherit] font-medium">{message}</p>
             <button
               onClick={() => {
                 setMessage('');
                 setMessageType('');
               }}
-              className="nb-text hover:opacity-70 transition-opacity"
+              className="text-[color:inherit] hover:opacity-70 transition-opacity"
               aria-label={t('common.close') || 'close'}
             >
               <span className="material-symbols-outlined text-sm">close</span>
@@ -285,9 +286,12 @@ export const KeyManagementModal: React.FC<KeyManagementModalProps> = ({
                   <div className="flex items-center gap-2">
                     <div 
                       className="p-1.5 rounded-lg nb-border"
-                      style={{ backgroundColor: view === 'add' ? 'var(--nb-accent-green)' : 'var(--nb-accent-blue)' }}
+                      style={{
+                        backgroundColor: view === 'add' ? 'var(--nb-accent-green)' : 'var(--nb-accent-blue)',
+                        color: 'var(--nb-text-on-accent)',
+                      }}
                     >
-                      <span className="material-symbols-outlined text-base nb-text">
+                      <span className="material-symbols-outlined text-base text-[color:inherit]">
                         {view === 'add' ? 'add_circle' : 'edit'}
                       </span>
                     </div>

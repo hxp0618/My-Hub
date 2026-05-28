@@ -333,7 +333,7 @@ export const HistoryPage: React.FC = () => {
               />
             </div>
             {/* Neo-Brutalism 风格网格选择器 */}
-            <div className="history-page-density-select nb-card-static flex items-center space-x-2 px-3 py-2.5 shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
+            <div className="history-page-density-select nb-card-static flex items-center space-x-2 px-3 py-2.5 shadow-[var(--nb-shadow-sm)]">
               <div className="w-7 h-7 flex items-center justify-center bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)]">
                 <span className="material-symbols-outlined icon-linear text-sm nb-text">grid_view</span>
               </div>
@@ -409,12 +409,12 @@ export const HistoryPage: React.FC = () => {
                 <div key={timeKey}>
                   {/* Neo-Brutalism 风格时间组标题 */}
                   <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
-                      <span className="material-symbols-outlined text-lg nb-text">schedule</span>
+                    <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)]">
+                      <span className="material-symbols-outlined text-lg text-[color:var(--nb-text-on-accent)]">schedule</span>
                     </div>
                     <h3 className="font-black nb-text text-xl uppercase tracking-tight">{displayTitle}</h3>
                     <div className="flex-1 h-0.5 bg-[color:var(--nb-border)]/30"></div>
-                    <span className="px-3 py-1 bg-[color:var(--nb-accent-blue)]/30 border-2 border-[color:var(--nb-border)] text-xs font-bold nb-text uppercase">
+                    <span className="px-3 py-1 bg-[color:var(--nb-accent-blue)] border-2 border-[color:var(--nb-border)] text-xs font-bold nb-text-on-accent uppercase">
                       {items.length} {t('common.items')}
                     </span>
                   </div>
@@ -478,30 +478,36 @@ export const HistoryPage: React.FC = () => {
 
       {/* AI生成标签进度模态框 - Neo-Brutalism 风格 */}
       {tagGenerationItem && (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 transition-colors">
-          <div className="nb-card-static w-full max-w-md p-8">
-            <h3 className="text-lg font-bold mb-4 text-[color:var(--nb-text)]">{t('bookmarks.generatingTags')}</h3>
-            <p className="nb-text-secondary mb-4">{tagGenerationItem.title}</p>
-            <div className="flex items-center justify-center py-6">
-              {isGeneratingTags ? (
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>
-              ) : (
-                <span className="material-symbols-outlined text-6xl text-[color:var(--nb-accent-green)]">check_circle</span>
-              )}
-            </div>
-            <p className="text-center text-[color:var(--nb-text)] mb-6">{generationStatusMessage}</p>
-            <div className="flex justify-end space-x-4">
-              {isGeneratingTags && (
-                <button
-                  onClick={handleCancelTagGeneration}
-                  className="nb-btn nb-btn-secondary px-5 py-2"
-                >
-                  {t('common.cancel')}
-                </button>
-              )}
-            </div>
+        <Modal
+          isOpen
+          onClose={handleCancelTagGeneration}
+          title={t('bookmarks.generatingTags')}
+          widthClass="max-w-md"
+          closeOnBackdrop={false}
+          closeOnEscape={false}
+          showCloseButton={false}
+        >
+          <p className="nb-text-secondary mb-4">{tagGenerationItem.title}</p>
+          <div className="flex items-center justify-center py-6" aria-hidden="true">
+            {isGeneratingTags ? (
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>
+            ) : (
+              <span className="material-symbols-outlined text-6xl text-[color:var(--nb-accent-green)]">check_circle</span>
+            )}
           </div>
-        </div>
+          <p className="text-center text-[color:var(--nb-text)] mb-6" role="status" aria-live="polite">{generationStatusMessage}</p>
+          <div className="flex justify-end space-x-4">
+            {isGeneratingTags && (
+              <button
+                type="button"
+                onClick={handleCancelTagGeneration}
+                className="nb-btn nb-btn-secondary px-5 py-2"
+              >
+                {t('common.cancel')}
+              </button>
+            )}
+          </div>
+        </Modal>
       )}
     </div>
   );

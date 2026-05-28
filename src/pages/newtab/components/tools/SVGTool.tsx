@@ -307,12 +307,12 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
               </span>
             )}
           </div>
-          <div className="flex-1 nb-border rounded-none nb-bg-card shadow-[4px_4px_0px_0px_var(--nb-shadow-color)] flex items-center justify-center overflow-hidden relative min-h-[300px]">
+          <div className="flex-1 nb-border rounded-md nb-bg-card shadow-[var(--nb-shadow)] flex items-center justify-center overflow-hidden relative min-h-[300px]">
             {/* 棋盘格背景，用于显示透明区域 */}
             <div 
               className="absolute inset-0 opacity-10"
               style={{
-                backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
+                backgroundImage: 'linear-gradient(45deg, var(--nb-panel-muted) 25%, transparent 25%), linear-gradient(-45deg, var(--nb-panel-muted) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--nb-panel-muted) 75%), linear-gradient(-45deg, transparent 75%, var(--nb-panel-muted) 75%)',
                 backgroundSize: '16px 16px',
                 backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
               }}
@@ -445,7 +445,7 @@ const SVGTool: React.FC<ToolComponentProps> = () => {
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 min-w-[200px] px-4 py-1.5 nb-border border-dashed rounded-none text-center cursor-pointer nb-bg-card hover:bg-[color:var(--nb-bg)] transition-colors"
+              className="flex-1 min-w-[200px] px-4 py-1.5 nb-border border-dashed rounded-md text-center cursor-pointer nb-bg-card hover:bg-[color:var(--nb-bg)] transition-colors"
             >
               <input
                 ref={fileInputRef}

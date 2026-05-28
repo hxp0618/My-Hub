@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BookmarkTree from '../../../components/BookmarkTree';
 import TagInput from '../../../components/TagInput';
+import { Modal } from '../../../components/Modal';
 import { EnhancedBookmark } from '../../../types/bookmarks';
 import { useBookmarkTagGeneration } from '../hooks/useBookmarkTagGeneration';
 import { autoSuggestBookmark } from '../../../utils/storageManager';
@@ -53,53 +54,57 @@ export const BookmarkEditModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-      <div className="nb-card-static w-full max-w-lg p-8">
-        <h3 className="text-lg font-bold mb-6 nb-text">{t('bookmarks.editBookmark')}</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.title_label')}</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="nb-input w-full mt-1" />
-          </div>
-          <div>
-            <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.url_label')}</label>
-            <input type="text" value={url} onChange={e => setUrl(e.target.value)} className="nb-input w-full mt-1" />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.tags_label')}</label>
-              {isGenerating ? (
-                <button
-                  onClick={handleCancelGeneration}
-                  className="nb-btn nb-btn-danger px-3 py-1 text-xs"
-                >
-                  {t('bookmarks.cancel_generate')}
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleGenerateTags()}
-                  disabled={!title || !url}
-                  className="nb-btn nb-btn-primary px-3 py-1 text-xs"
-                >
-                  {t('bookmarks.generateAI')}
-                </button>
-              )}
-            </div>
-            <TagInput tags={tags} setTags={setTags} />
-            {statusMessage && (
-              <p className="mt-2 text-xs nb-text-secondary">{statusMessage}</p>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={t('bookmarks.editBookmark')}
+      widthClass="max-w-lg"
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.title_label')}</label>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="nb-input w-full mt-1" />
+        </div>
+        <div>
+          <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.url_label')}</label>
+          <input type="text" value={url} onChange={e => setUrl(e.target.value)} className="nb-input w-full mt-1" />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.tags_label')}</label>
+            {isGenerating ? (
+              <button
+                type="button"
+                onClick={handleCancelGeneration}
+                className="nb-btn nb-btn-danger px-3 py-1 text-xs"
+              >
+                {t('bookmarks.cancel_generate')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleGenerateTags()}
+                disabled={!title || !url}
+                className="nb-btn nb-btn-primary px-3 py-1 text-xs"
+              >
+                {t('bookmarks.generateAI')}
+              </button>
             )}
           </div>
-          <div>
-            <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.folder_label')}</label>
-            <BookmarkTree selectedFolder={parentId} setSelectedFolder={setParentId} />
-          </div>
+          <TagInput tags={tags} setTags={setTags} />
+          {statusMessage && (
+            <p className="mt-2 text-xs nb-text-secondary">{statusMessage}</p>
+          )}
         </div>
-        <div className="flex justify-end space-x-4 mt-8">
-          <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
-          <button onClick={handleSave} className="nb-btn nb-btn-primary px-5 py-2">{t('common.save')}</button>
+        <div>
+          <label className="text-sm font-medium nb-text-secondary">{t('bookmarks.folder_label')}</label>
+          <BookmarkTree selectedFolder={parentId} setSelectedFolder={setParentId} />
         </div>
       </div>
-    </div>
+      <div className="flex justify-end space-x-4 mt-8">
+        <button type="button" onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
+        <button type="button" onClick={handleSave} className="nb-btn nb-btn-primary px-5 py-2">{t('common.save')}</button>
+      </div>
+    </Modal>
   );
 };

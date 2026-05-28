@@ -105,7 +105,10 @@ export const KeySelector: React.FC<KeySelectorProps> = (props) => {
                       ? 'nb-bg'
                       : 'hover:nb-bg'
                   } ${disabled ? 'cursor-not-allowed' : ''}`}
-                  style={isSelected ? { backgroundColor: 'var(--nb-accent-yellow)', opacity: 0.8 } : undefined}
+                  style={isSelected ? {
+                    backgroundColor: 'var(--nb-accent-yellow)',
+                    color: 'var(--nb-text-on-accent)',
+                  } : undefined}
                 >
                   <input
                     type="checkbox"
@@ -120,12 +123,12 @@ export const KeySelector: React.FC<KeySelectorProps> = (props) => {
                     }`}
                   >
                     {isSelected && (
-                      <span className="material-symbols-outlined text-xs nb-text">check</span>
+                      <span className="material-symbols-outlined text-xs text-[color:var(--nb-text-on-accent)]">check</span>
                     )}
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="text-sm nb-text font-medium truncate block">{key.label}</span>
-                    <span className="text-xs nb-text-secondary truncate block">
+                    <span className={`text-sm font-medium truncate block ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`}>{key.label}</span>
+                    <span className={`text-xs truncate block ${isSelected ? 'text-[color:var(--nb-text-on-accent)] opacity-75' : 'nb-text-secondary'}`}>
                       {maskDeviceKey(key.deviceKey)}
                     </span>
                   </span>

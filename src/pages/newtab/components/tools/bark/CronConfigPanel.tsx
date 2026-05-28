@@ -229,12 +229,12 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                   onClick={() => toggleSpecificValue(value)}
                   className={`px-1 py-1 text-xs font-medium rounded border-2 transition-all ${
                     isSelected
-                      ? 'border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow-color)]'
+                      ? 'border-[var(--nb-border)] shadow-[var(--nb-shadow-xs)]'
                       : 'border-[var(--nb-border)] opacity-60 hover:opacity-100'
                   }`}
                   style={{
                     backgroundColor: isSelected ? 'var(--nb-accent-yellow)' : 'var(--nb-bg-card)',
-                    color: 'var(--nb-text)',
+                    color: isSelected ? 'var(--nb-text-on-accent)' : 'var(--nb-text)',
                   }}
                   title={getValueLabel(value)}
                 >
@@ -349,9 +349,9 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
               key={template.key}
               type="button"
               onClick={() => applyTemplate(template.expression)}
-              className={`px-2 py-1 text-xs rounded-md nb-border transition-all hover:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] ${
+              className={`px-2 py-1 text-xs rounded-md nb-border transition-all hover:shadow-[var(--nb-shadow-sm)] ${
                 generatedExpression === template.expression
-                  ? 'shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
+                  ? 'shadow-[var(--nb-shadow-sm)]'
                   : ''
               }`}
               style={{
@@ -375,12 +375,12 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
             onClick={() => setActiveTab(meta.key)}
             className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-md transition-all border-2 ${
               activeTab === meta.key
-                ? 'border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
+                ? 'border-[var(--nb-border)] shadow-[var(--nb-shadow-sm)]'
                 : 'border-transparent hover:border-[var(--nb-border)]'
             }`}
             style={{
               backgroundColor: activeTab === meta.key ? 'var(--nb-accent-yellow)' : 'transparent',
-              color: 'var(--nb-text)',
+              color: activeTab === meta.key ? 'var(--nb-text-on-accent)' : 'var(--nb-text)',
             }}
           >
             {t(meta.label)}
@@ -416,7 +416,10 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
               >
                 <span
                   className="font-bold px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: 'var(--nb-accent-blue)' }}
+                  style={{
+                    backgroundColor: 'var(--nb-accent-blue)',
+                    color: 'var(--nb-text-on-accent)',
+                  }}
                 >
                   #{index + 1}
                 </span>
@@ -430,10 +433,13 @@ export const CronConfigPanel: React.FC<CronConfigPanelProps> = ({
       {/* Chrome 扩展最小间隔警告 */}
       <div
         className="flex items-start gap-2 p-3 rounded-lg nb-border text-xs"
-        style={{ backgroundColor: 'var(--nb-accent-yellow)', opacity: 0.9 }}
+        style={{
+          backgroundColor: 'var(--nb-accent-yellow)',
+          color: 'var(--nb-text-on-accent)',
+        }}
       >
         <span className="material-symbols-outlined text-base flex-shrink-0">info</span>
-        <span className="nb-text">
+        <span className="text-[color:inherit]">
           {t('tools.barkNotifier.scheduled.minIntervalWarning')}
         </span>
       </div>

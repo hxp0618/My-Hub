@@ -95,7 +95,7 @@ export const KeyList: React.FC<KeyListProps> = ({
                 <button
                   onClick={() => onTest(key.id)}
                   disabled={isTesting}
-                  className="nb-btn nb-btn-ghost p-1.5 rounded transition-theme disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="nb-btn nb-btn-ghost p-1.5 rounded transition-theme disabled:cursor-not-allowed"
                   title={t('tools.barkNotifier.keys.test')}
                 >
                   {isCurrentTesting ? (

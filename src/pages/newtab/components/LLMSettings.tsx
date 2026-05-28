@@ -398,7 +398,7 @@ const LLMSettings: React.FC = () => {
 
       {/* Test Result - Neo-Brutalism 风格 */}
       {testResult && (
-        <div className={`nb-card-static p-3 ${testResult.success ? 'bg-[color:var(--nb-accent-green)]/20 border-[color:var(--nb-accent-green)]' : 'bg-[color:var(--nb-accent-pink)]/20 border-[color:var(--nb-accent-pink)]'}`}>
+        <div className={`nb-card-static p-3 bg-[color:var(--nb-panel-muted)] ${testResult.success ? 'border-[color:var(--nb-accent-green)]' : 'border-[color:var(--nb-accent-pink)]'}`}>
           <span className={testResult.success ? 'text-[color:var(--nb-accent-green)]' : 'text-[color:var(--color-error-text)]'}>
             {testResult.message}
           </span>
@@ -411,7 +411,7 @@ const LLMSettings: React.FC = () => {
           type="button"
           onClick={handleTest}
           disabled={!settings.selectedProvider || !settings.apiKey || isLoading}
-          className="nb-btn nb-btn-secondary px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+          className="nb-btn nb-btn-secondary px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
         >
           {isLoading ? t('settings.testing') : t('settings.testConnectionButton')}
         </button>

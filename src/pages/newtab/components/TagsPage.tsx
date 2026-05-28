@@ -8,6 +8,7 @@ import { TagDetailView } from './TagDetailView';
 import { RenameTagDialog } from './RenameTagDialog';
 import { DeleteTagDialog } from './DeleteTagDialog';
 import { MergeTagsDialog } from './MergeTagsDialog';
+import { getTagClassName } from '../../../utils/tagColorUtils';
 
 export const TagsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -134,17 +135,17 @@ export const TagsPage: React.FC = () => {
         {/* 内联统计数据 */}
         <div className="tags-page-stats" aria-label={t('tags.statistics')}>
           <div className="tags-page-stat bg-[color:var(--nb-accent-yellow)]" title={t('tags.totalTags')}>
-            <span className="material-symbols-outlined text-sm nb-text">label</span>
-            <span className="tags-page-stat-value nb-text">{statistics?.totalTags ?? 0}</span>
+            <span className="material-symbols-outlined text-sm text-[color:var(--nb-text-on-accent)]">label</span>
+            <span className="tags-page-stat-value text-[color:var(--nb-text-on-accent)]">{statistics?.totalTags ?? 0}</span>
           </div>
           <div className="tags-page-stat bg-[color:var(--nb-accent-blue)]" title={t('tags.totalItems')}>
-            <span className="material-symbols-outlined text-sm nb-text">bookmark</span>
-            <span className="tags-page-stat-value nb-text">{statistics?.totalItems ?? 0}</span>
+            <span className="material-symbols-outlined text-sm text-[color:var(--nb-text-on-accent)]">bookmark</span>
+            <span className="tags-page-stat-value text-[color:var(--nb-text-on-accent)]">{statistics?.totalItems ?? 0}</span>
           </div>
           {(statistics?.unusedTags ?? 0) > 0 && (
             <div className="tags-page-stat bg-[color:var(--nb-accent-pink)]" title={t('tags.unusedTags')}>
-              <span className="material-symbols-outlined text-sm nb-text">label_off</span>
-              <span className="tags-page-stat-value nb-text">{statistics?.unusedTags ?? 0}</span>
+              <span className="material-symbols-outlined text-sm text-[color:var(--nb-text-on-accent)]">label_off</span>
+              <span className="tags-page-stat-value text-[color:var(--nb-text-on-accent)]">{statistics?.unusedTags ?? 0}</span>
             </div>
           )}
         </div>
@@ -158,9 +159,7 @@ export const TagsPage: React.FC = () => {
             {statistics.topTags.slice(0, 8).map((tag, index) => (
               <span
                 key={tag.name}
-                className={`tags-page-top-pill ${
-                  ['bg-[color:var(--nb-accent-yellow)]', 'bg-[color:var(--nb-accent-pink)]', 'bg-[color:var(--nb-accent-blue)]', 'bg-[color:var(--nb-accent-green)]'][index % 4]
-                }`}
+                className={`tags-page-top-pill ${getTagClassName(index)}`}
               >
                 {tag.name} <span className="ml-1 opacity-60">({tag.count})</span>
               </span>

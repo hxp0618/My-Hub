@@ -360,18 +360,18 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
                 onClick={() => handleSelectTool(toolId)}
                 aria-current={isSelected ? 'page' : undefined}
                 className={`tools-page-tool-button w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-100 border-2 ${isSelected
-                  ? 'bg-[color:var(--nb-accent-yellow)] border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]'
+                  ? 'bg-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)] border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)]'
                   : 'bg-transparent border-transparent hover:border-[color:var(--nb-border)] hover:bg-[color:var(--nb-card)]'
                   } ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-[color:var(--nb-accent-blue)]' : ''
                   }`}
               >
                 {canDrag && (
-                  <span className="tools-page-drag-handle material-symbols-outlined text-sm nb-text-secondary opacity-50">
+                  <span className={`tools-page-drag-handle material-symbols-outlined text-sm ${isSelected ? 'text-[color:var(--nb-text-on-accent)] opacity-70' : 'nb-text-secondary opacity-50'}`}>
                     drag_indicator
                   </span>
                 )}
-                <span className="material-symbols-outlined text-lg nb-text">{metadata.icon}</span>
-                <span className="flex-1 text-sm font-medium nb-text truncate">
+                <span className={`material-symbols-outlined text-lg ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`}>{metadata.icon}</span>
+                <span className={`flex-1 text-sm font-medium truncate ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`}>
                   {t(metadata.nameKey)}
                 </span>
                 {isRecent && (

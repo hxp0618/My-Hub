@@ -365,8 +365,8 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
                 onClick={() => handleTabChange(tab.id)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg border-2 border-[var(--nb-border)] transition-all ${
                   activeTab === tab.id
-                    ? 'bg-[var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
-                    : 'bg-[var(--nb-card)] hover:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] hover:translate-x-[-1px] hover:translate-y-[-1px]'
+                    ? 'bg-[var(--nb-accent-yellow)] shadow-[var(--nb-shadow-sm)]'
+                    : 'bg-[var(--nb-card)] hover:shadow-[var(--nb-shadow-sm)] hover:translate-x-[-1px] hover:translate-y-[-1px]'
                 }`}
               >
                 {tab.label}

@@ -47,7 +47,7 @@ export const SwapButton: React.FC<SwapButtonProps> = ({
       className={`
         nb-btn nb-btn-secondary
         ${sizeClasses[size]}
-        disabled:opacity-50 disabled:cursor-not-allowed
+        disabled:cursor-not-allowed
         ${className}
       `}
       title={t('tools.common.swap')}

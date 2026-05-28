@@ -130,7 +130,7 @@ export const ToolOrderConfig: React.FC<ToolOrderConfigProps> = ({
                 border-[length:var(--nb-border-width)] border-[color:var(--nb-border)]
                 transition-all duration-150 nb-bg-card
                 ${isDragging ? 'opacity-50 border-dashed cursor-move' : ''}
-                ${isDragOver ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-accent-yellow)]/10' : ''}
+                ${isDragOver ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-panel-muted)] shadow-[var(--nb-shadow-sm)]' : ''}
                 cursor-move hover:shadow-[var(--nb-shadow-hover)]
               `}
             >

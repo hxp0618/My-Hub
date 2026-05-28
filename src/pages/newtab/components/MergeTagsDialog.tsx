@@ -76,7 +76,7 @@ export const MergeTagsDialog: React.FC<MergeTagsDialogProps> = ({
             {t('common.cancel')}
           </button>
           <button
-            className="nb-btn nb-btn-primary px-4 py-2 disabled:opacity-50"
+            className="nb-btn nb-btn-primary px-4 py-2"
             onClick={handleSubmit}
             disabled={submitting || !newName.trim() || tags.length < 2}
           >

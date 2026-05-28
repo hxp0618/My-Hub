@@ -70,7 +70,7 @@ body.newtab-mobile-nav-open {
     display: inline-flex;
     max-width: 100%;
     padding: 0.875rem 1rem;
-    color: var(--nb-text-on-accent);
+    color: var(--nb-text);
     background-color: var(--nb-accent-yellow);
     border: var(--nb-border-width-thick) solid var(--nb-border);
     box-shadow: var(--nb-shadow);
@@ -164,7 +164,10 @@ body.newtab-mobile-nav-open {
 
 .newtab-sidebar-resizer:focus-visible {
     background-color: var(--nb-accent-yellow);
-    box-shadow: inset 0 0 0 var(--nb-border-width-thick) var(--nb-border);
+    box-shadow:
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
+    outline: none;
 }
 
 .newtab-shell.mobile-layout .newtab-sidebar-resizer {
@@ -666,7 +669,7 @@ body.newtab-mobile-nav-open {
     display: inline-flex;
     align-items: center;
     padding: 0.125rem 0.625rem;
-    color: var(--nb-text-on-accent);
+    color: var(--nb-text);
     font-size: 0.75rem;
     font-weight: 700;
     border: var(--nb-border-width) solid var(--nb-border);
@@ -768,7 +771,9 @@ body.newtab-mobile-nav-open {
 
 .tag-card:focus-visible {
     outline: none;
-    box-shadow: inset 0 0 0 2px var(--nb-accent-yellow);
+    box-shadow:
+        inset 0 0 0 2px var(--nb-shadow-color),
+        inset 0 0 0 5px var(--nb-accent-yellow);
 }
 
 .tag-card.is-selected {
@@ -783,13 +788,15 @@ body.newtab-mobile-nav-open {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: var(--nb-text);
     border: 1px solid transparent;
     border-radius: var(--nb-border-radius-md);
-    transition: background-color 0.15s linear, border-color 0.15s linear;
+    transition: background-color 0.15s linear, border-color 0.15s linear, color 0.15s linear;
 }
 
 .tag-card-action:hover {
     border-color: var(--nb-border);
+    color: var(--nb-text-on-accent);
 }
 
 .tag-detail-view {

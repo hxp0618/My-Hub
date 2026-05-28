@@ -103,7 +103,7 @@ export const TagList: React.FC<TagListProps> = ({
           <div className="tag-list-selection-actions">
             <button
               type="button"
-              className="nb-btn nb-btn-info px-3 py-1.5 text-sm disabled:opacity-50"
+              className="nb-btn nb-btn-info px-3 py-1.5 text-sm"
               onClick={onMergeSelected}
               disabled={selectedTags.length < 2}
             >
@@ -112,7 +112,7 @@ export const TagList: React.FC<TagListProps> = ({
             </button>
             <button
               type="button"
-              className="nb-btn nb-btn-danger px-3 py-1.5 text-sm disabled:opacity-50"
+              className="nb-btn nb-btn-danger px-3 py-1.5 text-sm"
               onClick={onDeleteSelected}
               disabled={selectedTags.length === 0}
             >

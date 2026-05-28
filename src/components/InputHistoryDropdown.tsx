@@ -89,7 +89,7 @@ export const InputHistoryDropdown: React.FC<InputHistoryDropdownProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={history.length === 0}
-        className="nb-btn nb-btn-secondary p-2 h-10 w-10 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        className="nb-btn nb-btn-secondary p-2 h-10 w-10 justify-center disabled:cursor-not-allowed"
         title={t('tools.common.history')}
       >
         <span className="material-symbols-outlined text-sm">history</span>

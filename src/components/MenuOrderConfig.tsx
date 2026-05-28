@@ -118,7 +118,7 @@ export const MenuOrderConfig: React.FC<MenuOrderConfigProps> = ({ onReset }) => 
                   border-[length:var(--nb-border-width)] border-[color:var(--nb-border)]
                   transition-all duration-150 nb-bg-card
                   ${isDragging ? 'opacity-50 border-dashed cursor-move' : ''}
-                  ${isDragOver ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-accent-yellow)]/10' : ''}
+                  ${isDragOver ? 'border-[color:var(--nb-accent-yellow)] bg-[color:var(--nb-panel-muted)] shadow-[var(--nb-shadow-sm)]' : ''}
                   ${!isIconPickerOpen ? 'cursor-move hover:shadow-[var(--nb-shadow-hover)]' : ''}
                 `}
               >
@@ -127,10 +127,10 @@ export const MenuOrderConfig: React.FC<MenuOrderConfigProps> = ({ onReset }) => 
                 {/* 图标按钮 */}
                 <button
                   onClick={() => handleIconClick(itemId)}
-                  className={`p-1 rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${isIconPickerOpen ? 'bg-[color:var(--nb-accent-yellow)]/20' : ''}`}
+                  className={`p-1 rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${isIconPickerOpen ? 'bg-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)]' : ''}`}
                   title={t('settings.changeIcon')}
                 >
-                  <span className="material-symbols-outlined icon-linear nb-text">{displayIcon}</span>
+                  <span className="material-symbols-outlined icon-linear text-[color:inherit]">{displayIcon}</span>
                 </button>
 
                 <span className="nb-text flex-1">{t(item.labelKey)}</span>
@@ -146,11 +146,11 @@ export const MenuOrderConfig: React.FC<MenuOrderConfigProps> = ({ onReset }) => 
                         key={icon}
                         onClick={() => handleSelectIcon(itemId, icon)}
                         className={`p-2 rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${
-                          displayIcon === icon ? 'bg-[color:var(--nb-accent-yellow)]/20 border-[color:var(--nb-accent-yellow)]' : ''
+                          displayIcon === icon ? 'bg-[color:var(--nb-accent-yellow)] border-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)]' : ''
                         }`}
                         title={icon}
                       >
-                        <span className="material-symbols-outlined icon-linear nb-text">{icon}</span>
+                        <span className="material-symbols-outlined icon-linear text-[color:inherit]">{icon}</span>
                       </button>
                     ))}
                   </div>

@@ -560,12 +560,12 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                   <span className="material-symbols-outlined nb-text text-lg">more_vert</span>
               </button>
               {showMoreMenu && (
-                  <div className="absolute right-0 mt-2 w-48 nb-card-static shadow-[4px_4px_0px_0px_var(--nb-shadow-color)] z-30" role="menu">
+                  <div className="absolute right-0 mt-2 w-48 nb-card-static shadow-[var(--nb-shadow)] z-30" role="menu">
                       <div className="py-1">
                           <button
                               type="button"
                               onClick={handleOpenCreateComboModal}
-                              className="w-full flex items-center px-4 py-2.5 text-sm nb-text hover:bg-[color:var(--nb-accent-yellow)] cursor-pointer transition-colors"
+                              className="w-full flex items-center px-4 py-2.5 text-sm text-[color:var(--nb-text)] hover:bg-[color:var(--nb-accent-yellow)] hover:text-[color:var(--nb-text-on-accent)] cursor-pointer transition-colors"
                               role="menuitem"
                           >
                               <span className="material-symbols-outlined mr-2 text-base">add_circle</span>
@@ -584,7 +584,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
           <div className="flex items-center gap-3 mb-4">
             <span className="material-symbols-outlined text-xl nb-text">search</span>
             <h2 className="text-xl font-bold nb-text">{t('home.searchResults')}</h2>
-            <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] nb-text font-medium">
+            <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)] font-medium">
               {searchResults.length}
             </span>
           </div>
@@ -599,10 +599,10 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                     className="nb-card relative flex min-h-[140px] flex-col p-5 text-left group"
                     aria-label={t('home.openTool', { name: item.title })}
                   >
-                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-green)] opacity-60 pointer-events-none"></div>
+                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-deco-mint)] opacity-60 pointer-events-none"></div>
                     <div className="flex items-start">
-                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
-                        <span className="material-symbols-outlined nb-text text-xl">{item.icon}</span>
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[var(--nb-shadow-sm)]">
+                        <span className="material-symbols-outlined text-[color:var(--nb-text-on-accent)] text-xl">{item.icon}</span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="font-bold nb-text text-base leading-tight line-clamp-2" title={item.title}>
@@ -633,9 +633,9 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                     className="nb-card relative flex min-h-[140px] flex-col p-5 text-left group"
                     aria-label={t('home.openAction', { name: item.title })}
                   >
-                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] opacity-60 pointer-events-none"></div>
+                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-deco-sky)] opacity-60 pointer-events-none"></div>
                     <div className="flex items-start">
-                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[var(--nb-shadow-sm)]">
                         <span className="material-symbols-outlined nb-text text-xl">{item.icon}</span>
                       </div>
                       <div className="min-w-0 flex-1">
@@ -706,7 +706,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                 <div className="flex items-center gap-3 mb-4">
                   <span className="material-symbols-outlined text-xl nb-text">collections_bookmark</span>
                   <h2 className="text-xl font-bold nb-text">{t('home.webCombos')}</h2>
-                  <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-green)] border-2 border-[color:var(--nb-border)] nb-text font-medium">
+                  <span className="px-2 py-1 text-xs bg-[color:var(--nb-accent-green)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)] font-medium">
                     {webCombos.length}
                   </span>
                 </div>
@@ -761,59 +761,50 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
 
       {/* AI生成标签进度模态框 - 增强 Neo-Brutalism 风格 */}
       {tagGenerationItem && (
-      <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-          <div className="nb-card-static w-full max-w-md p-8 shadow-[8px_8px_0px_0px_var(--nb-shadow-color)] animate-modal-appear">
-            {/* 标题区域 */}
-            <div className="flex items-center mb-6">
-              <div className="w-10 h-10 flex items-center justify-center bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] mr-4">
-                <span className="material-symbols-outlined nb-text text-xl icon-linear">auto_awesome</span>
-              </div>
-              <h3 className="text-xl font-black nb-text uppercase tracking-tight">
-                {t('bookmarks.generatingTags')}
-              </h3>
-            </div>
-
-            {/* 书签信息 */}
-            <div className="mb-6 p-4 bg-[color:var(--nb-bg)] border-2 border-[color:var(--nb-border)]">
-              <p className="nb-text-secondary text-sm font-medium truncate">
-                {tagGenerationItem.title}
-              </p>
-            </div>
-
-            {/* 状态指示器 */}
-            <div className="flex items-center justify-center py-8">
-              {isGeneratingTags ? (
-                <div className="relative">
-                  <div className="w-16 h-16 border-4 border-[color:var(--nb-border)]/20"></div>
-                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
-                </div>
-              ) : (
-                <div className="w-16 h-16 flex items-center justify-center bg-[color:var(--nb-accent-green)] border-4 border-[color:var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]">
-                  <span className="material-symbols-outlined text-4xl nb-text">check</span>
-                </div>
-              )}
-            </div>
-
-            {/* 状态消息 */}
-            <div className="mb-6 text-center">
-              <p className="nb-text font-bold text-sm uppercase tracking-wide">
-                {generationStatusMessage}
-              </p>
-            </div>
-
-            {/* 操作按钮 */}
-            <div className="flex justify-end">
-              {isGeneratingTags && (
-                <button
-                  onClick={handleCancelTagGeneration}
-                  className="nb-btn nb-btn-danger px-6 py-2.5"
-                >
-                  {t('common.cancel')}
-                </button>
-              )}
-            </div>
+        <Modal
+          isOpen
+          onClose={handleCancelTagGeneration}
+          title={t('bookmarks.generatingTags')}
+          widthClass="max-w-md"
+          closeOnBackdrop={false}
+          closeOnEscape={false}
+          showCloseButton={false}
+        >
+          <div className="mb-6 p-4 bg-[color:var(--nb-bg)] border-2 border-[color:var(--nb-border)]">
+            <p className="nb-text-secondary text-sm font-medium truncate">
+              {tagGenerationItem.title}
+            </p>
           </div>
-        </div>
+
+          <div className="flex items-center justify-center py-8" aria-hidden="true">
+            {isGeneratingTags ? (
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-[color:var(--nb-border)]/20"></div>
+                <div className="absolute top-0 left-0 w-16 h-16 border-4 border-[color:var(--nb-accent-yellow)] border-t-transparent animate-spin"></div>
+              </div>
+            ) : (
+              <div className="w-16 h-16 flex items-center justify-center bg-[color:var(--nb-accent-green)] border-4 border-[color:var(--nb-border)] shadow-[var(--nb-shadow)]">
+                <span className="material-symbols-outlined text-4xl nb-text-on-accent">check</span>
+              </div>
+            )}
+          </div>
+
+          <p className="mb-6 text-center nb-text font-bold text-sm uppercase tracking-wide" role="status" aria-live="polite">
+            {generationStatusMessage}
+          </p>
+
+          <div className="flex justify-end">
+            {isGeneratingTags && (
+              <button
+                type="button"
+                onClick={handleCancelTagGeneration}
+                className="nb-btn nb-btn-danger px-6 py-2.5"
+              >
+                {t('common.cancel')}
+              </button>
+            )}
+          </div>
+        </Modal>
       )}
     </div>
   )

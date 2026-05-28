@@ -525,7 +525,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
 
         {/* 错误提示 */}
         {error && (
-          <div className="p-3 nb-bg-card nb-border rounded-none flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
+          <div className="p-3 nb-bg-card nb-border rounded-md flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
             <p className="text-sm text-[color:var(--color-error-text)]">{error}</p>
           </div>
         )}
@@ -536,7 +536,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
           <div className="flex flex-col min-h-0 gap-3">
             {/* 上传区域 */}
             <div
-              className="border-2 border-dashed border-[color:var(--nb-border)] rounded-none p-4 text-center cursor-pointer nb-bg-card hover:bg-[color:var(--nb-bg)] transition-colors flex-shrink-0"
+              className="border-2 border-dashed border-[color:var(--nb-border)] rounded-md p-4 text-center cursor-pointer nb-bg-card hover:bg-[color:var(--nb-bg)] transition-colors flex-shrink-0"
               onClick={handleUploadClick}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -549,7 +549,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
 
             {/* 图片列表 */}
             {images.length > 0 ? (
-              <div className="flex-1 overflow-y-auto nb-border rounded-none">
+              <div className="flex-1 overflow-y-auto nb-border rounded-md">
                 {images.map((image, index) => {
                   const result = results.get(image.id);
                   return (
@@ -570,15 +570,20 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                           {result.success ? '✓' : '✗'}
                         </span>
                       )}
-                      <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(index); }} className="p-1 rounded-none hover:bg-[color:var(--nb-bg)]">
-                        <span className="material-symbols-outlined text-sm nb-text-secondary">close</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(index); }}
+                        className="flex h-11 w-11 items-center justify-center rounded-[var(--nb-border-radius-sm)] hover:bg-[color:var(--nb-bg)]"
+                        aria-label={t('common.delete')}
+                      >
+                        <span className="material-symbols-outlined text-sm nb-text-secondary" aria-hidden="true">close</span>
                       </button>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center nb-border rounded-none nb-bg-card">
+              <div className="flex-1 flex items-center justify-center nb-border rounded-md nb-bg-card">
                 <div className="text-center">
                   <span className="material-symbols-outlined text-4xl nb-text-secondary">image</span>
                   <p className="text-sm nb-text-secondary mt-2">{t('tools.imageConverter.noImages')}</p>
@@ -656,19 +661,19 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
             </div>
 
             {/* 预览区域 */}
-            <div className="flex-1 nb-border rounded-none p-4 overflow-auto nb-bg-card">
+            <div className="flex-1 nb-border rounded-md p-4 overflow-auto nb-bg-card">
               {selectedImage ? (
                 <div className="grid grid-cols-2 gap-4 h-full">
                   <div className="flex flex-col">
                     <p className="text-xs nb-text-secondary mb-2">{t('tools.imageConverter.original')}</p>
-                    <div className="flex-1 flex items-center justify-center nb-bg-card nb-border rounded-none p-2">
+                    <div className="flex-1 flex items-center justify-center nb-bg-card nb-border rounded-md p-2">
                       <img src={selectedImage.dataUrl} alt="Original" className="max-w-full max-h-full object-contain" />
                     </div>
                     <p className="text-xs nb-text-secondary mt-2 text-center">{selectedImage.width}×{selectedImage.height} · {formatFileSize(selectedImage.size)}</p>
                   </div>
                   <div className="flex flex-col">
                     <p className="text-xs nb-text-secondary mb-2">{t('tools.imageConverter.converted')}</p>
-                    <div className="flex-1 flex items-center justify-center nb-bg-card nb-border rounded-none p-2">
+                    <div className="flex-1 flex items-center justify-center nb-bg-card nb-border rounded-md p-2">
                       {selectedResult?.dataUrl ? (
                         <img src={selectedResult.dataUrl} alt="Converted" className="max-w-full max-h-full object-contain" />
                       ) : (
