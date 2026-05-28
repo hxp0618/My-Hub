@@ -98,10 +98,10 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
           onChange={handleFileChange}
           className="hidden"
         />
-        <span className="material-symbols-outlined text-4xl nb-text-secondary mb-2">
+        <span className={`material-symbols-outlined text-4xl mb-2 ${isDragging ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text-secondary'}`}>
           {isProcessing ? 'hourglass_empty' : 'qr_code_scanner'}
         </span>
-        <p className="text-sm nb-text-secondary">
+        <p className={`text-sm ${isDragging ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text-secondary'}`}>
           {isProcessing ? t('common.loading') : t('tools.qrcodeGenerator.uploadHint')}
         </p>
       </div>
@@ -154,10 +154,12 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
               >
                 {/* 删除按钮 */}
                 <button
+                  type="button"
                   onClick={() => onDelete(image.id)}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-border)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]"
+                  className="absolute top-2 right-2 z-10 w-11 h-11 rounded-full bg-[color:var(--nb-accent-pink)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center shadow-[var(--nb-shadow-sm)]"
+                  aria-label={t('common.delete')}
                 >
-                  <span className="material-symbols-outlined text-sm">close</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                 </button>
 
                 {/* 图片 */}

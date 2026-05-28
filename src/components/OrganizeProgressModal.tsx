@@ -63,7 +63,7 @@ export const OrganizeProgressModal: React.FC<OrganizeProgressModalProps> = ({
         {/* 当前状态 */}
         <div>
           <div className="text-sm nb-text-secondary mb-2 font-bold uppercase tracking-wide">{t('organizeProgress.currentStatus')}</div>
-          <div className="text-sm nb-bg-card nb-text p-3 border-2 border-[color:var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)]">
+          <div className="text-sm nb-bg-card nb-text p-3 border-2 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)]">
             {currentStatus}
           </div>
         </div>

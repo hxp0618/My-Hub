@@ -301,7 +301,7 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={t('organizeAiModal.title')} widthClass="max-w-4xl">
         {error && (
-          <div className="mb-4 p-3 nb-border bg-[color:var(--nb-accent-pink)] text-sm nb-text">
+          <div className="mb-4 p-3 nb-border bg-[color:var(--nb-accent-pink)] text-sm text-[color:var(--nb-text-on-accent)]">
             {error}
           </div>
         )}

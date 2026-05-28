@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseCurl } from '../utils/curlUtils';
 import { CurlParseError, CurlParseSuccess } from '../types/curl';
+import { Modal } from './Modal';
 
 interface CurlImportModalProps {
   isOpen: boolean;
@@ -48,73 +49,52 @@ export const CurlImportModal: React.FC<CurlImportModalProps> = ({
     onClose();
   }, [onClose]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* 背景遮罩 */}
-      <div
-        className="absolute inset-0 modal-overlay"
-        onClick={handleClose}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={t('tools.httpTester.importCurl')}
+      widthClass="max-w-2xl"
+    >
+      <p className="text-sm nb-text-secondary mb-4">
+        {t('tools.httpTester.importCurlDescription')}
+      </p>
+
+      <textarea
+        value={curlCommand}
+        onChange={(e) => {
+          setCurlCommand(e.target.value);
+          setError(null);
+        }}
+        placeholder={t('tools.httpTester.curlPlaceholder')}
+        className={`nb-input w-full min-h-[200px] font-mono text-sm resize-none ${
+          error ? 'border-[color:var(--nb-accent-pink)]' : ''
+        }`}
       />
-      
-      {/* 对话框 */}
-      <div className="relative nb-card p-6 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
-        {/* 标题栏 */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold nb-text">
-            {t('tools.httpTester.importCurl')}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="nb-btn nb-btn-ghost p-1"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
 
-        {/* 说明文字 */}
-        <p className="text-sm nb-text-secondary mb-4">
-          {t('tools.httpTester.importCurlDescription')}
+      {error && (
+        <p className="text-sm mt-2" style={{ color: 'var(--color-error-text)' }}>
+          {error}
         </p>
+      )}
 
-        {/* curl 命令输入框 */}
-        <textarea
-          value={curlCommand}
-          onChange={(e) => {
-            setCurlCommand(e.target.value);
-            setError(null);
-          }}
-          placeholder={t('tools.httpTester.curlPlaceholder')}
-          className={`nb-input flex-1 min-h-[200px] font-mono text-sm resize-none ${
-            error ? 'border-[color:var(--nb-accent-pink)]' : ''
-          }`}
-        />
-
-        {/* 错误提示 */}
-        {error && (
-          <p className="text-sm mt-2" style={{ color: 'var(--color-error-text)' }}>
-            {error}
-          </p>
-        )}
-
-        {/* 按钮区域 */}
-        <div className="flex justify-end gap-3 mt-4">
-          <button
-            onClick={handleClose}
-            className="nb-btn nb-btn-ghost"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleImport}
-            disabled={!curlCommand.trim()}
-            className="nb-btn nb-btn-primary"
-          >
-            {t('tools.httpTester.import')}
-          </button>
-        </div>
+      <div className="flex justify-end gap-3 mt-4">
+        <button
+          type="button"
+          onClick={handleClose}
+          className="nb-btn nb-btn-ghost"
+        >
+          {t('common.cancel')}
+        </button>
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={!curlCommand.trim()}
+          className="nb-btn nb-btn-primary"
+        >
+          {t('tools.httpTester.import')}
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 };

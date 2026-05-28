@@ -171,7 +171,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
               className={`
                 theme-switcher-list-icon
                 ${isActive
-                  ? 'bg-[color:var(--nb-card)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] nb-text'
+                  ? 'bg-[color:var(--nb-card)] shadow-[var(--nb-shadow-sm)] nb-text'
                   : 'nb-bg nb-text'
                 }
               `}

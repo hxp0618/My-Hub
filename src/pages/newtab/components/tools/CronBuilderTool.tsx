@@ -167,12 +167,12 @@ export const CronBuilderTool: React.FC<ToolComponentProps> = ({
                 onClick={() => setActiveTab(meta.key)}
                 className={`flex-1 px-3 py-2 text-sm font-bold rounded-md transition-all border-2 ${
                   activeTab === meta.key
-                    ? 'border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
+                    ? 'border-[var(--nb-border)] shadow-[var(--nb-shadow-sm)]'
                     : 'border-transparent hover:border-[var(--nb-border)]'
                 }`}
                 style={{
                   backgroundColor: activeTab === meta.key ? 'var(--nb-accent-yellow)' : 'transparent',
-                  color: 'var(--nb-text)',
+                  color: activeTab === meta.key ? 'var(--nb-text-on-accent)' : 'var(--nb-text)',
                 }}
               >
                 {t(meta.label)}
@@ -183,7 +183,7 @@ export const CronBuilderTool: React.FC<ToolComponentProps> = ({
 
         {/* 配置面板 */}
         <div
-          className="flex-shrink-0 p-4 rounded-xl border-2 border-[var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow-color)]"
+          className="flex-shrink-0 p-4 rounded-xl border-2 border-[var(--nb-border)] shadow-[var(--nb-shadow)]"
           style={{ backgroundColor: 'var(--nb-bg-card)' }}
         >
           <FieldConfigPanel
@@ -206,7 +206,7 @@ export const CronBuilderTool: React.FC<ToolComponentProps> = ({
                 <button
                   key={template.key}
                   onClick={() => applyTemplate(template.expression)}
-                  className="w-full text-left px-3 py-2 rounded-lg border-2 border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] transition-all"
+                  className="w-full text-left px-3 py-2 rounded-lg border-2 border-[var(--nb-border)] shadow-[var(--nb-shadow-sm)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[var(--nb-shadow-sm)] transition-all"
                   style={{ backgroundColor: 'var(--nb-bg-card)' }}
                 >
                   <div className="font-medium nb-text text-sm">
@@ -236,7 +236,10 @@ export const CronBuilderTool: React.FC<ToolComponentProps> = ({
                     <div className="flex items-center gap-2">
                       <span
                         className="text-xs font-bold px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: 'var(--nb-accent-blue)', color: 'var(--nb-text)' }}
+                        style={{
+                          backgroundColor: 'var(--nb-accent-blue)',
+                          color: 'var(--nb-text-on-accent)',
+                        }}
                       >
                         #{index + 1}
                       </span>
@@ -465,12 +468,12 @@ const FieldConfigPanel: React.FC<FieldConfigPanelProps> = ({
                   onClick={() => toggleSpecificValue(value)}
                   className={`px-1 py-1.5 text-xs font-medium rounded border-2 transition-all ${
                     isSelected
-                      ? 'border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
+                      ? 'border-[var(--nb-border)] shadow-[var(--nb-shadow-sm)]'
                       : 'border-[var(--nb-border)] opacity-60 hover:opacity-100'
                   }`}
                   style={{
                     backgroundColor: isSelected ? 'var(--nb-accent-yellow)' : 'var(--nb-bg-card)',
-                    color: 'var(--nb-text)',
+                    color: isSelected ? 'var(--nb-text-on-accent)' : 'var(--nb-text)',
                   }}
                   title={getValueLabel(value)}
                 >

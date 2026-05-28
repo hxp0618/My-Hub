@@ -717,30 +717,36 @@ export const BookmarkPage: React.FC = () => {
 
       {/* AI生成标签进度模态框 - Neo-Brutalism 风格 */}
       {currentTagGenerationTitle && (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 transition-colors">
-          <div className="nb-card-static w-full max-w-md p-8">
-            <h3 className="text-lg font-bold mb-4 nb-text">{t('bookmarks.generatingTags')}</h3>
-            <p className="nb-text-secondary mb-4">{currentTagGenerationTitle}</p>
-            <div className="flex items-center justify-center py-6">
-              {isGeneratingTags ? (
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>
-              ) : (
-                <span className="material-symbols-outlined text-6xl text-[color:var(--nb-accent-green)]">check_circle</span>
-              )}
-            </div>
-            <p className="text-center nb-text mb-6">{generationStatusMessage}</p>
-            <div className="flex justify-end space-x-4">
-              {isGeneratingTags && (
-                <button
-                  onClick={cancelTagGeneration}
-                  className="nb-btn nb-btn-secondary px-5 py-2"
-                >
-                  {t('common.cancel')}
-                </button>
-              )}
-            </div>
+        <Modal
+          isOpen
+          onClose={cancelTagGeneration}
+          title={t('bookmarks.generatingTags')}
+          widthClass="max-w-md"
+          closeOnBackdrop={false}
+          closeOnEscape={false}
+          showCloseButton={false}
+        >
+          <p className="nb-text-secondary mb-4">{currentTagGenerationTitle}</p>
+          <div className="flex items-center justify-center py-6" aria-hidden="true">
+            {isGeneratingTags ? (
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[color:var(--nb-border)]/30 border-t-[color:var(--nb-accent-yellow)]"></div>
+            ) : (
+              <span className="material-symbols-outlined text-6xl text-[color:var(--nb-accent-green)]">check_circle</span>
+            )}
           </div>
-        </div>
+          <p className="text-center nb-text mb-6" role="status" aria-live="polite">{generationStatusMessage}</p>
+          <div className="flex justify-end space-x-4">
+            {isGeneratingTags && (
+              <button
+                type="button"
+                onClick={cancelTagGeneration}
+                className="nb-btn nb-btn-secondary px-5 py-2"
+              >
+                {t('common.cancel')}
+              </button>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* 批量重新生成标签模态框 */}

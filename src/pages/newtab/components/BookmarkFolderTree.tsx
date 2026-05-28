@@ -3,6 +3,7 @@ import { EnhancedBookmark } from '../../../types/bookmarks';
 import { useTranslation } from 'react-i18next';
 import { createLogger } from '../../../utils/logger';
 import { folderState } from '../../../utils/storageManager';
+import { Modal } from '../../../components/Modal';
 
 const logger = createLogger('[BookmarkFolderTree]');
 
@@ -49,24 +50,26 @@ const FolderModal: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-sm p-6">
-                <h3 className="text-lg font-bold nb-text mb-6">{mode === 'create' ? t('bookmarks.newFolder') : t('bookmarks.renameFolder')}</h3>
-                <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder={t('bookmarks.folderNamePlaceholder')}
-                    className="nb-input w-full mt-2"
-                    autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                />
-                <div className="flex justify-end space-x-4 mt-8">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
-                    <button onClick={handleSave} className="nb-btn nb-btn-primary px-5 py-2">{t('common.save')}</button>
-                </div>
+        <Modal
+            isOpen
+            onClose={onClose}
+            title={mode === 'create' ? t('bookmarks.newFolder') : t('bookmarks.renameFolder')}
+            widthClass="max-w-sm"
+        >
+            <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder={t('bookmarks.folderNamePlaceholder')}
+                className="nb-input w-full mt-2"
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+            <div className="flex justify-end space-x-4 mt-8">
+                <button type="button" onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
+                <button type="button" onClick={handleSave} className="nb-btn nb-btn-primary px-5 py-2">{t('common.save')}</button>
             </div>
-        </div>
+        </Modal>
     );
 };
 
@@ -90,36 +93,35 @@ const DeleteConfirmModal: React.FC<{
     const totalItems = countAllItems(folder);
     
     return (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-            <div className="nb-card-static w-full max-w-md p-6">
-                <h3 className="text-lg font-bold nb-text mb-2">{t('bookmarks.deleteFolder')}</h3>
-                <p className="nb-text-secondary mb-6">{t('bookmarks.deleteFolderConfirm', { folderName: folder.title })}</p>
-                <div className="space-y-4">
-                    <button
-                        onClick={() => onConfirm('deleteAll')}
-                        className="nb-btn nb-btn-danger w-full justify-start flex-col items-start gap-1 text-left"
-                    >
-                        <p className="font-semibold nb-text">{t('bookmarks.deleteFolderAndContents')}</p>
-                        <p className="text-sm text-[color:var(--nb-border)]">
-                            {totalItems === 0
-                                ? t('bookmarks.deleteFolderAndContentsWarningEmpty')
-                                : t('bookmarks.deleteFolderAndContentsWarning', { count: totalItems })
-                            }
-                        </p>
-                    </button>
-                    <button
-                        onClick={() => onConfirm('moveContents')}
-                        className="nb-btn nb-btn-secondary w-full justify-start flex-col items-start gap-1 text-left"
-                    >
-                        <p className="font-semibold nb-text">{t('bookmarks.deleteFolderKeepContents')}</p>
-                        <p className="text-sm nb-text-secondary">{t('bookmarks.deleteFolderKeepContentsDesc')}</p>
-                    </button>
-                </div>
-                <div className="flex justify-end mt-8">
-                    <button onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
-                </div>
+        <Modal isOpen onClose={onClose} title={t('bookmarks.deleteFolder')} widthClass="max-w-md">
+            <p className="nb-text-secondary mb-6">{t('bookmarks.deleteFolderConfirm', { folderName: folder.title })}</p>
+            <div className="space-y-4">
+                <button
+                    type="button"
+                    onClick={() => onConfirm('deleteAll')}
+                    className="nb-btn nb-btn-danger w-full justify-start flex-col items-start gap-1 text-left"
+                >
+                    <p className="font-semibold nb-text-on-accent">{t('bookmarks.deleteFolderAndContents')}</p>
+                    <p className="text-sm text-[color:var(--nb-text-on-accent)]">
+                        {totalItems === 0
+                            ? t('bookmarks.deleteFolderAndContentsWarningEmpty')
+                            : t('bookmarks.deleteFolderAndContentsWarning', { count: totalItems })
+                        }
+                    </p>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onConfirm('moveContents')}
+                    className="nb-btn nb-btn-secondary w-full justify-start flex-col items-start gap-1 text-left"
+                >
+                    <p className="font-semibold nb-text">{t('bookmarks.deleteFolderKeepContents')}</p>
+                    <p className="text-sm nb-text-secondary">{t('bookmarks.deleteFolderKeepContentsDesc')}</p>
+                </button>
             </div>
-        </div>
+            <div className="flex justify-end mt-8">
+                <button type="button" onClick={onClose} className="nb-btn nb-btn-secondary px-5 py-2">{t('common.cancel')}</button>
+            </div>
+        </Modal>
     );
 };
 

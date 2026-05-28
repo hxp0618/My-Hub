@@ -185,7 +185,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               onClick={() => setType(t_type)}
               className={`p-2 rounded-lg border-2 flex flex-col items-center gap-1 transition-all ${
                 type === t_type
-                  ? 'border-[var(--nb-border)] bg-[var(--nb-accent-yellow)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
+                  ? 'border-[var(--nb-border)] bg-[var(--nb-accent-yellow)] shadow-[var(--nb-shadow-sm)]'
                   : 'border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)]'
               }`}
             >
@@ -293,7 +293,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg border-2 flex items-center gap-1.5 transition-all text-sm ${
                   isSelected
-                    ? 'border-[var(--nb-border)] bg-[var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]'
+                    ? 'border-[var(--nb-border)] bg-[var(--nb-accent-blue)] shadow-[var(--nb-shadow-sm)]'
                     : 'border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)]'
                 }`}
               >

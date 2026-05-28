@@ -242,7 +242,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
       {tags && tags.length > 0 && (
           <div className={`flex items-center flex-wrap gap-2 text-xs mt-4 ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
               {tags.map((tag, index) => (
-                  <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--nb-shadow-color)] hover:shadow-[1px_1px_0px_0px_var(--nb-shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100`}>
+                  <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[var(--nb-shadow-sm)] hover:shadow-[var(--nb-shadow-xs)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100`}>
                       {tag}
                   </span>
               ))}

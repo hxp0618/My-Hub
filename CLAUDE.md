@@ -254,9 +254,12 @@ await chrome.bookmarks.get(id).catch(err => logger.error(err));
 | `--nb-panel-muted` | `#f0eeeb` | `#202020` | `#f4ead8` | 表头、设置项、Quiet hover 底色 |
 | `--nb-border` | `#242425` | `#5c5c5c` | `#5d4037` | 主描边；不用于硬阴影 |
 | `--nb-text` | `#242425` | `#e5e5e5` | `#3e2723` | 主文字，必须在 bg/card/panel 上 ≥4.5:1 |
-| `--nb-text-secondary` | `#6B7280` | `#9CA3AF` | `#6D4C41` | 次要文字；小字号正文必须单独验 ≥4.5:1 |
+| `--nb-text-secondary` | `#626976` | `#9CA3AF` | `#6D4C41` | 次要文字；小字号正文必须单独验 ≥4.5:1 |
 | `--nb-text-on-accent` | `#242425` | `#242425` | `#242425` | 强调色背景上的文字 / 图标 |
 | `--nb-shadow-color` | `#242425` | `#000000` | `#5d4037` | 硬阴影；独立于 `--nb-border` |
+| `--nb-bg-base` | alias `--nb-bg` | alias `--nb-bg` | alias `--nb-bg` | 兼容旧工具模块的背景别名；新代码优先用 `--nb-bg` |
+| `--nb-bg-card` | alias `--nb-card` | alias `--nb-card` | alias `--nb-card` | 兼容旧工具模块的卡片背景别名；新代码优先用 `--nb-card` |
+| `--nb-bg-hover` | alias `--nb-panel-muted` | alias `--nb-panel-muted` | alias `--nb-panel-muted` | 兼容旧工具模块的 hover 背景别名；新代码优先用 `--nb-panel-muted` |
 | `--color-skeleton` | `#E5E7EB` | `rgba(255,255,255,0.18)` | `#FFE0B2` | Skeleton 主块色，不承载文字 |
 | `--color-skeleton-sub` | `#D1D5DB` | `rgba(255,255,255,0.12)` | `#FFCC80` | Skeleton 次级块色 |
 | `.modal-overlay` | `rgba(0,0,0,0.4)` | `rgba(0,0,0,0.6)` | `rgba(0,0,0,0.3)` | 遮罩隔离强度；见 Modal 规则 |
@@ -282,6 +285,7 @@ await chrome.bookmarks.get(id).catch(err => logger.error(err));
 
 **修复记录**:
 - 2026-05-28: eye-care pink 从 `#d4648a` (4.42:1 ⚠️ AA-large) 调整为 `#dc7090` (4.99:1 ✅ AA)，满足正常字号 a11y 要求。视觉影响：略微提亮，仍属暖低饱和度风格
+- 2026-05-28: light `--nb-text-secondary` 从 `#6B7280` 调整为 `#626976`，在 `--nb-bg` / `--nb-panel-muted` 上对比度分别提升到 5.00 / 4.77，满足小字号辅助文本 AA 要求
 
 #### 对比度核查范围（每次改主题必须覆盖）
 

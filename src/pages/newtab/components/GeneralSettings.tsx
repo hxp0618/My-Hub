@@ -139,7 +139,7 @@ const GeneralSettings: React.FC = () => {
               <p className="text-sm nb-text-secondary">{t('settings.brightnessDesc')}</p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold nb-text px-2 py-1 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)]">
+              <span className="text-sm font-bold text-[color:var(--nb-text-on-accent)] px-2 py-1 bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)]">
                 {Math.round(brightness * 100)}%
               </span>
               {brightness < 1.0 && (
@@ -171,8 +171,8 @@ const GeneralSettings: React.FC = () => {
                 [&::-webkit-slider-thumb]:border-2
                 [&::-webkit-slider-thumb]:border-[color:var(--nb-border)]
                 [&::-webkit-slider-thumb]:cursor-pointer
-                [&::-webkit-slider-thumb]:shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]
-                [&::-webkit-slider-thumb]:hover:shadow-[1px_1px_0px_0px_var(--nb-shadow-color)]
+                [&::-webkit-slider-thumb]:shadow-[var(--nb-shadow-sm)]
+                [&::-webkit-slider-thumb]:hover:shadow-[var(--nb-shadow-xs)]
                 [&::-webkit-slider-thumb]:hover:translate-x-[1px]
                 [&::-webkit-slider-thumb]:hover:translate-y-[1px]
                 [&::-webkit-slider-thumb]:transition-all
@@ -261,7 +261,7 @@ const GeneralSettings: React.FC = () => {
         <div className="divide-y-2 divide-[color:var(--nb-border)]">
           {PERMISSION_ITEMS.map((item) => (
             <div key={item.key} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[2px_2px_0px_0px_var(--nb-shadow-color)]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[var(--nb-shadow-sm)]">
                 <span className="material-symbols-outlined text-base nb-text">{item.icon}</span>
               </div>
               <div className="min-w-0 flex-1">
@@ -269,7 +269,7 @@ const GeneralSettings: React.FC = () => {
                   <h3 className="text-sm font-bold text-[color:var(--nb-text)]">
                     {t(`settings.permissions.${item.key}.title`)}
                   </h3>
-                  <span className="w-fit border border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] px-2 py-0.5 text-xs font-bold text-[color:var(--nb-border)]">
+                  <span className="w-fit border border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] px-2 py-0.5 text-xs font-bold text-[color:var(--nb-text-on-accent)]">
                     {t(`settings.permissions.${item.key}.scope`)}
                   </span>
                 </div>

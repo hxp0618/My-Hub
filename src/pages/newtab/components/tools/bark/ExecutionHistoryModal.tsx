@@ -110,7 +110,7 @@ export const ExecutionHistoryModal: React.FC<ExecutionHistoryModalProps> = ({
 
                   {/* 错误信息 */}
                   {errorMessage && (
-                    <div className="text-xs p-2 rounded-lg bg-[var(--nb-accent-pink)] bg-opacity-20">
+                    <div className="text-xs p-2 rounded-lg bg-[color:var(--nb-panel-muted)] border border-[color:var(--nb-accent-pink)]">
                       <span className="font-medium">{t('tools.barkNotifier.scheduled.errorMessage')}:</span>{' '}
                       {errorMessage}
                     </div>

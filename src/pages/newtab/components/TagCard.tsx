@@ -66,7 +66,7 @@ export const TagCard: React.FC<TagCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold nb-text truncate">{tag.name}</h3>
-            <span className="px-2 py-0.5 text-xs bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] nb-text">
+            <span className="px-2 py-0.5 text-xs bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)]">
               {tag.count}
             </span>
           </div>
@@ -83,7 +83,7 @@ export const TagCard: React.FC<TagCardProps> = ({
               }}
               aria-label={`${t('tags.rename')} ${tag.name}`}
             >
-              <span className="material-symbols-outlined text-base nb-text">edit</span>
+              <span className="material-symbols-outlined text-base text-[color:inherit]">edit</span>
             </button>
             <button
               type="button"
@@ -94,7 +94,7 @@ export const TagCard: React.FC<TagCardProps> = ({
               }}
               aria-label={`${t('tags.delete')} ${tag.name}`}
             >
-              <span className="material-symbols-outlined text-base nb-text">delete</span>
+              <span className="material-symbols-outlined text-base text-[color:inherit]">delete</span>
             </button>
           </div>
         )}

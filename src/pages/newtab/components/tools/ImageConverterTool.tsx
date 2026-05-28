@@ -570,8 +570,13 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                           {result.success ? '✓' : '✗'}
                         </span>
                       )}
-                      <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(index); }} className="p-1 rounded-none hover:bg-[color:var(--nb-bg)]">
-                        <span className="material-symbols-outlined text-sm nb-text-secondary">close</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(index); }}
+                        className="flex h-11 w-11 items-center justify-center rounded-[var(--nb-border-radius-sm)] hover:bg-[color:var(--nb-bg)]"
+                        aria-label={t('common.delete')}
+                      >
+                        <span className="material-symbols-outlined text-sm nb-text-secondary" aria-hidden="true">close</span>
                       </button>
                     </div>
                   );

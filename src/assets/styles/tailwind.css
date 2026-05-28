@@ -25,8 +25,13 @@
     --nb-panel-muted: #f0eeeb;
     --nb-border: #242425;
     --nb-text: #242425;
-    --nb-text-secondary: #6B7280;
+    --nb-text-secondary: #626976;
     --nb-text-on-accent: #242425;
+
+    /* 兼容别名（旧工具模块仍在使用；语义映射到当前主题 token） */
+    --nb-bg-base: var(--nb-bg);
+    --nb-bg-card: var(--nb-card);
+    --nb-bg-hover: var(--nb-panel-muted);
 
     /* 阴影颜色（独立令牌，按主题独立定义，不复用 --nb-border） */
     --nb-shadow-color: #242425;
@@ -153,6 +158,11 @@
     --nb-text-secondary: #9CA3AF;
     --nb-text-on-accent: #242425;
 
+    /* 兼容别名（旧工具模块仍在使用；语义映射到当前主题 token） */
+    --nb-bg-base: var(--nb-bg);
+    --nb-bg-card: var(--nb-card);
+    --nb-bg-hover: var(--nb-panel-muted);
+
     /* 阴影颜色（深色模式用纯黑，确保阴影对 #1a1a1a bg 仍有强对比） */
     --nb-shadow-color: #000000;
 
@@ -277,6 +287,11 @@
     --nb-text: #3e2723;
     --nb-text-secondary: #6D4C41;
     --nb-text-on-accent: #242425;
+
+    /* 兼容别名（旧工具模块仍在使用；语义映射到当前主题 token） */
+    --nb-bg-base: var(--nb-bg);
+    --nb-bg-card: var(--nb-card);
+    --nb-bg-hover: var(--nb-panel-muted);
 
     /* 阴影颜色（护眼模式用深褐色，与边框同色系但独立令牌） */
     --nb-shadow-color: #5d4037;
@@ -627,11 +642,11 @@ a:hover,
 @keyframes nb-pulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
+        box-shadow: var(--nb-shadow);
     }
     50% {
         transform: scale(1.05);
-        box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+        box-shadow: var(--nb-shadow-lg);
     }
 }
 
@@ -751,7 +766,7 @@ button:active {
 
 /* ==================== 输入框样式增强 ==================== */
 
-input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
 textarea,
 select {
     background-color: var(--nb-card);
@@ -765,13 +780,35 @@ select {
         transform 0.15s linear;
 }
 
-input:focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
 textarea:focus,
 select:focus {
     border-color: var(--nb-border);
     outline: none;
     box-shadow: var(--nb-shadow);
     transform: translate(-1px, -1px);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--nb-accent-yellow);
+    box-shadow: var(--nb-shadow-none);
+    transform: none;
+}
+
+input[type="range"],
+input[type="file"] {
+    box-shadow: var(--nb-shadow-none);
+    transform: none;
+}
+
+input[type="checkbox"]:focus,
+input[type="radio"]:focus,
+input[type="range"]:focus,
+input[type="file"]:focus {
+    outline: none;
+    box-shadow: var(--nb-shadow-none);
+    transform: none;
 }
 
 /* ==================== 滚动条样式 ==================== */
@@ -963,7 +1000,7 @@ select:focus {
     height: 4px;
     background-color: var(--nb-accent-yellow);
     border: 2px solid var(--nb-border);
-    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 /* ==================== Neo-Brutalism 分隔线 ==================== */
@@ -1035,19 +1072,30 @@ select:focus {
 
 /* ==================== 可访问性增强 ==================== */
 
-/* 聚焦指示器 — 使用品牌色（黄色描边 + 黑色偏移）与设计语言一致 */
+/* 聚焦指示器 — 分隔层 + Yellow 识别层，与 Neo-Brutalism 硬阴影区分 */
 *:focus-visible {
     outline: 3px solid var(--nb-accent-yellow);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--nb-shadow-color);
 }
 
-/* 输入元素的聚焦由 .nb-input 自身的硬阴影处理，避免黄圈与阴影打架 */
-input:focus-visible,
+/* 普通输入元素：保留全局双层焦点，不叠加 brutalism 硬阴影 */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 .nb-input:focus-visible {
-    outline: 2px solid var(--nb-accent-yellow);
+    outline: 3px solid var(--nb-accent-yellow);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--nb-shadow-color);
+}
+
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+input[type="range"]:focus-visible,
+input[type="file"]:focus-visible {
+    outline: 3px solid var(--nb-accent-yellow);
+    outline-offset: 3px;
+    box-shadow: var(--nb-shadow-none);
 }
 
 /* 减少动画（尊重用户偏好） */
@@ -1202,9 +1250,14 @@ select:focus-visible,
 }
 
 /* 静态卡片获取焦点时给予明确视觉提示（用于 tabIndex=0 的展示容器） */
-.nb-card-static:focus-visible {
+.nb-card:focus-visible,
+.nb-card-static:focus-visible,
+.nb-card-interactive:focus-visible {
     outline: none;
-    box-shadow: var(--nb-shadow), 0 0 0 3px var(--nb-accent-yellow);
+    box-shadow:
+        var(--nb-shadow),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 /* Quiet 层级：用于数据密集列表卡（书签/历史/标签等 >10 张同屏的场景）。
@@ -1228,7 +1281,9 @@ select:focus-visible,
 
 .nb-card-data:focus-visible {
     outline: none;
-    box-shadow: inset 0 0 0 2px var(--nb-accent-yellow);
+    box-shadow:
+        inset 0 0 0 2px var(--nb-shadow-color),
+        inset 0 0 0 5px var(--nb-accent-yellow);
 }
 
 .nb-card-data[aria-selected="true"],
@@ -1251,7 +1306,9 @@ select:focus-visible,
 
 .nb-card-subtle:focus-visible {
     outline: none;
-    box-shadow: inset 0 0 0 2px var(--nb-accent-yellow);
+    box-shadow:
+        inset 0 0 0 2px var(--nb-shadow-color),
+        inset 0 0 0 5px var(--nb-accent-yellow);
 }
 
 /* Medium 层级：可点击的展示卡（介于 .nb-card 与 .nb-card-data 之间）。
@@ -1279,11 +1336,6 @@ select:focus-visible,
 .nb-card-interactive:active {
     transform: translate(4px, 4px);
     box-shadow: var(--nb-shadow-none);
-}
-
-.nb-card-interactive:focus-visible {
-    outline: none;
-    box-shadow: var(--nb-shadow), 0 0 0 3px var(--nb-accent-yellow);
 }
 
 /* 深色模式内描边补强：硬阴影对 #1a1a1a bg 对比下降，
@@ -1324,6 +1376,16 @@ select:focus-visible,
         inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
+.dark .nb-card:focus-visible,
+.dark .nb-card-static:focus-visible,
+.dark .nb-card-interactive:focus-visible {
+    box-shadow:
+        var(--nb-shadow),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
+}
+
 /* Neo-Brutalism 按钮基础样式 */
 .nb-btn {
     display: inline-flex;
@@ -1332,7 +1394,7 @@ select:focus-visible,
     padding: 0.625rem 1.25rem;
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
-    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow);
     font-weight: 700;
     font-size: 0.875rem;
     text-transform: uppercase;
@@ -1348,20 +1410,31 @@ select:focus-visible,
 
 .nb-btn:hover {
     transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-hover);
 }
 
 .nb-btn:active {
     transform: translate(4px, 4px);
-    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-none);
+}
+
+.nb-btn:focus-visible {
+    outline: none;
+    box-shadow:
+        var(--nb-shadow),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .nb-btn:disabled {
-    opacity: 0.5;
+    opacity: 1;
     cursor: not-allowed;
     pointer-events: none;
     transform: none;
-    box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
+    background-color: var(--nb-panel-muted);
+    color: var(--nb-text-secondary);
+    filter: none;
+    box-shadow: var(--nb-shadow-none);
 }
 
 /* 按钮变体 - Primary (黄色) */
@@ -1459,8 +1532,15 @@ select:focus-visible,
 
 .nb-input:focus {
     outline: none;
-    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow);
     transform: translate(-1px, -1px);
+}
+
+.nb-input:focus-visible {
+    box-shadow:
+        var(--nb-shadow),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .nb-input::placeholder {
@@ -1501,8 +1581,15 @@ select:focus-visible,
 }
 
 .unified-search-input:focus {
-    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-lg);
     transform: translate(-1px, -1px);
+}
+
+.unified-search-input:focus-visible {
+    box-shadow:
+        var(--nb-shadow-lg),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .unified-search-input::placeholder {
@@ -1524,7 +1611,7 @@ select:focus-visible,
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
     color: var(--nb-text, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear,
@@ -1537,11 +1624,20 @@ select:focus-visible,
     background-color: var(--nb-card, #ffffff);
 }
 
-.unified-search-clear:hover,
-.unified-search-clear:focus-visible {
+.unified-search-clear:hover {
     background-color: var(--nb-accent-pink, #f771a7);
     transform: translate(1px, calc(-50% + 1px));
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xs);
+}
+
+.unified-search-clear:focus-visible {
+    outline: none;
+    background-color: var(--nb-accent-pink, #f771a7);
+    transform: translate(1px, calc(-50% + 1px));
+    box-shadow:
+        var(--nb-shadow-xs),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .unified-search-loading {
@@ -1668,7 +1764,7 @@ select:focus-visible,
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transition:
         background-color 0.3s ease,
         border-color 0.3s ease,
@@ -1679,7 +1775,7 @@ select:focus-visible,
 
 .nb-badge:hover {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xs);
 }
 
 /* 徽章颜色变体 */
@@ -1728,7 +1824,7 @@ select:focus-visible,
 }
 
 .nb-toggle:focus-visible .nb-toggle-track {
-    box-shadow: 0 0 0 2px var(--nb-bg), 0 0 0 5px var(--nb-accent-yellow);
+    box-shadow: 0 0 0 2px var(--nb-shadow-color), 0 0 0 5px var(--nb-accent-yellow);
 }
 
 /* 视觉轨道（44×24）居中渲染，外层 44×44 用于扩大触控热区 */
@@ -1768,7 +1864,7 @@ select:focus-visible,
     background-color: var(--nb-accent-yellow, #f8d773) !important;
     border-color: var(--nb-border, #242425) !important;
     color: var(--nb-text-on-accent, #242425) !important;
-    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color) !important;
+    box-shadow: var(--nb-shadow-sm) !important;
     transform: translate(3px, 3px) !important;
 }
 
@@ -1788,7 +1884,7 @@ select:focus-visible,
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text, #242425);
-    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow);
     font-weight: 700;
     text-decoration: none;
     transition:
@@ -1801,19 +1897,19 @@ select:focus-visible,
 
 .nb-nav-item:hover {
     background-color: var(--nb-bg, #f6f3f1);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transform: translate(2px, 2px);
 }
 
 .nb-nav-item:active {
-    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-none);
     transform: translate(4px, 4px);
 }
 
 .nb-nav-item.active {
     background-color: var(--nb-accent-yellow, #f8d773);
     color: var(--nb-text-on-accent, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transform: translate(2px, 2px);
 }
 
@@ -1932,7 +2028,7 @@ select:focus-visible,
     border-radius: var(--nb-border-radius-md, 8px);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear,
@@ -1941,12 +2037,22 @@ select:focus-visible,
 }
 
 .item-card-action-trigger:hover,
-.item-card-action-trigger:focus-visible,
 .item-card:focus-within .item-card-action-trigger {
     background-color: var(--nb-bg, #f6f3f1);
     opacity: 1;
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xs);
+}
+
+.item-card-action-trigger:focus-visible {
+    outline: none;
+    background-color: var(--nb-bg, #f6f3f1);
+    opacity: 1;
+    transform: translate(1px, 1px);
+    box-shadow:
+        var(--nb-shadow-xs),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .item-card-action-trigger.is-hidden {
@@ -1975,8 +2081,9 @@ select:focus-visible,
 }
 
 .item-card-menu-item:focus-visible {
-    outline: 2px solid var(--nb-accent-blue, #71b4ea);
+    outline: 3px solid var(--nb-accent-yellow, #f8d773);
     outline-offset: -2px;
+    box-shadow: inset 0 0 0 2px var(--nb-shadow-color);
 }
 
 .item-card-drag-handle {
@@ -1994,7 +2101,7 @@ select:focus-visible,
     border-radius: var(--nb-border-radius-md, 8px);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text-secondary, #6B7280);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     opacity: 0;
     transition:
         opacity 0.15s linear,
@@ -2014,6 +2121,14 @@ select:focus-visible,
     cursor: grabbing;
 }
 
+.item-card-drag-handle:focus-visible {
+    outline: none;
+    box-shadow:
+        var(--nb-shadow-sm),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
+}
+
 .item-card-favicon {
     width: 2rem;
     height: 2rem;
@@ -2023,14 +2138,14 @@ select:focus-visible,
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
     background-color: var(--nb-card, #ffffff);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 /* 标签输入控件 */
 .tag-input {
     overflow: hidden;
     padding: 0;
-    box-shadow: 4px 4px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear,
@@ -2040,7 +2155,7 @@ select:focus-visible,
 
 .tag-input.is-focused {
     transform: translate(-1px, -1px);
-    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-lg);
 }
 
 .tag-input-list {
@@ -2057,7 +2172,7 @@ select:focus-visible,
     align-items: center;
     gap: 0.5rem;
     padding-right: 0.375rem;
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear;
@@ -2065,7 +2180,7 @@ select:focus-visible,
 
 .tag-input-badge:hover {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xs);
 }
 
 .tag-input-remove {
@@ -2079,7 +2194,7 @@ select:focus-visible,
     border-radius: var(--nb-border-radius-md, 8px);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text, #242425);
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xs);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear,
@@ -2096,12 +2211,22 @@ select:focus-visible,
     inset-inline: -4px;
 }
 
-.tag-input-remove:hover,
-.tag-input-remove:focus-visible {
+.tag-input-remove:hover {
     background-color: var(--nb-accent-pink, #f771a7);
     color: var(--nb-text-on-accent, #242425);
     transform: translate(1px, 1px);
-    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-none);
+}
+
+.tag-input-remove:focus-visible {
+    outline: none;
+    background-color: var(--nb-accent-pink, #f771a7);
+    color: var(--nb-text-on-accent, #242425);
+    transform: translate(1px, 1px);
+    box-shadow:
+        var(--nb-shadow-none),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .tag-input-field {
@@ -2264,7 +2389,7 @@ select:focus-visible,
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     border-radius: var(--nb-border-radius-md, 8px);
     color: var(--nb-text-on-accent, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 .subscription-list-title {
@@ -2316,7 +2441,7 @@ select:focus-visible,
     border-radius: var(--nb-border-radius-md, 8px);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text, #242425);
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xs);
 }
 
 .subscription-channel-empty {
@@ -2344,7 +2469,7 @@ select:focus-visible,
     border-radius: var(--nb-border-radius-md, 8px);
     background-color: var(--nb-card, #ffffff);
     color: var(--nb-text, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transition:
         transform 0.15s linear,
         box-shadow 0.15s linear,
@@ -2352,11 +2477,20 @@ select:focus-visible,
         color 0.15s linear;
 }
 
-.subscription-action-button:hover,
-.subscription-action-button:focus-visible {
+.subscription-action-button:hover {
     background-color: var(--nb-bg, #f6f3f1);
     transform: translate(2px, 2px);
-    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-none);
+}
+
+.subscription-action-button:focus-visible {
+    outline: none;
+    background-color: var(--nb-bg, #f6f3f1);
+    transform: translate(2px, 2px);
+    box-shadow:
+        var(--nb-shadow-none),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .subscription-action-button--danger:hover,
@@ -2408,19 +2542,27 @@ select:focus-visible,
 
 .subscription-pagination-button--idle {
     background-color: var(--nb-card, #ffffff);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
-.subscription-pagination-button--idle:hover,
-.subscription-pagination-button--idle:focus-visible {
+.subscription-pagination-button--idle:hover {
     transform: translate(2px, 2px);
-    box-shadow: 0px 0px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-none);
+}
+
+.subscription-pagination-button--idle:focus-visible {
+    outline: none;
+    transform: translate(2px, 2px);
+    box-shadow:
+        var(--nb-shadow-none),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
 }
 
 .subscription-pagination-button--active {
     background-color: var(--nb-accent-yellow, #f8d773);
     color: var(--nb-text-on-accent, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 .subscription-pagination-button--disabled {
@@ -2511,7 +2653,7 @@ select:focus-visible,
     color: var(--nb-text-on-accent, #242425);
     background-color: var(--nb-accent-blue, #71b4ea);
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     font-size: 0.75rem;
     font-weight: 900;
     line-height: 1.3;
@@ -2573,7 +2715,7 @@ select:focus-visible,
     gap: 0.75rem;
     padding: 1rem;
     border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
-    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-lg);
     color: var(--nb-text-on-accent, #242425);
     pointer-events: auto;
     transition:
@@ -2615,7 +2757,7 @@ select:focus-visible,
 .toast-action {
     background-color: var(--nb-card, #ffffff);
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     color: var(--nb-text, #242425);
 }
 
@@ -2665,10 +2807,18 @@ select:focus-visible,
 }
 
 .toast-action:hover,
-.toast-close:hover,
+.toast-close:hover {
+    box-shadow: var(--nb-shadow-xs);
+    transform: translate(1px, 1px);
+}
+
 .toast-action:focus-visible,
 .toast-close:focus-visible {
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    outline: none;
+    box-shadow:
+        var(--nb-shadow-xs),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
     transform: translate(1px, 1px);
 }
 
@@ -2709,7 +2859,7 @@ select:focus-visible,
     gap: 1.25rem;
     padding: 2rem;
     overflow-y: auto;
-    box-shadow: 8px 8px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xl);
 }
 
 .confirm-dialog-header {
@@ -2727,7 +2877,7 @@ select:focus-visible,
     align-items: center;
     justify-content: center;
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
-    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 .confirm-dialog-icon--default {
@@ -2794,7 +2944,7 @@ select:focus-visible,
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.25rem;
-    box-shadow: 8px 8px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-xl);
     transform: translateX(-50%);
 }
 
@@ -2814,7 +2964,7 @@ select:focus-visible,
     justify-content: center;
     background-color: var(--nb-accent-blue, #71b4ea);
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 .selection-action-bar-count {
@@ -2856,16 +3006,24 @@ select:focus-visible,
     justify-content: center;
     background-color: var(--nb-card, #ffffff);
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
-    box-shadow: 3px 3px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
     transition:
         transform 0.15s ease,
         box-shadow 0.15s ease,
         background-color 0.3s ease;
 }
 
-.selection-action-bar-close:hover,
+.selection-action-bar-close:hover {
+    box-shadow: var(--nb-shadow-xs);
+    transform: translate(2px, 2px);
+}
+
 .selection-action-bar-close:focus-visible {
-    box-shadow: 1px 1px 0px 0px var(--nb-shadow-color);
+    outline: none;
+    box-shadow:
+        var(--nb-shadow-xs),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
     transform: translate(2px, 2px);
 }
 
@@ -2963,7 +3121,7 @@ select:focus-visible,
 
 .theme-switcher-option--active {
     background-color: var(--nb-accent-yellow, #f8d773);
-    box-shadow: 6px 6px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-lg);
     transform: translate(2px, 2px);
 }
 
@@ -2972,9 +3130,17 @@ select:focus-visible,
     box-shadow: var(--nb-shadow, 4px 4px 0px 0px #242425);
 }
 
-.theme-switcher-option--idle:hover,
-.theme-switcher-option--idle:focus-visible {
+.theme-switcher-option--idle:hover {
     box-shadow: var(--nb-shadow-hover, 2px 2px 0px 0px #242425);
+    transform: translate(2px, 2px);
+}
+
+.theme-switcher-option--idle:focus-visible {
+    outline: none;
+    box-shadow:
+        var(--nb-shadow-hover, 2px 2px 0px 0px #242425),
+        0 0 0 2px var(--nb-shadow-color),
+        0 0 0 5px var(--nb-accent-yellow);
     transform: translate(2px, 2px);
 }
 
@@ -3027,7 +3193,7 @@ select:focus-visible,
     background-color: var(--nb-accent-blue, #71b4ea);
     border: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
     color: var(--nb-text-on-accent, #242425);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
+    box-shadow: var(--nb-shadow-sm);
 }
 
 /* Neo-Brutalism 表格样式（Data Brutalism — 表头 Loud / 表体 Quiet） */

@@ -25,8 +25,11 @@
 | `--nb-panel-muted` | `#f0eeeb` | `#202020` | `#f4ead8` |
 | `--nb-border` | `#242425` | `#5c5c5c` | `#5d4037` |
 | `--nb-text` | `#242425` | `#e5e5e5` | `#3e2723` |
-| `--nb-text-secondary` | `#6B7280` | `#9CA3AF` | `#6D4C41` |
+| `--nb-text-secondary` | `#626976` | `#9CA3AF` | `#6D4C41` |
 | `--nb-shadow-color` | `#242425` | `#000000` | `#5d4037` |
+| `--nb-bg-base` | alias `--nb-bg` | alias `--nb-bg` | alias `--nb-bg` |
+| `--nb-bg-card` | alias `--nb-card` | alias `--nb-card` | alias `--nb-card` |
+| `--nb-bg-hover` | alias `--nb-panel-muted` | alias `--nb-panel-muted` | alias `--nb-panel-muted` |
 | `.modal-overlay` | `rgba(0,0,0,0.4)` | `rgba(0,0,0,0.6)` | `rgba(0,0,0,0.3)` |
 
 ### 强调色 — 语义锁定，禁止跨用
