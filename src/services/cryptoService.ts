@@ -49,12 +49,36 @@ export type CryptoServiceErrorCode = typeof CRYPTO_SERVICE_ERROR_CODES[number];
  * 加密输出格式分隔符
  */
 const SEPARATOR = ':';
+const OPENSSL_SALTED_PREFIX = 'Salted__';
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
 const isCryptoServiceErrorCode = (value: unknown): value is CryptoServiceErrorCode => (
   typeof value === 'string' && CRYPTO_SERVICE_ERROR_CODES.includes(value as CryptoServiceErrorCode)
 );
 
 const createCryptoServiceError = (code: CryptoServiceErrorCode) => new Error(code);
+
+const isSupportedCiphertextFormat = (ciphertext: string): boolean => {
+  const normalizedCiphertext = ciphertext.trim();
+
+  if (
+    !normalizedCiphertext ||
+    normalizedCiphertext.length % 4 !== 0 ||
+    !BASE64_PATTERN.test(normalizedCiphertext)
+  ) {
+    return false;
+  }
+
+  try {
+    const decodedPrefix = CryptoJS.enc.Base64.parse(normalizedCiphertext)
+      .toString(CryptoJS.enc.Latin1)
+      .slice(0, OPENSSL_SALTED_PREFIX.length);
+
+    return decodedPrefix === OPENSSL_SALTED_PREFIX;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * 获取 CryptoJS 加密模式
@@ -201,7 +225,11 @@ export class CryptoService {
     // 确定使用的算法和模式
     const algorithm = parsed?.algorithm ?? options?.algorithm ?? 'AES-256';
     const mode = parsed?.mode ?? options?.mode ?? 'CBC';
-    const ciphertext = parsed?.ciphertext ?? encryptedText;
+    const ciphertext = (parsed?.ciphertext ?? encryptedText).trim();
+
+    if (!isSupportedCiphertextFormat(ciphertext)) {
+      throw createCryptoServiceError('decryptFailed');
+    }
 
     try {
       let decrypted: string;

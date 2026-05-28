@@ -38,6 +38,13 @@ describe('CryptoService stable errors', () => {
     })).toThrow('decryptFailed');
   });
 
+  it('rejects malformed ciphertext before decrypting accidental plaintext', () => {
+    expect(() => CryptoService.decrypt('not-a-valid-ciphertext', 'wrong password', {
+      algorithm: 'AES-256',
+      mode: 'CBC',
+    })).toThrow('decryptFailed');
+  });
+
   it('uses stable validation errors for missing inputs', () => {
     expect(() => CryptoService.encrypt('', {
       algorithm: 'AES-256',
