@@ -2,7 +2,8 @@
 # Style: Neo-Brutalism (Soft Brutalism) — 上下文敏感版
 # Context: 构建生产力工具的现代 UI（书签 / 历史 / 仪表板）。
 
-> **配套文档**: 完整规范见项目根 `CLAUDE.md` / `AGENTS.md` 的 "Neo-Brutalism 设计规范" 章节。本文为精炼版速查，用于 AI / 设计协作 prompt。
+> **同步源**: 真理源为项目根 [`CLAUDE.md`](../CLAUDE.md) 中 "Neo-Brutalism 设计规范" 章节。**新增/修改规则必须先在 CLAUDE.md 落地，再回写本速查版**，避免漂移。
+> **配套**: [`AGENTS.md`](../AGENTS.md) 已精简为 CLAUDE.md 的引用页。本文档为精炼速查，用于 AI / 设计协作 prompt。
 
 ---
 
@@ -16,20 +17,27 @@
 
 ## 🎨 1. 设计令牌 (严格遵守)
 
-### 颜色 (浅色模式)
-- **Bg Base**: `#f6f3f1` (米色主背景)
-- **Bg Card**: `#ffffff` (卡片)
-- **Bg Panel-muted**: `#f0eeeb` (表头 / 设置项底色)
-- **Text/Border**: `#242425` (近黑色)
-- **Shadow-Color**: `#242425` (独立令牌，**不复用** Border)
+### 主题矩阵（完整值见 CLAUDE.md §2）
+| Token | Light | Dark | Eye-care |
+|-------|-------|------|----------|
+| `--nb-bg` | `#f6f3f1` | `#1a1a1a` | `#faf5e8` |
+| `--nb-card` | `#ffffff` | `#2a2a2a` | `#fffbf0` |
+| `--nb-panel-muted` | `#f0eeeb` | `#202020` | `#f4ead8` |
+| `--nb-border` | `#242425` | `#5c5c5c` | `#5d4037` |
+| `--nb-text` | `#242425` | `#e5e5e5` | `#3e2723` |
+| `--nb-text-secondary` | `#6B7280` | `#9CA3AF` | `#6D4C41` |
+| `--nb-shadow-color` | `#242425` | `#000000` | `#5d4037` |
+| `.modal-overlay` | `rgba(0,0,0,0.4)` | `rgba(0,0,0,0.6)` | `rgba(0,0,0,0.3)` |
 
 ### 强调色 — 语义锁定，禁止跨用
-| 色 | 值 | 唯一语义 |
-|----|-----|---------|
-| Yellow | `#f8d773` | 主操作 / 选中 / 高亮 |
-| Pink | `#f771a7` | 危险 / 错误 / 删除 |
-| Green | `#5fe0a8` | 成功 / 启用 |
-| Blue | `#71b4ea` | 信息 / 链接 / 计数 |
+| 色 | Light | Dark | Eye-care | 唯一语义 |
+|----|-------|------|----------|---------|
+| Yellow | `#f8d773` | `#e6c25a` | `#e6c566` | 主操作 / 选中 / 高亮 / focus 外圈 |
+| Pink | `#f771a7` | `#e85a93` | `#dc7090` | 危险 / 错误 / 删除 |
+| Green | `#5fe0a8` | `#4cc098` | `#4cc98f` | 成功 / 启用 |
+| Blue | `#71b4ea` | `#5a9bd4` | `#5a9bd4` | 信息 / 链接 / 计数 |
+
+**WCAG 对比度范围**：不只验 accent。改主题时必须覆盖 `--nb-text` / `--nb-text-secondary` / `--nb-text-on-accent` / `--nb-deco-*` / focus ring / modal overlay；正常文本目标 ≥4.5:1，控件边界与焦点建议 ≥3:1。详见 CLAUDE.md §2。
 
 ### 装饰色板（用于标签、分类，**不承载语义**）
 低饱和度（<60%）独立色板：rose / peach / mint / sky / lavender / sand。**禁止**用强调色当装饰。
@@ -41,10 +49,14 @@
 - **1px**: 表格行 / 设置项分隔
 
 ### 阴影（硬阴影 — NO BLUR）
-- 标准: `box-shadow: 4px 4px 0px 0px var(--nb-shadow-color)`
-- 悬停: `2px 2px 0px 0px var(--nb-shadow-color)`
-- Modal: `8px 8px 0px 0px var(--nb-shadow-color)`
-- **必须**使用 `var(--nb-shadow-color)` 令牌，**禁止**直接 `var(--nb-border)`（深色模式会丢失视觉签名）
+阶梯令牌（size：xs=1 / sm=2 / md=4 / lg=6 / xl=8）：
+- `var(--nb-shadow-xs)` 1px — 小元素 hover-after
+- `var(--nb-shadow-sm)` 2px — 标准 hover 收缩、Badge
+- `var(--nb-shadow)` 4px — **标准默认**（= md）
+- `var(--nb-shadow-lg)` 6px — Toast、强调容器
+- `var(--nb-shadow-xl)` 8px — Modal / Dialog（语义别名 `--nb-shadow-modal`）
+
+**必须**使用阶梯令牌或语义别名，**禁止**硬编码 `NpxNpx 0px 0px`（深色模式会丢失签名）。详见 CLAUDE.md §2。
 
 ### 圆角
 - 外层容器: `12px` (`--nb-border-radius-lg`)
@@ -107,8 +119,24 @@
 
 ### Modal
 - 3px 边框 + 8×8 硬阴影
-- 遮罩不透明度: light 0.4 / dark 0.6 / eye-care 0.3（**不可** <0.3）
+- 遮罩不透明度: light 0.4 / dark 0.6 / eye-care 0.3；复杂背景只增不减（**不可** <0.3）
 - 关闭按钮触控目标 ≥44×44px
+
+### a11y 速查（详见 CLAUDE.md §3）
+
+- **Toast**: 错误 `role="alert"` + `aria-live="assertive"`；其他 `role="status"` + `aria-live="polite"`
+- **Modal**: `role="dialog"` + `aria-modal="true"` + `aria-labelledby` + `Escape` 关闭；新组件必须复用 `<Modal>` 基础组件（`src/components/Modal.tsx`）
+- **焦点圈**: 使用"分隔层 + Yellow 识别层"双层结构，Yellow 固定 `var(--nb-accent-yellow)`
+  - 普通元素 → `outline: 3px solid var(--nb-accent-yellow)` + `box-shadow: 0 0 0 2px var(--nb-shadow-color)`
+  - 带阴影容器 → `box-shadow: var(--nb-shadow), 0 0 0 2px var(--nb-shadow-color), 0 0 0 5px var(--nb-accent-yellow)`
+  - Quiet 卡片 → `box-shadow: inset 0 0 0 2px var(--nb-shadow-color), inset 0 0 0 5px var(--nb-accent-yellow)`
+  - 热区扩大组件 → 焦点渲染到可见子元素（参考 `.nb-toggle:focus-visible .nb-toggle-track`）
+
+### 图标 / 空状态 / 骨架屏速查（详见 CLAUDE.md §3）
+
+- **图标**: 统一用 `material-symbols-outlined`，禁止 emoji 作结构图标；尺寸用 Tailwind `text-base`–`text-3xl`，颜色用 `currentColor` 或 `--nb-text-*`；装饰图标 `aria-hidden="true"`，icon-only 按钮必须 `aria-label`
+- **空状态**: Loud 层级，4 要素（图标 + 标题 + 描述 + CTA），图标包在 `.nb-card-static` 中
+- **骨架屏**: <200ms 不显示；200ms–1s 用 spinner；>1s 用 skeleton。`role="status"` + `aria-live="polite"`，块色用 `--color-skeleton` / `--color-skeleton-sub`
 
 ---
 
@@ -129,6 +157,7 @@
 - 中文标题字重降为 `700`（而非 `900`，避免笔画糊在一起）
 - 中文短标签限制 2-4 字
 - 不要给中文强加 `font-family: 'Space Grotesk'`，让它回退到系统中文字体
+- **uppercase 决策**：组件类默认开启 latin 大写，依赖 `:lang(zh)` 反向重置（详见 CLAUDE.md §6）。新增组件类必须显式加入 `tailwind.css` 末尾中文重置 selector 列表
 
 ---
 
@@ -141,12 +170,21 @@
 
 ---
 
+## 🎬 7. 动画约束（详见 CLAUDE.md §8）
+
+- ✅ 所有动画必须尊重 `prefers-reduced-motion`，全局已在 `tailwind.css` 处理；自定义 keyframes 必须独立验证
+- ✅ 装饰类 `.animate-nb-bounce` / `.nb-pulse` / `.nb-wiggle` / `.nb-float` **仅用于空状态 / 一次性引导**，必须显式覆盖 `infinite` 为有限次
+- ✅ 同屏 ≤ 1 个装饰动画运行（违反 `excessive-motion`）
+- ❌ 禁止用装饰动画做按钮反馈、错误提示、loading 状态（每个动画必须表达"因果关系"）
+
+---
+
 ## 🚫 强制禁止
 
 | ❌ | ✅ |
 |---|---|
 | `box-shadow: blur` | 硬阴影 `0px` blur radius |
-| `linear-gradient()` | 纯色 |
+| 装饰性 `linear-gradient()` / 柔和渐变 | 纯色；硬边点阵 / 网格纹理可用单色 CSS gradient |
 | 圆形按钮 | 圆角矩形 |
 | 白色 Toggle 滑块 | 黑色 |
 | 所有元素都套 3px 框 | 按响度分级 |
@@ -158,7 +196,8 @@
 | 跨语义使用强调色 | 严格按 §1 锁定 |
 | Modal / Card 容器 hover 位移 | 仅真正的按钮位移 |
 | hover 不加 `@media (hover:hover)` | 包裹隔离 |
-| modal 遮罩 <0.3 不透明度 | 至少 0.3-0.4 |
+| modal 遮罩不按主题矩阵或 <0.3 | light 0.4 / dark 0.6 / eye-care 0.3 |
+| 单层黄色 focus 或其他强调色 focus | 分隔层 + Yellow 双层 focus |
 | 中文 + `letter-spacing: 0.05em` | `:lang(zh)` 重置 |
 
 ---
@@ -172,9 +211,11 @@
 - [ ] 使用 CSS 变量而非硬编码
 - [ ] 阴影走 `--nb-shadow-color`
 - [ ] 浅色 / 深色 / 护眼三种主题下测试
+- [ ] 对比度覆盖文本、accent、装饰 chip、focus、overlay
+- [ ] Modal overlay 遵守 light 0.4 / dark 0.6 / eye-care 0.3
 - [ ] 中英文切换验证排版
 - [ ] 触控目标 ≥44×44px
 - [ ] hover 用 `@media (hover: hover)` 包裹
-- [ ] 焦点圈与设计语言一致
+- [ ] 焦点圈使用分隔层 + Yellow 双层结构
 
-严格遵守: NO gradients, NO blur shadows, NO emoji icons (使用 SVG / material-symbols)。
+严格遵守: NO decorative gradients, NO blur shadows, NO emoji icons (使用 SVG / material-symbols)。

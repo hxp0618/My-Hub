@@ -69,7 +69,7 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
         {images.map(image => (
           <div
             key={image.id}
-            className={`relative group rounded-none border-2 transition-colors ${
+            className={`relative group rounded-md border-2 transition-colors ${
               image.selected
                 ? 'border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)]'
                 : 'border-[color:var(--nb-border)] nb-bg-card'

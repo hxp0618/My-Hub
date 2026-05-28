@@ -54,18 +54,22 @@
     --nb-border-radius-sm: 4px;
     --nb-border-radius-full: 9999px;
 
-    /* 阴影（基于 --nb-shadow-color） */
-    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-hover: 2px 2px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-modal: 8px 8px 0px 0px var(--nb-shadow-color);
+    /* 阴影阶梯（基于 --nb-shadow-color，size：xs=1 / sm=2 / md=4 / lg=6 / xl=8） */
+    --nb-shadow-xs:    1px 1px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-sm:    2px 2px 0px 0px var(--nb-shadow-color);
+    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);  /* = md */
+    --nb-shadow-lg:    6px 6px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-xl:    8px 8px 0px 0px var(--nb-shadow-color);
+    /* 语义别名（向后兼容 + 表达意图） */
+    --nb-shadow-hover: var(--nb-shadow-sm);                     /* hover 收缩态 */
+    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);  /* 按下态 */
+    --nb-shadow-modal: var(--nb-shadow-xl);                     /* Modal / Dialog 顶级阴影 */
 
     /* ==================== 兼容别名（旧 --color-* 指向 --nb-* 单一来源） ==================== */
     --color-main: var(--nb-text);
     --color-text-secondary: var(--nb-text-secondary);
     --color-bg: var(--nb-bg);
     --color-card: var(--nb-card);
-    --shadow-card: 6px 6px 0px 0px var(--nb-shadow-color);
 
     /* 仅以下三个保留独立值（语义不同于 nb-*） */
     --color-secondary: #F3F4F6;        /* 浅灰背景（区别于 nb-panel-muted 的米色调） */
@@ -175,18 +179,22 @@
     --nb-border-radius-sm: 4px;
     --nb-border-radius-full: 9999px;
 
-    /* 阴影（基于 --nb-shadow-color） */
-    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-hover: 2px 2px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-modal: 8px 8px 0px 0px var(--nb-shadow-color);
+    /* 阴影阶梯（基于 --nb-shadow-color，size：xs=1 / sm=2 / md=4 / lg=6 / xl=8） */
+    --nb-shadow-xs:    1px 1px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-sm:    2px 2px 0px 0px var(--nb-shadow-color);
+    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);  /* = md */
+    --nb-shadow-lg:    6px 6px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-xl:    8px 8px 0px 0px var(--nb-shadow-color);
+    /* 语义别名（向后兼容 + 表达意图） */
+    --nb-shadow-hover: var(--nb-shadow-sm);                     /* hover 收缩态 */
+    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);  /* 按下态 */
+    --nb-shadow-modal: var(--nb-shadow-xl);                     /* Modal / Dialog 顶级阴影 */
 
     /* ==================== 兼容别名（旧 --color-* 指向 --nb-* 单一来源） ==================== */
     --color-main: var(--nb-text);
     --color-text-secondary: var(--nb-text-secondary);
     --color-bg: var(--nb-bg);
     --color-card: var(--nb-card);
-    --shadow-card: 6px 6px 0px 0px var(--nb-shadow-color);
 
     /* 仅以下保留独立值（语义不同于 nb-*） */
     --color-secondary: #374151;
@@ -273,8 +281,8 @@
     /* 阴影颜色（护眼模式用深褐色，与边框同色系但独立令牌） */
     --nb-shadow-color: #5d4037;
 
-    /* 强调色 */
-    --nb-accent-pink: #d4648a;
+    /* 强调色（pink 调亮以满足 WCAG AA 4.5:1，详见 CLAUDE.md §2 对比度核查表） */
+    --nb-accent-pink: #dc7090;
     --nb-accent-yellow: #e6c566;
     --nb-accent-blue: #5a9bd4;
     --nb-accent-green: #4cc98f;
@@ -296,18 +304,22 @@
     --nb-border-radius-sm: 4px;
     --nb-border-radius-full: 9999px;
 
-    /* 阴影（基于 --nb-shadow-color） */
-    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-hover: 2px 2px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);
-    --nb-shadow-modal: 8px 8px 0px 0px var(--nb-shadow-color);
+    /* 阴影阶梯（基于 --nb-shadow-color，size：xs=1 / sm=2 / md=4 / lg=6 / xl=8） */
+    --nb-shadow-xs:    1px 1px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-sm:    2px 2px 0px 0px var(--nb-shadow-color);
+    --nb-shadow:       4px 4px 0px 0px var(--nb-shadow-color);  /* = md */
+    --nb-shadow-lg:    6px 6px 0px 0px var(--nb-shadow-color);
+    --nb-shadow-xl:    8px 8px 0px 0px var(--nb-shadow-color);
+    /* 语义别名（向后兼容 + 表达意图） */
+    --nb-shadow-hover: var(--nb-shadow-sm);                     /* hover 收缩态 */
+    --nb-shadow-none:  0px 0px 0px 0px var(--nb-shadow-color);  /* 按下态 */
+    --nb-shadow-modal: var(--nb-shadow-xl);                     /* Modal / Dialog 顶级阴影 */
 
     /* ==================== 兼容别名（旧 --color-* 指向 --nb-* 单一来源） ==================== */
     --color-main: var(--nb-text);
     --color-text-secondary: var(--nb-text-secondary);
     --color-bg: var(--nb-bg);
     --color-card: var(--nb-card);
-    --shadow-card: 6px 6px 0px 0px var(--nb-shadow-color);
 
     /* 仅以下保留独立值（语义不同于 nb-*） */
     --color-secondary: #FFF3E0;
@@ -420,30 +432,10 @@ body {
     transition: background-color 0.2s linear;
 }
 
-/* 卡片样式 */
-.card {
-    border-radius: var(--nb-border-radius-lg, 12px);
-    border: var(--nb-border-width-thick, 3px) solid var(--nb-border, #242425);
-    box-shadow: var(--shadow-card);
-    background-color: var(--color-card);
-    transition: background-color 0.2s linear, box-shadow 0.15s linear, transform 0.15s linear;
-}
-
-.card:hover {
-    transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
-}
-
 /* 边框 */
 .border-default {
     border-color: var(--color-border);
     transition: border-color 0.2s linear;
-}
-
-/* 阴影 */
-.shadow-surface {
-    box-shadow: var(--shadow-card);
-    transition: box-shadow 0.2s linear;
 }
 
 /* 骨架屏 */
@@ -673,21 +665,7 @@ a:hover,
     animation: nb-wiggle 1s ease-in-out infinite;
 }
 
-/* ==================== 工具提示和浮层样式 ==================== */
-
-.tooltip {
-    background-color: var(--color-card);
-    color: var(--color-main);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-card);
-    transition: background-color 0.2s linear, color 0.2s linear;
-}
-
-.tooltip-dark {
-    background-color: var(--color-main);
-    color: var(--color-bg);
-    transition: background-color 0.2s linear, color 0.2s linear;
-}
+/* ==================== 模态框遮罩 ==================== */
 
 /* 模态框遮罩 — 各主题独立定义，确保前景与背景有足够隔离 */
 .modal-overlay {
@@ -1741,6 +1719,16 @@ select:focus-visible,
     background: transparent;
     border: none;
     padding: 0;
+}
+
+/* button 本身的 outline 包到 44×44 透明热区会显得"虚"，
+   把焦点圈渲染到 .nb-toggle-track（实际可见的视觉部分），与 brutalism 风格一致。 */
+.nb-toggle:focus-visible {
+    outline: none;
+}
+
+.nb-toggle:focus-visible .nb-toggle-track {
+    box-shadow: 0 0 0 2px var(--nb-bg), 0 0 0 5px var(--nb-accent-yellow);
 }
 
 /* 视觉轨道（44×24）居中渲染，外层 44×44 用于扩大触控热区 */
@@ -3042,34 +3030,36 @@ select:focus-visible,
     box-shadow: 2px 2px 0px 0px var(--nb-shadow-color);
 }
 
-/* Neo-Brutalism 表格样式 */
+/* Neo-Brutalism 表格样式（Data Brutalism — 表头 Loud / 表体 Quiet） */
 .nb-table-header {
-    background-color: #f0f0ee;
+    background-color: var(--nb-panel-muted);
     border-bottom: var(--nb-border-width, 2px) solid var(--nb-border, #242425);
+    font-weight: 800;
     transition:
         background-color 0.3s ease,
         border-color 0.3s ease;
 }
 
-.dark .nb-table-header {
-    background-color: #333333;
-}
-
-.eye-care .nb-table-header {
-    background-color: #f5edd8;
-}
-
 .nb-table-row {
     background-color: var(--nb-card, #ffffff);
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: var(--nb-border-width-hairline, 1px) solid var(--nb-border);
     transition:
         background-color 0.3s ease,
         border-color 0.3s ease,
         color 0.3s ease;
 }
 
-.nb-table-row:hover {
-    background-color: var(--nb-bg, #f6f3f1);
+@media (hover: hover) {
+    .nb-table-row:hover {
+        background-color: var(--nb-panel-muted);
+        box-shadow: inset 4px 0 0 0 var(--nb-accent-yellow);
+    }
+}
+
+.nb-table-row[aria-selected="true"],
+.nb-table-row.is-selected {
+    background-color: var(--nb-panel-muted);
+    box-shadow: inset 4px 0 0 0 var(--nb-accent-yellow);
 }
 
 /* Neo-Brutalism 文本样式 */

@@ -85,7 +85,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`border-2 border-dashed border-[color:var(--nb-border)] rounded-none p-8 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed border-[color:var(--nb-border)] rounded-md p-8 text-center cursor-pointer transition-colors ${
           isDragging
             ? 'bg-[color:var(--nb-accent-yellow)]'
             : 'nb-bg-card hover:bg-[color:var(--nb-bg)]'
@@ -150,7 +150,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
             {scanImages.map(image => (
               <div
                 key={image.id}
-                className="relative group rounded-none border-2 border-[color:var(--nb-border)] nb-bg-card overflow-hidden"
+                className="relative group rounded-md border-2 border-[color:var(--nb-border)] nb-bg-card overflow-hidden"
               >
                 {/* 删除按钮 */}
                 <button

@@ -306,11 +306,11 @@ export const AutoOrganizeModal: React.FC<AutoOrganizeModalProps> = ({
           </div>
         )}
         <div className="flex space-x-6 h-[60vh]">
-            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-none p-4 nb-bg-card">
+            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-md p-4 nb-bg-card">
                 <h4 className="text-lg font-semibold mb-2">{t('organizeAiModal.currentStructure')}</h4>
                 <BookmarkFolderTree nodes={bookmarks} selectedFolderId="" onSelectFolder={() => {}} disableContextMenu={true} createFolder={async () => {}} renameFolder={async () => {}} deleteFolder={async () => {}} />
             </div>
-            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-none p-4 nb-bg-halftone">
+            <div className="w-1/2 h-full overflow-y-auto nb-border rounded-md p-4 nb-bg-halftone">
                 <h4 className="text-lg font-semibold mb-2">{t('organizeAiModal.generatedStructure')}</h4>
                 {finalIsLoading && !editableGeneratedTree && (
                   <div className="flex items-center justify-center h-full nb-text-secondary">
