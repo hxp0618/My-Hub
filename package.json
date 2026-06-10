@@ -31,7 +31,7 @@
     "date-fns": "^4.1.0",
     "diff": "^8.0.3",
     "i18next": "^25.6.0",
-    "jsonrepair": "^3.13.1",
+    "jsonrepair": "^3.14.0",
     "jsqr": "^1.4.0",
     "jszip": "^3.10.1",
     "lunar-javascript": "^1.7.7",

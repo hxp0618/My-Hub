@@ -2953,10 +2953,10 @@ jsonfile@^6.0.1:
   optionalDependencies:
     graceful-fs "^4.1.6"
 
-jsonrepair@^3.13.1:
-  version "3.13.1"
-  resolved "https://registry.npmmirror.com/jsonrepair/-/jsonrepair-3.13.1.tgz"
-  integrity sha512-WJeiE0jGfxYmtLwBTEk8+y/mYcaleyLXWaqp5bJu0/ZTSeG0KQq/wWQ8pmnkKenEdN6pdnn6QtcoSUkbqDHWNw==
+jsonrepair@^3.14.0:
+  version "3.14.0"
+  resolved "https://registry.yarnpkg.com/jsonrepair/-/jsonrepair-3.14.0.tgz#10c9ae7f3221d4c5ae49a2d7d531a2eb87bb02d3"
+  integrity sha512-tWPGKMZf/8UPim+fcW2EfcQ/d/7aKUrP6IECz9G3Tu6Q5dX0orSleqJ9z6sSw7qrQkjF8/Edo4DvsWBZ8H+HNg==
 
 jsqr@^1.4.0:
   version "1.4.0"
