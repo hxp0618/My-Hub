@@ -59,7 +59,7 @@
     "@types/uuid": "^11.0.0",
     "@types/webextension-polyfill": "^0.12.5",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
-    "@typescript-eslint/parser": "^8.53.0",
+    "@typescript-eslint/parser": "^8.60.0",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
