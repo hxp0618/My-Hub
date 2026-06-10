@@ -1047,10 +1047,10 @@
   dependencies:
     uuid "*"
 
-"@types/webextension-polyfill@^0.12.4":
-  version "0.12.4"
-  resolved "https://registry.npmjs.org/@types/webextension-polyfill/-/webextension-polyfill-0.12.4.tgz"
-  integrity sha512-wK8YdSI0pDiaehSLDIvtvonYmLwUUivg4Z6JCJO8rkyssMAG82cFJgwPK/V7NO61mJBLg/tXeoXQL8AFzpXZmQ==
+"@types/webextension-polyfill@^0.12.5":
+  version "0.12.5"
+  resolved "https://registry.yarnpkg.com/@types/webextension-polyfill/-/webextension-polyfill-0.12.5.tgz#1d0c54ce83628b97eb7c2e31ec97500122a489c5"
+  integrity sha512-uKSAv6LgcVdINmxXMKBuVIcg/2m5JZugoZO8x20g7j2bXJkPIl/lVGQcDlbV+aXAiTyXT2RA5U5mI4IGCDMQeg==
 
 "@typescript-eslint/eslint-plugin@^8.53.0":
   version "8.53.0"
