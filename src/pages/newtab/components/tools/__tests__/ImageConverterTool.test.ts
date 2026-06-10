@@ -3,8 +3,13 @@ import i18n from '../../../../../i18n';
 import {
   ConvertOptions,
   ImageInfo,
+  createImageBase64Result,
+  detectImageMimeType,
+  extractImageDataUrlParts,
   convertImage,
   generateOutputFileName,
+  getImageBase64ErrorKey,
+  getImageExtensionFromMimeType,
   makeUniqueFileName,
   parseIcoSizeOption,
   parseImageQuality,
@@ -100,6 +105,52 @@ describe('ImageConverterTool helpers', () => {
     expect(makeUniqueFileName('photo.png', usedNames)).toBe('photo.png');
     expect(makeUniqueFileName('PHOTO.png', usedNames)).toBe('PHOTO-2.png');
     expect(makeUniqueFileName('photo.png', usedNames)).toBe('photo-3.png');
+  });
+
+  it('extracts image data URL parts for Base64 output modes', () => {
+    expect(extractImageDataUrlParts('data:image/png;base64,iVBORw0KGgo=')).toEqual({
+      mimeType: 'image/png',
+      rawBase64: 'iVBORw0KGgo=',
+    });
+    expect(extractImageDataUrlParts('data:text/plain;base64,aGVsbG8=')).toBeNull();
+  });
+
+  it('creates image results from raw Base64 and Data URLs', () => {
+    const pngSignatureBase64 = 'iVBORw0KGgo=';
+
+    const rawResult = createImageBase64Result(pngSignatureBase64);
+    expect(rawResult.mimeType).toBe('image/png');
+    expect(rawResult.extension).toBe('png');
+    expect(rawResult.fileName).toBe('base64-image.png');
+    expect(rawResult.dataUrl).toBe(`data:image/png;base64,${pngSignatureBase64}`);
+    expect(rawResult.size).toBe(8);
+
+    const dataUrlResult = createImageBase64Result(`data:image/jpeg;base64,${pngSignatureBase64}`);
+    expect(dataUrlResult.mimeType).toBe('image/jpeg');
+    expect(dataUrlResult.extension).toBe('jpg');
+  });
+
+  it('detects common image signatures and extensions', () => {
+    expect(detectImageMimeType(new Uint8Array([0xff, 0xd8, 0xff]))).toBe('image/jpeg');
+    expect(detectImageMimeType(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml');
+    expect(getImageExtensionFromMimeType('image/svg+xml')).toBe('svg');
+    expect(getImageExtensionFromMimeType('image/vnd.microsoft.icon')).toBe('ico');
+  });
+
+  it('maps invalid Base64 image input to stable error keys', () => {
+    try {
+      createImageBase64Result('');
+      throw new Error('Expected empty input to throw');
+    } catch (error) {
+      expect(getImageBase64ErrorKey(error)).toBe('emptyBase64Input');
+    }
+
+    try {
+      createImageBase64Result('aGVsbG8=');
+      throw new Error('Expected non-image input to throw');
+    } catch (error) {
+      expect(getImageBase64ErrorKey(error)).toBe('invalidImageBase64');
+    }
   });
 
   it('uses a localized conversion error instead of raw canvas details', async () => {
