@@ -141,13 +141,35 @@ export function isLikelyImageUrl(url: string): boolean {
   return IMAGE_URL_EXTENSION_RE.test(url);
 }
 
-export function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+export async function blobToDataUrl(blob: Blob): Promise<string> {
+  const readArrayBuffer = async () => {
+    const blobWithArrayBuffer = blob as Blob & { arrayBuffer?: () => Promise<ArrayBuffer> };
+    if (typeof blobWithArrayBuffer.arrayBuffer === 'function') {
+      return blobWithArrayBuffer.arrayBuffer();
+    }
+
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error('blobReadError'));
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
+  };
+  const bytes = new Uint8Array(await readArrayBuffer());
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return `data:${blob.type || ''};base64,${btoa(binary)}`;
 }
 
 export async function fetchImageDataUrl(
