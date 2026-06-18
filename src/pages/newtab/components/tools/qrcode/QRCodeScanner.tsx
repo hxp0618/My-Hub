@@ -14,6 +14,7 @@ interface QRCodeScannerProps {
   onAddScanImage: (originalDataUrl: string, decodedContent: string | null) => void;
   onDelete: (id: string) => void;
   onClear: () => void;
+  onPreview?: (dataUrl: string, title: string, detail: string) => void;
 }
 
 export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
@@ -21,6 +22,7 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
   onAddScanImage,
   onDelete,
   onClear,
+  onPreview,
 }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -344,11 +346,25 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
                 </button>
 
                 {/* 图片 */}
-                <img
-                  src={image.originalDataUrl}
-                  alt="Uploaded"
-                  className="w-full aspect-square object-cover"
-                />
+                <button
+                  type="button"
+                  className="block w-full cursor-zoom-in"
+                  onClick={() => onPreview?.(
+                    image.originalDataUrl,
+                    t('tools.qrcodeGenerator.scanPreviewTitle'),
+                    image.decodedContent || t('tools.qrcodeGenerator.noQRCodeFound'),
+                  )}
+                  aria-label={t('tools.qrcodeGenerator.preview')}
+                >
+                  <img
+                    src={image.originalDataUrl}
+                    alt="Uploaded"
+                    className="w-full aspect-square object-cover"
+                  />
+                  <span className="absolute bottom-12 left-2 z-10 w-11 h-11 rounded-full bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center shadow-[var(--nb-shadow-sm)]" aria-hidden="true">
+                    <span className="material-symbols-outlined text-sm">zoom_in</span>
+                  </span>
+                </button>
 
                 {/* 识别结果 */}
                 <div className="p-2 nb-bg">

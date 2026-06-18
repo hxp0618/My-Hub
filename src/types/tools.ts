@@ -26,6 +26,7 @@ export enum ToolId {
   JWT_DECODER = 'jwt-decoder',
   MARKDOWN_PREVIEW = 'markdown-preview',
   HTML_ENTITY = 'html-entity',
+  HTML_PREVIEW = 'html-preview',
   PASSWORD_GENERATOR = 'password-generator',
   HTML_TO_MARKDOWN = 'html-to-markdown',
   IMAGE_CONVERTER = 'image-converter',
@@ -288,6 +289,13 @@ export const TOOL_METADATA: Record<ToolId, ToolMetadata> = {
     nameKey: 'tools.htmlEntity.name',
     descriptionKey: 'tools.htmlEntity.description',
     icon: 'code',
+    category: 'developer',
+  },
+  [ToolId.HTML_PREVIEW]: {
+    id: ToolId.HTML_PREVIEW,
+    nameKey: 'tools.htmlPreview.name',
+    descriptionKey: 'tools.htmlPreview.description',
+    icon: 'preview',
     category: 'developer',
   },
   [ToolId.PASSWORD_GENERATOR]: {

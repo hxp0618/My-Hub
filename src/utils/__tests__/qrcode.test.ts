@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  QR_CODE_TEMPLATES,
+  buildQRCodeTemplateContent,
+  calculateQRCodeLogoBox,
   createQRCodeFileName,
   fetchImageDataUrl,
+  generateQRCodeSvg,
   generateBatchQRCodes,
   isLikelyImageUrl,
   normalizeQRCodeContents,
@@ -10,6 +14,23 @@ import {
 import { DEFAULT_QRCODE_OPTIONS } from '../../types/qrcode';
 
 describe('qrcode utilities', () => {
+  it('builds common QR code template payloads', () => {
+    expect(buildQRCodeTemplateContent('url', { url: ' example.com/path ' }))
+      .toBe('https://example.com/path');
+    expect(buildQRCodeTemplateContent('wifi', {
+      ssid: 'Office WiFi',
+      password: 'p@ss;word',
+      encryption: 'WPA',
+      hidden: true,
+    })).toBe('WIFI:T:WPA;S:Office WiFi;P:p\\@ss\\;word;H:true;;');
+    expect(buildQRCodeTemplateContent('email', {
+      email: 'team@example.com',
+      subject: 'Hello world',
+      body: 'Line one',
+    })).toBe('mailto:team@example.com?subject=Hello+world&body=Line+one');
+    expect(QR_CODE_TEMPLATES.map(template => template.id)).toContain('vcard');
+  });
+
   it('trims, drops empty lines, and deduplicates batch contents', () => {
     expect(normalizeQRCodeContents([
       ' https://example.com ',
@@ -35,6 +56,23 @@ describe('qrcode utilities', () => {
     expect(images).toHaveLength(1);
     expect(images[0].options.size).toBe(512);
     expect(images[0].options.margin).toBe(10);
+  });
+
+  it('generates sanitized SVG output for QR downloads', async () => {
+    const svg = await generateQRCodeSvg('https://example.com', DEFAULT_QRCODE_OPTIONS);
+
+    expect(svg).toContain('<svg');
+    expect(svg).not.toContain('<script');
+  });
+
+  it('calculates a centered logo box with safe ratio bounds', () => {
+    expect(calculateQRCodeLogoBox(256, 0.25)).toEqual({
+      size: 64,
+      x: 96,
+      y: 96,
+    });
+    expect(calculateQRCodeLogoBox(256, 2).size).toBe(102);
+    expect(calculateQRCodeLogoBox(256, -1).size).toBe(38);
   });
 
   it('accepts only http and https image links', () => {

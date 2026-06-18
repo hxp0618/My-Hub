@@ -74,6 +74,9 @@ const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType
   [ToolId.HTML_ENTITY]: lazy(() =>
     import('./tools/HTMLEntityTool').then(mod => ({ default: mod.HTMLEntityTool })),
   ),
+  [ToolId.HTML_PREVIEW]: lazy(() =>
+    import('./tools/HTMLPreviewTool').then(mod => ({ default: mod.HTMLPreviewTool })),
+  ),
   [ToolId.PASSWORD_GENERATOR]: lazy(() =>
     import('./tools/PasswordGeneratorTool').then(mod => ({ default: mod.PasswordGeneratorTool })),
   ),

@@ -7,6 +7,8 @@
  * HTTP 请求方法
  */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+export type HttpBodyMode = 'json' | 'raw' | 'formData';
+export type HttpAuthType = 'none' | 'bearer' | 'basic' | 'apiKey';
 
 /**
  * 所有支持的 HTTP 方法列表
@@ -25,6 +27,27 @@ export interface HeaderEntry {
   key: string;
   value: string;
   enabled: boolean;
+}
+
+export interface HttpVariableEntry {
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
+export interface HttpFormEntry {
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
+export interface HttpAuthConfig {
+  type: HttpAuthType;
+  token?: string;
+  username?: string;
+  password?: string;
+  key?: string;
+  value?: string;
 }
 
 /**
@@ -57,7 +80,7 @@ export interface HttpRequestOptions {
   url: string;
   method: HttpMethod;
   headers?: Record<string, string>;
-  body?: string;
+  body?: BodyInit;
 }
 
 /**

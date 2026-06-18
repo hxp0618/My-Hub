@@ -6,12 +6,19 @@ import {
   HttpMethod,
   HTTP_METHODS,
   HeaderEntry,
+  HttpAuthConfig,
+  HttpBodyMode,
+  HttpFormEntry,
+  HttpVariableEntry,
   ResponseState,
   METHODS_WITH_BODY,
 } from '../../../../types/http';
 import {
   isValidUrl,
   isValidJson,
+  applyHttpVariables,
+  buildAuthHeaderEntries,
+  createHttpRequestPayload,
   getStatusColor,
   sendHttpRequest,
   headersToRecord,
@@ -44,6 +51,14 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
   const [headers, setHeaders] = useState<HeaderEntry[]>([
     { key: '', value: '', enabled: true },
   ]);
+  const [variables, setVariables] = useState<HttpVariableEntry[]>([
+    { key: 'baseUrl', value: '', enabled: true },
+  ]);
+  const [auth, setAuth] = useState<HttpAuthConfig>({ type: 'none' });
+  const [bodyMode, setBodyMode] = useState<HttpBodyMode>('json');
+  const [formRows, setFormRows] = useState<HttpFormEntry[]>([
+    { key: '', value: '', enabled: true },
+  ]);
   const [body, setBody] = useState('');
 
   // 响应状态
@@ -57,14 +72,14 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
   // 验证状态
   const urlError = useMemo(() => {
     if (!url.trim()) return null;
-    return isValidUrl(url) ? null : t('tools.httpTester.invalidUrl');
-  }, [url, t]);
+    return isValidUrl(applyHttpVariables(url, variables)) ? null : t('tools.httpTester.invalidUrl');
+  }, [url, variables, t]);
 
   const bodyError = useMemo(() => {
-    if (!body.trim() || !METHODS_WITH_BODY.includes(method)) return null;
+    if (bodyMode !== 'json' || !body.trim() || !METHODS_WITH_BODY.includes(method)) return null;
     const result = isValidJson(body);
     return result.valid ? null : t('tools.httpTester.invalidJsonBody');
-  }, [body, method, t]);
+  }, [body, bodyMode, method, t]);
 
   const canSend = useMemo(() => {
     return url.trim() && !urlError && !bodyError && !loading;
@@ -76,6 +91,14 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
   // 添加请求头
   const addHeader = useCallback(() => {
     setHeaders((prev) => [...prev, { key: '', value: '', enabled: true }]);
+  }, []);
+
+  const addVariable = useCallback(() => {
+    setVariables(prev => [...prev, { key: '', value: '', enabled: true }]);
+  }, []);
+
+  const addFormRow = useCallback(() => {
+    setFormRows(prev => [...prev, { key: '', value: '', enabled: true }]);
   }, []);
 
   // 更新请求头
@@ -95,6 +118,30 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
     setHeaders((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const updateVariable = useCallback((index: number, field: keyof HttpVariableEntry, value: string | boolean) => {
+    setVariables(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  }, []);
+
+  const updateFormRow = useCallback((index: number, field: keyof HttpFormEntry, value: string | boolean) => {
+    setFormRows(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  }, []);
+
+  const removeVariable = useCallback((index: number) => {
+    setVariables(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const removeFormRow = useCallback((index: number) => {
+    setFormRows(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
   // 发送请求
   const handleSend = useCallback(async () => {
     if (!canSend) return;
@@ -103,11 +150,29 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
     setResponse(null);
 
     try {
-      const result = await sendHttpRequest({
-        url: url.trim(),
+      const preparedHeaders = headersToRecord([...headers, ...buildAuthHeaderEntries(auth)]);
+      const requestHeaders = Object.fromEntries(
+        Object.entries(preparedHeaders).map(([key, value]) => [
+          applyHttpVariables(key, variables),
+          applyHttpVariables(value, variables),
+        ])
+      );
+      const payload = createHttpRequestPayload({
         method,
-        headers: headersToRecord(headers),
-        body: showBody ? body : undefined,
+        bodyMode,
+        body: applyHttpVariables(body, variables),
+        formRows: formRows.map(row => ({
+          ...row,
+          key: applyHttpVariables(row.key, variables),
+          value: applyHttpVariables(row.value, variables),
+        })),
+        headers: requestHeaders,
+      });
+      const result = await sendHttpRequest({
+        url: applyHttpVariables(url.trim(), variables),
+        method,
+        headers: payload.headers,
+        body: payload.body,
       });
 
       setResponse({
@@ -146,7 +211,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [canSend, url, method, headers, body, showBody, addEntry, t]);
+  }, [canSend, url, method, headers, auth, variables, bodyMode, body, formRows, showBody, addEntry, t]);
 
   // 恢复历史记录
   const handleRestore = useCallback(
@@ -168,6 +233,10 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
     setUrl('');
     setMethod('GET');
     setHeaders([{ key: '', value: '', enabled: true }]);
+    setVariables([{ key: 'baseUrl', value: '', enabled: true }]);
+    setAuth({ type: 'none' });
+    setBodyMode('json');
+    setFormRows([{ key: '', value: '', enabled: true }]);
     setBody('');
     setResponse(null);
   }, []);
@@ -281,6 +350,90 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
             </button>
           </div>
 
+          {/* 环境变量和认证 */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="nb-card-static p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.variables')}</h3>
+                <button onClick={addVariable} className="nb-btn nb-btn-ghost text-xs py-1 px-2">
+                  <span className="material-symbols-outlined text-sm">add</span>
+                  {t('tools.httpTester.addVariable')}
+                </button>
+              </div>
+              <div className="space-y-2">
+                {variables.map((variable, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={variable.enabled}
+                      onChange={(e) => updateVariable(index, 'enabled', e.target.checked)}
+                      className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
+                    />
+                    <input
+                      type="text"
+                      value={variable.key}
+                      onChange={(e) => updateVariable(index, 'key', e.target.value)}
+                      placeholder={t('tools.httpTester.variableKey')}
+                      className="nb-input flex-1 text-sm py-1"
+                    />
+                    <input
+                      type="text"
+                      value={variable.value}
+                      onChange={(e) => updateVariable(index, 'value', e.target.value)}
+                      placeholder={t('tools.httpTester.variableValue')}
+                      className="nb-input flex-1 text-sm py-1"
+                    />
+                    <button
+                      onClick={() => removeVariable(index)}
+                      className="nb-btn nb-btn-ghost p-1"
+                      disabled={variables.length === 1}
+                    >
+                      <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs nb-text-secondary">{t('tools.httpTester.variablesHint')}</p>
+            </div>
+
+            <div className="nb-card-static p-4">
+              <h3 className="text-sm font-semibold nb-text mb-3">{t('tools.httpTester.auth')}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select
+                  value={auth.type}
+                  onChange={(e) => setAuth({ type: e.target.value as HttpAuthConfig['type'] })}
+                  className="nb-input text-sm"
+                >
+                  <option value="none">{t('tools.httpTester.authNone')}</option>
+                  <option value="bearer">Bearer Token</option>
+                  <option value="basic">Basic Auth</option>
+                  <option value="apiKey">API Key</option>
+                </select>
+                {auth.type === 'bearer' && (
+                  <input
+                    type="password"
+                    value={auth.token ?? ''}
+                    onChange={(e) => setAuth(prev => ({ ...prev, token: e.target.value }))}
+                    placeholder="Token"
+                    className="nb-input text-sm"
+                  />
+                )}
+                {auth.type === 'basic' && (
+                  <>
+                    <input value={auth.username ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, username: e.target.value }))} placeholder={t('tools.httpTester.username')} className="nb-input text-sm" />
+                    <input type="password" value={auth.password ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, password: e.target.value }))} placeholder={t('tools.httpTester.password')} className="nb-input text-sm" />
+                  </>
+                )}
+                {auth.type === 'apiKey' && (
+                  <>
+                    <input value={auth.key ?? 'X-API-Key'} onChange={(e) => setAuth(prev => ({ ...prev, key: e.target.value }))} placeholder={t('tools.httpTester.headerKey')} className="nb-input text-sm" />
+                    <input type="password" value={auth.value ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, value: e.target.value }))} placeholder={t('tools.httpTester.headerValue')} className="nb-input text-sm" />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* 请求头 */}
           <div className="nb-card-static p-4">
             <div className="flex items-center justify-between mb-3">
@@ -328,19 +481,52 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
           {/* 请求体 */}
           {showBody && (
             <div className="nb-card-static p-4 flex-1 flex flex-col min-h-0">
-              <h3 className="text-sm font-semibold nb-text mb-2">{t('tools.httpTester.body')}</h3>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder={t('tools.httpTester.bodyPlaceholder')}
-                className={`nb-input flex-1 font-mono text-sm resize-none ${
-                  bodyError ? 'border-[color:var(--nb-accent-pink)]' : ''
-                }`}
-              />
-              {bodyError && (
-                <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
-                  {bodyError}
-                </p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.body')}</h3>
+                <select value={bodyMode} onChange={(e) => setBodyMode(e.target.value as HttpBodyMode)} className="nb-input text-xs py-1">
+                  <option value="json">JSON</option>
+                  <option value="raw">{t('tools.httpTester.rawBody')}</option>
+                  <option value="formData">Form Data</option>
+                </select>
+              </div>
+              {bodyMode === 'formData' ? (
+                <div className="flex-1 overflow-auto space-y-2">
+                  {formRows.map((row, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={row.enabled}
+                        onChange={(e) => updateFormRow(index, 'enabled', e.target.checked)}
+                        className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
+                      />
+                      <input value={row.key} onChange={(e) => updateFormRow(index, 'key', e.target.value)} placeholder={t('tools.httpTester.formKey')} className="nb-input flex-1 text-sm py-1" />
+                      <input value={row.value} onChange={(e) => updateFormRow(index, 'value', e.target.value)} placeholder={t('tools.httpTester.formValue')} className="nb-input flex-1 text-sm py-1" />
+                      <button onClick={() => removeFormRow(index)} className="nb-btn nb-btn-ghost p-1" disabled={formRows.length === 1}>
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={addFormRow} className="nb-btn nb-btn-secondary text-xs px-3 py-1">
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    {t('tools.httpTester.addFormRow')}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder={t('tools.httpTester.bodyPlaceholder')}
+                    className={`nb-input flex-1 font-mono text-sm resize-none ${
+                      bodyError ? 'border-[color:var(--nb-accent-pink)]' : ''
+                    }`}
+                  />
+                  {bodyError && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
+                      {bodyError}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

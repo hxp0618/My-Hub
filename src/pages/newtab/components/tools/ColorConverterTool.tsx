@@ -10,6 +10,10 @@ export interface RGB {
   b: number;
 }
 
+export interface RGBA extends RGB {
+  a: number;
+}
+
 export interface HSL {
   h: number;
   s: number;
@@ -35,21 +39,44 @@ export const parseRgbChannel = (value: string | number, fallback = 0): number =>
     : safeFallback;
 };
 
+const parseAlphaChannel = (value: string | number, fallback = 1): number => {
+  const safeFallback = Number.isFinite(fallback)
+    ? Math.min(1, Math.max(0, fallback))
+    : 1;
+
+  const parsedValue = typeof value === 'number' ? value : Number(value.trim());
+  if (!Number.isFinite(parsedValue) || parsedValue < 0 || parsedValue > 1) {
+    return safeFallback;
+  }
+
+  return Number(parsedValue.toFixed(2));
+};
+
 /**
- * HEX 转 RGB
+ * HEX 转 RGBA
  */
-export const hexToRgb = (hex: string): RGB | null => {
+export const hexToRgba = (hex: string): RGBA | null => {
   const normalizedHex = hex.trim().replace(/^#/, '');
-  const expandedHex = normalizedHex.length === 3
+  const expandedHex = (normalizedHex.length === 3 || normalizedHex.length === 4)
     ? normalizedHex.split('').map(char => `${char}${char}`).join('')
     : normalizedHex;
-  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(expandedHex);
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(expandedHex);
   if (!result) return null;
   return {
     r: parseInt(result[1], 16),
     g: parseInt(result[2], 16),
     b: parseInt(result[3], 16),
+    a: result[4] ? Number((parseInt(result[4], 16) / 255).toFixed(2)) : 1,
   };
+};
+
+/**
+ * HEX 转 RGB
+ */
+export const hexToRgb = (hex: string): RGB | null => {
+  const rgba = hexToRgba(hex);
+  if (!rgba) return null;
+  return { r: rgba.r, g: rgba.g, b: rgba.b };
 };
 
 /**
@@ -59,6 +86,18 @@ export const rgbToHex = (rgb: RGB): string => {
   const toHex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
   return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
 };
+
+/**
+ * RGBA 转 8 位 HEX
+ */
+export const rgbaToHex = (rgba: RGBA): string => {
+  const alphaHex = Math.round(parseAlphaChannel(rgba.a) * 255)
+    .toString(16)
+    .padStart(2, '0');
+  return `${rgbToHex(rgba)}${alphaHex}`;
+};
+
+const rgbaToCss = (rgba: RGBA): string => `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a})`;
 
 /**
  * RGB 转 HSL
@@ -146,6 +185,23 @@ export const parseRgbString = (str: string): RGB | null => {
 };
 
 /**
+ * 解析 RGBA 字符串
+ */
+export const parseRgbaString = (str: string): RGBA | null => {
+  const normalized = str.trim().replace(/^rgba\(\s*/i, '').replace(/\s*\)$/, '');
+  const match = normalized.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0(?:\.\d+)?|1(?:\.0+)?)$/);
+  if (!match) return null;
+  if (match.slice(1, 4).some(channel => Number(channel) > 255)) return null;
+
+  return {
+    r: parseRgbChannel(match[1]),
+    g: parseRgbChannel(match[2]),
+    b: parseRgbChannel(match[3]),
+    a: parseAlphaChannel(match[4]),
+  };
+};
+
+/**
  * 解析 HSL 字符串
  */
 export const parseHslString = (str: string): HSL | null => {
@@ -159,6 +215,39 @@ export const parseHslString = (str: string): HSL | null => {
   return { h, s, l };
 };
 
+const getRelativeLuminance = (rgb: RGB): number => {
+  const channels = [rgb.r, rgb.g, rgb.b].map(channel => {
+    const value = channel / 255;
+    return value <= 0.03928
+      ? value / 12.92
+      : ((value + 0.055) / 1.055) ** 2.4;
+  });
+
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+};
+
+export const calculateContrastRatio = (foreground: RGB, background: RGB): number => {
+  const foregroundLuminance = getRelativeLuminance(foreground);
+  const backgroundLuminance = getRelativeLuminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+
+  return Number(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
+};
+
+const blendRgbaOverRgb = (foreground: RGBA, background: RGB): RGB => ({
+  r: Math.round(foreground.r * foreground.a + background.r * (1 - foreground.a)),
+  g: Math.round(foreground.g * foreground.a + background.g * (1 - foreground.a)),
+  b: Math.round(foreground.b * foreground.a + background.b * (1 - foreground.a)),
+});
+
+const getContrastLabelKey = (ratio: number): string => {
+  if (ratio >= 7) return 'tools.colorConverter.contrastAAA';
+  if (ratio >= 4.5) return 'tools.colorConverter.contrastAA';
+  if (ratio >= 3) return 'tools.colorConverter.contrastLargeText';
+  return 'tools.colorConverter.contrastFail';
+};
+
 /**
  * 颜色转换器工具组件
  */
@@ -170,17 +259,28 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
   const { copy } = useCopyToClipboard();
   const [hex, setHex] = useState('#3b82f6');
   const [rgb, setRgb] = useState<RGB>({ r: 59, g: 130, b: 246 });
+  const [alpha, setAlpha] = useState(1);
   const [hsl, setHsl] = useState<HSL>({ h: 217, s: 91, l: 60 });
+  const [contrastBackground, setContrastBackground] = useState<RGB>({ r: 255, g: 255, b: 255 });
   const [error, setError] = useState<string | null>(null);
-  const [, setActiveInput] = useState<'hex' | 'rgb' | 'hsl' | 'picker'>('hex');
+  const [, setActiveInput] = useState<'hex' | 'rgb' | 'rgba' | 'hsl' | 'picker' | 'alpha'>('hex');
+
+  const currentRgba: RGBA = { ...rgb, a: alpha };
+  const colorCss = rgbaToCss(currentRgba);
+  const contrastForeground = alpha < 1 ? blendRgbaOverRgb(currentRgba, contrastBackground) : rgb;
+  const contrastRatio = calculateContrastRatio(contrastForeground, contrastBackground);
+  const contrastBackgroundHex = rgbToHex(contrastBackground);
+  const displayHex = alpha < 1 ? rgbaToHex(currentRgba) : rgbToHex(rgb);
 
   // 从 HEX 更新其他值
   const updateFromHex = useCallback((value: string) => {
-    const parsed = hexToRgb(value);
+    const parsed = hexToRgba(value);
     if (parsed) {
-      setHex(rgbToHex(parsed));
-      setRgb(parsed);
-      setHsl(rgbToHsl(parsed));
+      const rgbValue = { r: parsed.r, g: parsed.g, b: parsed.b };
+      setHex(parsed.a < 1 ? rgbaToHex(parsed) : rgbToHex(parsed));
+      setRgb(rgbValue);
+      setAlpha(parsed.a);
+      setHsl(rgbToHsl(rgbValue));
       setError(null);
     } else {
       setError(t('tools.colorConverter.invalidFormat'));
@@ -189,25 +289,25 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
 
   // 从 RGB 更新其他值
   const updateFromRgb = useCallback((value: RGB) => {
-    setHex(rgbToHex(value));
+    setHex(alpha < 1 ? rgbaToHex({ ...value, a: alpha }) : rgbToHex(value));
     setHsl(rgbToHsl(value));
     setError(null);
-  }, []);
+  }, [alpha]);
 
   // 从 HSL 更新其他值
   const updateFromHsl = useCallback((value: HSL) => {
     const rgbValue = hslToRgb(value);
     setRgb(rgbValue);
-    setHex(rgbToHex(rgbValue));
+    setHex(alpha < 1 ? rgbaToHex({ ...rgbValue, a: alpha }) : rgbToHex(rgbValue));
     setError(null);
-  }, []);
+  }, [alpha]);
 
   // 处理 HEX 输入
   const handleHexChange = (value: string) => {
     setHex(value);
     setActiveInput('hex');
     const normalizedLength = value.trim().replace(/^#/, '').length;
-    if (normalizedLength === 3 || normalizedLength === 6) {
+    if ([3, 4, 6, 8].includes(normalizedLength)) {
       updateFromHex(value);
     }
   };
@@ -219,6 +319,22 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
     if (parsed) {
       setRgb(parsed);
       updateFromRgb(parsed);
+    } else {
+      setError(t('tools.colorConverter.invalidFormat'));
+    }
+  };
+
+  // 处理 RGBA 输入
+  const handleRgbaChange = (value: string) => {
+    setActiveInput('rgba');
+    const parsed = parseRgbaString(value);
+    if (parsed) {
+      const rgbValue = { r: parsed.r, g: parsed.g, b: parsed.b };
+      setRgb(rgbValue);
+      setAlpha(parsed.a);
+      setHex(parsed.a < 1 ? rgbaToHex(parsed) : rgbToHex(parsed));
+      setHsl(rgbToHsl(rgbValue));
+      setError(null);
     } else {
       setError(t('tools.colorConverter.invalidFormat'));
     }
@@ -244,6 +360,23 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
     updateFromHex(value);
   };
 
+  const handleAlphaChange = (value: string) => {
+    const nextAlpha = parseAlphaChannel(Number(value) / 100, alpha);
+    setAlpha(nextAlpha);
+    setActiveInput('alpha');
+    setHex(nextAlpha < 1 ? rgbaToHex({ ...rgb, a: nextAlpha }) : rgbToHex(rgb));
+  };
+
+  const handleContrastBackgroundChange = (value: string) => {
+    const parsed = hexToRgb(value);
+    if (parsed) {
+      setContrastBackground(parsed);
+      setError(null);
+    } else {
+      setError(t('tools.colorConverter.invalidFormat'));
+    }
+  };
+
   return (
     <ToolCard
       tool={TOOL_METADATA[ToolId.COLOR_CONVERTER]}
@@ -255,13 +388,13 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
         <div className="flex items-center gap-4 flex-shrink-0">
           <div
             className="w-20 h-20 rounded-lg nb-border shadow-inner"
-            style={{ backgroundColor: hex }}
+            style={{ backgroundColor: colorCss }}
           />
           <div className="flex flex-col gap-2">
             <label className="text-sm nb-text-secondary">{t('tools.colorConverter.picker')}</label>
             <input
               type="color"
-              value={hex}
+              value={rgbToHex(rgb)}
               onChange={handlePickerChange}
               className="w-16 h-10 cursor-pointer rounded nb-border"
             />
@@ -271,11 +404,11 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
             <div className="flex gap-2">
               <div
                 className="flex-1 h-8 rounded nb-border"
-                style={{ backgroundColor: hex }}
+                style={{ backgroundColor: colorCss }}
               />
               <div
                 className="flex-1 h-8 rounded nb-border text-center leading-8 text-sm font-medium"
-                style={{ backgroundColor: hex, color: hsl.l > 50 ? '#000' : '#fff' }}
+                style={{ backgroundColor: colorCss, color: hsl.l > 50 ? '#000' : '#fff' }}
               >
                 Text
               </div>
@@ -291,7 +424,7 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
         )}
 
         {/* 颜色值输入 */}
-        <div className="grid grid-cols-3 gap-4 flex-shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 flex-shrink-0">
           {/* HEX */}
           <div>
             <label className="block text-sm font-medium nb-text mb-2">
@@ -302,11 +435,11 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
                 type="text"
                 value={hex}
                 onChange={e => handleHexChange(e.target.value)}
-                placeholder={t('tools.colorConverter.hexPlaceholder')}
+                placeholder={t('tools.colorConverter.hexAlphaPlaceholder')}
                 className="nb-input flex-1 font-mono text-sm"
               />
               <button
-                onClick={() => copy(hex)}
+                onClick={() => copy(displayHex)}
                 className="nb-btn nb-btn-ghost text-sm"
               >
                 {t('tools.colorConverter.copy')}
@@ -357,6 +490,28 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
               </button>
             </div>
           </div>
+
+          {/* RGBA */}
+          <div>
+            <label className="block text-sm font-medium nb-text mb-2">
+              {t('tools.colorConverter.rgba')}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={`${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha}`}
+                onChange={e => handleRgbaChange(e.target.value)}
+                placeholder={t('tools.colorConverter.rgbaPlaceholder')}
+                className="nb-input flex-1 font-mono text-sm"
+              />
+              <button
+                onClick={() => copy(rgbaToCss(currentRgba))}
+                className="nb-btn nb-btn-ghost text-sm"
+              >
+                {t('tools.colorConverter.copy')}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* RGB 滑块 */}
@@ -380,6 +535,49 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
               <span className="w-10 text-sm nb-text-secondary text-right">{rgb[channel]}</span>
             </div>
           ))}
+          <div className="flex items-center gap-3">
+            <span className="w-6 text-sm font-medium nb-text uppercase">A</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(alpha * 100)}
+              onChange={e => handleAlphaChange(e.target.value)}
+              className="flex-1 accent-[var(--nb-accent-yellow)]"
+            />
+            <span className="w-10 text-sm nb-text-secondary text-right">{Math.round(alpha * 100)}%</span>
+          </div>
+        </div>
+
+        {/* 对比度 */}
+        <div className="grid grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)] gap-4 items-center flex-shrink-0 p-3 nb-bg-card nb-border rounded-lg">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium nb-text">
+              {t('tools.colorConverter.contrastBackground')}
+            </label>
+            <input
+              type="color"
+              value={contrastBackgroundHex}
+              onChange={e => handleContrastBackgroundChange(e.target.value)}
+              className="w-14 h-9 cursor-pointer rounded nb-border"
+            />
+          </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="h-9 w-20 nb-border rounded text-center leading-9 text-sm font-medium"
+              style={{ backgroundColor: contrastBackgroundHex, color: colorCss }}
+            >
+              Text
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium nb-text">
+                {t('tools.colorConverter.contrastRatio', { ratio: contrastRatio.toFixed(2) })}
+              </div>
+              <div className="text-xs nb-text-secondary">
+                {t(getContrastLabelKey(contrastRatio))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </ToolCard>

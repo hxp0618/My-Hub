@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { executeRegex } from '../RegexTesterTool';
+import { executeRegex, replaceRegex } from '../RegexTesterTool';
 
 describe('executeRegex', () => {
   it('returns all global matches with capture groups', () => {
@@ -17,5 +17,22 @@ describe('executeRegex', () => {
 
     expect(result.matches).toEqual([]);
     expect(result.error).toBe('invalidExpression');
+  });
+
+  it('returns named capture groups for matches', () => {
+    const result = executeRegex('(?<name>hub)-(?<id>\\d+)', 'g', 'hub-42');
+
+    expect(result.error).toBeNull();
+    expect(result.matches[0].namedGroups).toEqual({
+      name: 'hub',
+      id: '42',
+    });
+  });
+
+  it('replaces text using regex replacement syntax', () => {
+    expect(replaceRegex('(?<word>hub)', 'gi', 'hub HUB', '[$<word>]')).toEqual({
+      output: '[hub] [HUB]',
+      error: null,
+    });
   });
 });

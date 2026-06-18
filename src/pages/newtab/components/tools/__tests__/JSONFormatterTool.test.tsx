@@ -1,7 +1,7 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { JSONFormatterTool } from '../JSONFormatterTool';
+import { JSONFormatterTool, queryJsonPath, repairJsonInput } from '../JSONFormatterTool';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -12,6 +12,14 @@ vi.mock('react-i18next', () => ({
       'tools.jsonFormatter.outputPlaceholder': 'Formatted JSON will appear here...',
       'tools.jsonFormatter.format': 'Format',
       'tools.jsonFormatter.compress': 'Compress',
+      'tools.jsonFormatter.repair': 'Repair',
+      'tools.jsonFormatter.queryLabel': 'Query Path',
+      'tools.jsonFormatter.queryPlaceholder': '$.items[0].name',
+      'tools.jsonFormatter.query': 'Query',
+      'tools.jsonFormatter.queryResult': 'Query Result',
+      'tools.jsonFormatter.queryEmpty': 'Enter a JSON path',
+      'tools.jsonFormatter.queryInvalidPath': 'Invalid JSON path',
+      'tools.jsonFormatter.queryNotFound': 'Path not found',
       'tools.jsonFormatter.copy': 'Copy',
       'tools.jsonFormatter.clear': 'Clear',
       'tools.jsonFormatter.error': 'JSON Syntax Error',
@@ -82,6 +90,33 @@ describe('JSONFormatterTool', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Compress' }));
 
     expect(screen.getByPlaceholderText('Formatted JSON will appear here...')).toHaveValue('{"name":"My Hub"}');
+  });
+
+  it('repairs relaxed JSON into strict formatted JSON', () => {
+    const repaired = repairJsonInput("{name:'My Hub', enabled:true,}");
+
+    expect(JSON.parse(repaired)).toEqual({ name: 'My Hub', enabled: true });
+    expect(repaired).toBe('{\n  "name": "My Hub",\n  "enabled": true\n}');
+  });
+
+  it('queries simple object and array JSON paths', () => {
+    const source = '{"user":{"name":"Ada"},"items":[{"id":1}]}';
+
+    expect(queryJsonPath(source, '$.user.name')).toEqual({
+      success: true,
+      output: '"Ada"',
+    });
+    expect(queryJsonPath(source, '$.items[0].id')).toEqual({
+      success: true,
+      output: '1',
+    });
+  });
+
+  it('reports missing JSON query paths without throwing parser details', () => {
+    expect(queryJsonPath('{"user":{"name":"Ada"}}', '$.user.email')).toEqual({
+      success: false,
+      error: 'notFound',
+    });
   });
 
   it('shows a localized syntax error without raw parser details', () => {

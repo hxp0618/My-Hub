@@ -10,6 +10,92 @@ import { sanitizeQRCodeOptions } from '../types/qrcode';
 
 const IMAGE_CONTENT_TYPE_PREFIX = 'image/';
 const IMAGE_URL_EXTENSION_RE = /\.(?:png|jpe?g|webp|gif|bmp|svg|ico|avif)(?:[?#].*)?$/i;
+const QR_CODE_LOGO_RATIO_MIN = 0.15;
+const QR_CODE_LOGO_RATIO_MAX = 0.4;
+
+export type QRCodeTemplateId = 'text' | 'url' | 'wifi' | 'vcard' | 'email' | 'sms';
+
+export interface QRCodeTemplate {
+  id: QRCodeTemplateId;
+  labelKey: string;
+}
+
+export const QR_CODE_TEMPLATES: QRCodeTemplate[] = [
+  { id: 'text', labelKey: 'tools.qrcodeGenerator.templates.text' },
+  { id: 'url', labelKey: 'tools.qrcodeGenerator.templates.url' },
+  { id: 'wifi', labelKey: 'tools.qrcodeGenerator.templates.wifi' },
+  { id: 'vcard', labelKey: 'tools.qrcodeGenerator.templates.vcard' },
+  { id: 'email', labelKey: 'tools.qrcodeGenerator.templates.email' },
+  { id: 'sms', labelKey: 'tools.qrcodeGenerator.templates.sms' },
+];
+
+export function buildQRCodeTemplateContent(
+  templateId: QRCodeTemplateId,
+  values: Record<string, string | boolean | undefined>
+): string {
+  const getValue = (key: string) => String(values[key] ?? '').trim();
+  const escapeWifiValue = (value: string) => value.replace(/([\\;,:"@])/g, '\\$1');
+
+  switch (templateId) {
+    case 'url': {
+      const url = getValue('url');
+      if (!url) return '';
+      return /^[a-z][a-z\d+.-]*:\/\//i.test(url) ? url : `https://${url}`;
+    }
+    case 'wifi': {
+      const encryption = getValue('encryption') || 'WPA';
+      const ssid = escapeWifiValue(getValue('ssid'));
+      const password = escapeWifiValue(getValue('password'));
+      const hidden = values.hidden === true ? 'true' : '';
+      return `WIFI:T:${encryption};S:${ssid};P:${password};H:${hidden};;`;
+    }
+    case 'vcard': {
+      const name = getValue('name');
+      const phone = getValue('phone');
+      const email = getValue('email');
+      const org = getValue('organization');
+      const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+      if (name) lines.push(`FN:${name}`);
+      if (org) lines.push(`ORG:${org}`);
+      if (phone) lines.push(`TEL:${phone}`);
+      if (email) lines.push(`EMAIL:${email}`);
+      lines.push('END:VCARD');
+      return lines.join('\n');
+    }
+    case 'email': {
+      const email = getValue('email');
+      const params = new URLSearchParams();
+      const subject = getValue('subject');
+      const body = getValue('body');
+      if (subject) params.set('subject', subject);
+      if (body) params.set('body', body);
+      const query = params.toString();
+      return `mailto:${email}${query ? `?${query}` : ''}`;
+    }
+    case 'sms': {
+      const phone = getValue('phone');
+      const message = getValue('message');
+      return `sms:${phone}${message ? `?body=${encodeURIComponent(message)}` : ''}`;
+    }
+    case 'text':
+    default:
+      return getValue('text');
+  }
+}
+
+export function calculateQRCodeLogoBox(
+  qrSize: number,
+  ratio: number
+): { x: number; y: number; size: number } {
+  const safeSize = Number.isFinite(qrSize) && qrSize > 0 ? qrSize : 256;
+  const safeRatio = Number.isFinite(ratio)
+    ? Math.min(QR_CODE_LOGO_RATIO_MAX, Math.max(QR_CODE_LOGO_RATIO_MIN, ratio))
+    : 0.22;
+  const size = Math.round(safeSize * safeRatio);
+  const offset = Math.round((safeSize - size) / 2);
+
+  return { x: offset, y: offset, size };
+}
 
 export function normalizeQRCodeContents(contents: string[]): string[] {
   const seen = new Set<string>();
@@ -61,6 +147,61 @@ export async function generateQRCode(
   } catch {
     return null;
   }
+}
+
+export async function generateQRCodeSvg(
+  content: string,
+  options: QRCodeOptions
+): Promise<string | null> {
+  if (!content.trim()) return null;
+
+  try {
+    const safeOptions = sanitizeQRCodeOptions(options);
+    return await QRCode.toString(content, {
+      type: 'svg',
+      width: safeOptions.size,
+      margin: safeOptions.margin,
+      errorCorrectionLevel: safeOptions.errorCorrectionLevel,
+      color: {
+        dark: safeOptions.foregroundColor,
+        light: safeOptions.backgroundColor,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function applyQRCodeLogo(
+  qrDataUrl: string,
+  logoDataUrl: string,
+  size: number,
+  ratio = 0.24
+): Promise<string> {
+  if (!logoDataUrl) return qrDataUrl;
+
+  const load = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('imageLoadError'));
+    img.src = src;
+  });
+
+  const [qrImage, logoImage] = await Promise.all([load(qrDataUrl), load(logoDataUrl)]);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) return qrDataUrl;
+
+  context.drawImage(qrImage, 0, 0, size, size);
+  const box = calculateQRCodeLogoBox(size, ratio);
+  const padding = Math.max(4, Math.round(box.size * 0.12));
+  context.fillStyle = '#ffffff';
+  context.fillRect(box.x - padding, box.y - padding, box.size + padding * 2, box.size + padding * 2);
+  context.drawImage(logoImage, box.x, box.y, box.size, box.size);
+
+  return canvas.toDataURL('image/png');
 }
 
 /**

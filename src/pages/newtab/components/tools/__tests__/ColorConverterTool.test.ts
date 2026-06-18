@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { hexToRgb, parseHslString, parseRgbChannel, parseRgbString } from '../ColorConverterTool';
+import {
+  calculateContrastRatio,
+  hexToRgb,
+  hexToRgba,
+  parseHslString,
+  parseRgbChannel,
+  parseRgbString,
+  parseRgbaString,
+  rgbaToHex,
+} from '../ColorConverterTool';
 
 describe('ColorConverterTool parsers', () => {
   it('accepts long and shorthand hex colors', () => {
@@ -38,5 +47,17 @@ describe('ColorConverterTool parsers', () => {
     expect(parseHslString('hsl(361, 50%, 50%)')).toBeNull();
     expect(parseHslString('hsl(120, 101%, 50%)')).toBeNull();
     expect(parseHslString('hsl(120, 50.5%, 50%)')).toBeNull();
+  });
+
+  it('parses and formats alpha-aware colors', () => {
+    expect(hexToRgba('#3b82f680')).toEqual({ r: 59, g: 130, b: 246, a: 0.5 });
+    expect(hexToRgba('#0f8c')).toEqual({ r: 0, g: 255, b: 136, a: 0.8 });
+    expect(parseRgbaString('rgba(59, 130, 246, 0.5)')).toEqual({ r: 59, g: 130, b: 246, a: 0.5 });
+    expect(rgbaToHex({ r: 59, g: 130, b: 246, a: 0.5 })).toBe('#3b82f680');
+  });
+
+  it('calculates WCAG contrast ratios', () => {
+    expect(calculateContrastRatio({ r: 0, g: 0, b: 0 }, { r: 255, g: 255, b: 255 })).toBe(21);
+    expect(calculateContrastRatio({ r: 255, g: 255, b: 255 }, { r: 255, g: 255, b: 255 })).toBe(1);
   });
 });

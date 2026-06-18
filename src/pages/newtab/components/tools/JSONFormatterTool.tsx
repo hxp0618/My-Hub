@@ -4,6 +4,7 @@ import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA } from '../../../../types/tools';
 import { ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { jsonrepair } from 'jsonrepair';
 
 // 转义字符处理模式
 type EscapeMode = 'preserve' | 'remove';
@@ -11,6 +12,12 @@ type EscapeMode = 'preserve' | 'remove';
 type DebouncedFunction<TArgs extends unknown[]> = ((...args: TArgs) => void) & {
   cancel: () => void;
 };
+
+type JsonPathToken = string | number;
+
+export type JsonQueryResult =
+  | { success: true; output: string }
+  | { success: false; error: 'invalidJson' | 'invalidPath' | 'notFound' };
 
 // 防抖函数：使用浏览器/测试环境通用的 timeout 类型，避免依赖 NodeJS 命名空间。
 function debounce<TArgs extends unknown[]>(
@@ -34,6 +41,99 @@ function debounce<TArgs extends unknown[]>(
   return debounced;
 }
 
+const stringifyJsonValue = (value: unknown): string => {
+  const serialized = JSON.stringify(value, null, 2);
+  return serialized ?? String(value);
+};
+
+/**
+ * 将宽松 JSON 修复成严格、格式化后的 JSON。
+ */
+export const repairJsonInput = (value: string, indent = 2): string => {
+  const repaired = jsonrepair(value);
+  return JSON.stringify(JSON.parse(repaired), null, indent);
+};
+
+const parseJsonPath = (path: string): JsonPathToken[] | null => {
+  const normalizedPath = path.trim();
+  if (!normalizedPath || normalizedPath[0] !== '$') return null;
+  if (normalizedPath === '$') return [];
+
+  const tokens: JsonPathToken[] = [];
+  let index = 1;
+
+  while (index < normalizedPath.length) {
+    const char = normalizedPath[index];
+
+    if (char === '.') {
+      index += 1;
+      const match = /^[A-Za-z_$][\w$-]*/.exec(normalizedPath.slice(index));
+      if (!match) return null;
+      tokens.push(match[0]);
+      index += match[0].length;
+      continue;
+    }
+
+    if (char === '[') {
+      const rest = normalizedPath.slice(index);
+      const indexMatch = /^\[(\d+)\]/.exec(rest);
+      if (indexMatch) {
+        tokens.push(Number(indexMatch[1]));
+        index += indexMatch[0].length;
+        continue;
+      }
+
+      const quotedMatch = /^\[['"]([^'"]+)['"]\]/.exec(rest);
+      if (quotedMatch) {
+        tokens.push(quotedMatch[1]);
+        index += quotedMatch[0].length;
+        continue;
+      }
+    }
+
+    return null;
+  }
+
+  return tokens;
+};
+
+/**
+ * 查询 JSON 中的简单路径，支持 $.name、$.items[0]、$["key"]。
+ */
+export const queryJsonPath = (jsonText: string, path: string): JsonQueryResult => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    return { success: false, error: 'invalidJson' };
+  }
+
+  const tokens = parseJsonPath(path);
+  if (!tokens) return { success: false, error: 'invalidPath' };
+
+  let current = parsed;
+  for (const token of tokens) {
+    if (typeof token === 'number') {
+      if (!Array.isArray(current) || token < 0 || token >= current.length) {
+        return { success: false, error: 'notFound' };
+      }
+      current = current[token];
+      continue;
+    }
+
+    if (
+      typeof current !== 'object' ||
+      current === null ||
+      !Object.prototype.hasOwnProperty.call(current, token)
+    ) {
+      return { success: false, error: 'notFound' };
+    }
+    current = (current as Record<string, unknown>)[token];
+  }
+
+  return { success: true, output: stringifyJsonValue(current) };
+};
+
 /**
  * JSON 格式化工具组件
  */
@@ -47,6 +147,9 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [escapeMode, setEscapeMode] = useState<EscapeMode>('preserve');
+  const [queryPath, setQueryPath] = useState('');
+  const [queryOutput, setQueryOutput] = useState('');
+  const [queryError, setQueryError] = useState('');
 
   // 处理转义字符
   const processEscapeCharacters = useCallback((jsonString: string, mode: EscapeMode): string => {
@@ -139,6 +242,49 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
     }
   }, [input, t]);
 
+  // 修复宽松 JSON
+  const handleRepair = useCallback(() => {
+    if (!input.trim()) {
+      setError(t('tools.jsonFormatter.emptyInput'));
+      setOutput('');
+      return;
+    }
+
+    try {
+      const repaired = repairJsonInput(input);
+      setOutput(repaired);
+      setError('');
+    } catch {
+      setError(t('tools.jsonFormatter.error'));
+      setOutput('');
+    }
+  }, [input, t]);
+
+  const handleQuery = useCallback(() => {
+    const path = queryPath.trim();
+    if (!path) {
+      setQueryError(t('tools.jsonFormatter.queryEmpty'));
+      setQueryOutput('');
+      return;
+    }
+
+    const source = output.trim() ? output : input;
+    const result = queryJsonPath(source, path);
+    if (result.success) {
+      setQueryOutput(result.output);
+      setQueryError('');
+      return;
+    }
+
+    const messageKey = {
+      invalidJson: 'tools.jsonFormatter.error',
+      invalidPath: 'tools.jsonFormatter.queryInvalidPath',
+      notFound: 'tools.jsonFormatter.queryNotFound',
+    }[result.error];
+    setQueryError(t(messageKey));
+    setQueryOutput('');
+  }, [input, output, queryPath, t]);
+
   // 复制到剪贴板
   const handleCopy = useCallback(() => {
     copy(output);
@@ -149,6 +295,9 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
     setInput('');
     setOutput('');
     setError('');
+    setQueryPath('');
+    setQueryOutput('');
+    setQueryError('');
   };
 
   return (
@@ -172,6 +321,12 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
               className="nb-btn nb-btn-secondary text-sm"
             >
               {t('tools.jsonFormatter.compress')}
+            </button>
+            <button
+              onClick={handleRepair}
+              className="nb-btn nb-btn-secondary text-sm"
+            >
+              {t('tools.jsonFormatter.repair')}
             </button>
             <button
               onClick={handleCopy}
@@ -210,6 +365,40 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
             <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>{error}</p>
           </div>
         )}
+
+        {/* JSON 路径查询 */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 items-end flex-shrink-0">
+          <div>
+            <label className="block text-sm font-medium nb-text mb-2">
+              {t('tools.jsonFormatter.queryLabel')}
+            </label>
+            <input
+              type="text"
+              value={queryPath}
+              onChange={e => setQueryPath(e.target.value)}
+              placeholder={t('tools.jsonFormatter.queryPlaceholder')}
+              className="nb-input w-full font-mono text-sm"
+            />
+          </div>
+          <button
+            onClick={handleQuery}
+            className="nb-btn nb-btn-secondary text-sm"
+          >
+            {t('tools.jsonFormatter.query')}
+          </button>
+          <div>
+            <label className="block text-sm font-medium nb-text mb-2">
+              {t('tools.jsonFormatter.queryResult')}
+            </label>
+            <div className="min-h-10 px-3 py-2 nb-bg nb-border rounded-lg font-mono text-sm overflow-auto break-all nb-text">
+              {queryOutput || (
+                <span style={{ color: queryError ? 'var(--color-error-text)' : undefined }} className={!queryError ? 'nb-text-secondary' : undefined}>
+                  {queryError || t('tools.jsonFormatter.queryResult')}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* 输入输出区域 - 使用 grid 布局 */}
         <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">

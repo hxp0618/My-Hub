@@ -5,11 +5,17 @@ import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/too
 import * as Diff from 'diff';
 
 export type DiffMode = 'side-by-side' | 'inline';
+export type DiffGranularity = 'char' | 'word' | 'line';
 
 export interface DiffChange {
   value: string;
   added?: boolean;
   removed?: boolean;
+}
+
+export interface DiffOptions {
+  ignoreWhitespace?: boolean;
+  ignoreCase?: boolean;
 }
 
 export const DIFF_HIGHLIGHT_STYLES: Record<'added' | 'removed', React.CSSProperties> = {
@@ -27,17 +33,47 @@ export const DIFF_HIGHLIGHT_STYLES: Record<'added' | 'removed', React.CSSPropert
 };
 
 /**
+ * 根据忽略选项规范化文本。
+ */
+export const normalizeDiffText = (text: string, options: DiffOptions = {}): string => {
+  let normalized = text;
+  if (options.ignoreWhitespace) {
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+  }
+  if (options.ignoreCase) {
+    normalized = normalized.toLowerCase();
+  }
+  return normalized;
+};
+
+/**
  * 计算文本差异（字符级别）
  */
-export const computeDiff = (textA: string, textB: string): DiffChange[] => {
-  return Diff.diffChars(textA, textB);
+export const computeDiff = (
+  textA: string,
+  textB: string,
+  granularity: DiffGranularity = 'char',
+  options: DiffOptions = {}
+): DiffChange[] => {
+  const normalizedA = normalizeDiffText(textA, options);
+  const normalizedB = normalizeDiffText(textB, options);
+
+  switch (granularity) {
+    case 'line':
+      return Diff.diffLines(normalizedA, normalizedB);
+    case 'word':
+      return Diff.diffWordsWithSpace(normalizedA, normalizedB);
+    case 'char':
+    default:
+      return Diff.diffChars(normalizedA, normalizedB);
+  }
 };
 
 /**
  * 检查两段文本是否相同
  */
-export const areTextsIdentical = (textA: string, textB: string): boolean => {
-  return textA === textB;
+export const areTextsIdentical = (textA: string, textB: string, options: DiffOptions = {}): boolean => {
+  return normalizeDiffText(textA, options) === normalizeDiffText(textB, options);
 };
 
 /**
@@ -51,14 +87,32 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
   const [textA, setTextA] = useState('');
   const [textB, setTextB] = useState('');
   const [mode, setMode] = useState<DiffMode>('side-by-side');
+  const [granularity, setGranularity] = useState<DiffGranularity>('char');
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
+  const [ignoreCase, setIgnoreCase] = useState(false);
 
   // 计算差异
-  const diff = useMemo(() => computeDiff(textA, textB), [textA, textB]);
-  const isIdentical = useMemo(() => areTextsIdentical(textA, textB), [textA, textB]);
+  const diffOptions = useMemo(
+    () => ({ ignoreWhitespace, ignoreCase }),
+    [ignoreCase, ignoreWhitespace]
+  );
+  const diff = useMemo(
+    () => computeDiff(textA, textB, granularity, diffOptions),
+    [diffOptions, granularity, textA, textB]
+  );
+  const isIdentical = useMemo(
+    () => areTextsIdentical(textA, textB, diffOptions),
+    [diffOptions, textA, textB]
+  );
 
   const handleClear = () => {
     setTextA('');
     setTextB('');
+  };
+
+  const handleSwap = () => {
+    setTextA(textB);
+    setTextB(textA);
   };
 
   // 渲染行内差异
@@ -162,6 +216,19 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
             </select>
           </div>
 
+          <div className="flex items-center gap-2">
+            <label className="text-sm nb-text-secondary">{t('tools.diffViewer.granularity')}:</label>
+            <select
+              value={granularity}
+              onChange={e => setGranularity(e.target.value as DiffGranularity)}
+              className="nb-input text-sm"
+            >
+              <option value="char">{t('tools.diffViewer.charLevel')}</option>
+              <option value="word">{t('tools.diffViewer.wordLevel')}</option>
+              <option value="line">{t('tools.diffViewer.lineLevel')}</option>
+            </select>
+          </div>
+
           <div className="flex gap-2 text-xs">
             <span className="nb-badge nb-badge-green">
               {t('tools.diffViewer.added')}
@@ -171,9 +238,36 @@ export const DiffViewerTool: React.FC<ToolComponentProps> = ({
             </span>
           </div>
 
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ignoreWhitespace}
+              onChange={e => setIgnoreWhitespace(e.target.checked)}
+              className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
+            />
+            <span className="text-sm nb-text-secondary">{t('tools.diffViewer.ignoreWhitespace')}</span>
+          </label>
+
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ignoreCase}
+              onChange={e => setIgnoreCase(e.target.checked)}
+              className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
+            />
+            <span className="text-sm nb-text-secondary">{t('tools.diffViewer.ignoreCase')}</span>
+          </label>
+
+          <button
+            onClick={handleSwap}
+            className="ml-auto nb-btn nb-btn-secondary text-sm"
+          >
+            {t('tools.diffViewer.swap')}
+          </button>
+
           <button
             onClick={handleClear}
-            className="ml-auto nb-btn nb-btn-ghost text-sm"
+            className="nb-btn nb-btn-ghost text-sm"
           >
             {t('tools.diffViewer.clear')}
           </button>

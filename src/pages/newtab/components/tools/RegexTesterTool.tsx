@@ -7,6 +7,7 @@ interface MatchResult {
   match: string;
   index: number;
   groups: string[];
+  namedGroups?: Record<string, string>;
 }
 
 export type RegexErrorCode = 'invalidExpression';
@@ -15,6 +16,18 @@ export interface RegexTestResult {
   matches: MatchResult[];
   error: RegexErrorCode | null;
 }
+
+export interface RegexReplaceResult {
+  output: string;
+  error: RegexErrorCode | null;
+}
+
+const getNamedGroups = (match: RegExpExecArray): Record<string, string> | undefined => {
+  if (!match.groups) return undefined;
+  return Object.fromEntries(
+    Object.entries(match.groups).map(([key, value]) => [key, value ?? ''])
+  );
+};
 
 /**
  * 执行正则匹配
@@ -39,6 +52,7 @@ export const executeRegex = (
           match: match[0],
           index: match.index,
           groups: match.slice(1),
+          namedGroups: getNamedGroups(match),
         });
         // 防止无限循环
         if (match[0].length === 0) {
@@ -52,6 +66,7 @@ export const executeRegex = (
           match: match[0],
           index: match.index,
           groups: match.slice(1),
+          namedGroups: getNamedGroups(match),
         });
       }
     }
@@ -59,6 +74,24 @@ export const executeRegex = (
     return { matches, error: null };
   } catch {
     return { matches: [], error: 'invalidExpression' };
+  }
+};
+
+export const replaceRegex = (
+  pattern: string,
+  flags: string,
+  testText: string,
+  replacement: string
+): RegexReplaceResult => {
+  if (!pattern) {
+    return { output: testText, error: null };
+  }
+
+  try {
+    const regex = new RegExp(pattern, flags);
+    return { output: testText.replace(regex, replacement), error: null };
+  } catch {
+    return { output: '', error: 'invalidExpression' };
   }
 };
 
@@ -70,9 +103,11 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
   onToggleExpand,
 }) => {
   const { t } = useTranslation();
+  const [operationMode, setOperationMode] = useState<'match' | 'replace'>('match');
   const [pattern, setPattern] = useState('');
   const [flags, setFlags] = useState('g');
   const [testText, setTestText] = useState('');
+  const [replacement, setReplacement] = useState('');
   const [result, setResult] = useState<RegexTestResult>({ matches: [], error: null });
 
   // 标志选项
@@ -81,6 +116,9 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
     { value: 'i', label: 'i (ignore case)' },
     { value: 'm', label: 'm (multiline)' },
     { value: 's', label: 's (dotAll)' },
+    { value: 'u', label: 'u (unicode)' },
+    { value: 'y', label: 'y (sticky)' },
+    { value: 'd', label: 'd (indices)' },
   ];
 
   // 切换标志
@@ -97,6 +135,11 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
     const newResult = executeRegex(pattern, flags, testText);
     setResult(newResult);
   }, [pattern, flags, testText]);
+
+  const replacementResult = useMemo(
+    () => replaceRegex(pattern, flags, testText, replacement),
+    [flags, pattern, replacement, testText]
+  );
 
   // 高亮显示匹配结果
   const highlightedText = useMemo(() => {
@@ -132,6 +175,7 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
   const handleClear = () => {
     setPattern('');
     setTestText('');
+    setReplacement('');
     setResult({ matches: [], error: null });
   };
 
@@ -144,6 +188,24 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
       <div className="h-full flex flex-col gap-4">
         {/* 正则输入区 */}
         <div className="flex-shrink-0 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm nb-text-secondary">{t('tools.regexTester.mode')}:</span>
+            <button
+              type="button"
+              onClick={() => setOperationMode('match')}
+              className={`nb-btn text-sm ${operationMode === 'match' ? 'nb-btn-primary' : 'nb-btn-secondary'}`}
+            >
+              {t('tools.regexTester.matchMode')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOperationMode('replace')}
+              className={`nb-btn text-sm ${operationMode === 'replace' ? 'nb-btn-primary' : 'nb-btn-secondary'}`}
+            >
+              {t('tools.regexTester.replaceMode')}
+            </button>
+          </div>
+
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium nb-text mb-1">
@@ -193,6 +255,21 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
               </p>
             </div>
           )}
+
+          {operationMode === 'replace' && (
+            <div>
+              <label className="block text-sm font-medium nb-text mb-1">
+                {t('tools.regexTester.replacement')}
+              </label>
+              <input
+                type="text"
+                value={replacement}
+                onChange={e => setReplacement(e.target.value)}
+                placeholder={t('tools.regexTester.replacementPlaceholder')}
+                className="nb-input w-full font-mono text-sm"
+              />
+            </div>
+          )}
         </div>
 
         {/* 测试文本和结果区域 */}
@@ -210,18 +287,22 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
             />
           </div>
 
-          {/* 匹配结果 */}
+          {/* 匹配/替换结果 */}
           <div className="flex flex-col min-h-0">
             <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
-              {t('tools.regexTester.matches')}
-              {result.matches.length > 0 && (
+              {operationMode === 'match' ? t('tools.regexTester.matches') : t('tools.regexTester.replaceResult')}
+              {operationMode === 'match' && result.matches.length > 0 && (
                 <span className="ml-2 text-xs nb-text-secondary font-normal">
                   ({t('tools.regexTester.matchCount', { count: result.matches.length })})
                 </span>
               )}
             </label>
             <div className="flex-1 nb-card-static overflow-auto">
-              {result.matches.length === 0 ? (
+              {operationMode === 'replace' ? (
+                <div className="p-3 font-mono text-sm whitespace-pre-wrap break-all nb-text">
+                  {replacementResult.error ? '' : replacementResult.output}
+                </div>
+              ) : result.matches.length === 0 ? (
                 <div className="h-full flex items-center justify-center nb-text-secondary text-sm">
                   {result.error ? '' : t('tools.regexTester.noMatches')}
                 </div>
@@ -243,6 +324,23 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
                             {match.groups.map((group, j) => (
                               <p key={j} className="font-mono text-sm nb-text">
                                 <span className="nb-text-secondary">Group {j + 1}:</span> {group || '(empty)'}
+                              </p>
+                            ))}
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+                  {result.matches.some(m => m.namedGroups && Object.keys(m.namedGroups).length > 0) && (
+                    <div className="mt-3">
+                      <p className="text-xs nb-text-secondary mb-2">{t('tools.regexTester.namedGroups')}:</p>
+                      {result.matches.map((match, i) => (
+                        match.namedGroups && Object.keys(match.namedGroups).length > 0 && (
+                          <div key={i} className="p-2 nb-bg rounded-lg mb-1">
+                            <p className="text-xs nb-text-secondary mb-1">Match {i + 1}:</p>
+                            {Object.entries(match.namedGroups).map(([name, value]) => (
+                              <p key={name} className="font-mono text-sm nb-text">
+                                <span className="nb-text-secondary">{name}:</span> {value || '(empty)'}
                               </p>
                             ))}
                           </div>

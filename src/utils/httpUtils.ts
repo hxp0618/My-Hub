@@ -7,6 +7,10 @@ import {
   StatusColor, 
   JsonValidationResult, 
   HeaderEntry,
+  HttpAuthConfig,
+  HttpBodyMode,
+  HttpFormEntry,
+  HttpVariableEntry,
   HttpRequestOptions,
   HttpResponse,
   METHODS_WITH_BODY
@@ -91,6 +95,80 @@ export function headersToRecord(headers: HeaderEntry[]): Record<string, string> 
     }
   }
   return result;
+}
+
+export function applyHttpVariables(value: string, variables: HttpVariableEntry[]): string {
+  const variableMap = new Map(
+    variables
+      .filter(variable => variable.enabled && variable.key.trim())
+      .map(variable => [variable.key.trim(), variable.value])
+  );
+
+  return value.replace(/\{\{\s*([A-Za-z_][\w.-]*)\s*\}\}/g, (match, key: string) => (
+    variableMap.has(key) ? variableMap.get(key) ?? '' : match
+  ));
+}
+
+export function buildAuthHeaderEntries(auth: HttpAuthConfig): HeaderEntry[] {
+  switch (auth.type) {
+    case 'bearer':
+      return auth.token?.trim()
+        ? [{ key: 'Authorization', value: `Bearer ${auth.token.trim()}`, enabled: true }]
+        : [];
+    case 'basic': {
+      const username = auth.username ?? '';
+      const password = auth.password ?? '';
+      if (!username && !password) return [];
+      return [{ key: 'Authorization', value: `Basic ${btoa(`${username}:${password}`)}`, enabled: true }];
+    }
+    case 'apiKey':
+      return auth.key?.trim() && auth.value?.trim()
+        ? [{ key: auth.key.trim(), value: auth.value.trim(), enabled: true }]
+        : [];
+    case 'none':
+    default:
+      return [];
+  }
+}
+
+export function createHttpRequestPayload(options: {
+  method: string;
+  bodyMode: HttpBodyMode;
+  body: string;
+  formRows: HttpFormEntry[];
+  headers: Record<string, string>;
+}): { headers: Record<string, string>; body?: BodyInit } {
+  const { method, bodyMode, body, formRows } = options;
+  const headers = { ...options.headers };
+
+  if (!methodNeedsBody(method)) {
+    return { headers };
+  }
+
+  if (bodyMode === 'formData') {
+    const formData = new FormData();
+    formRows
+      .filter(row => row.enabled && row.key.trim())
+      .forEach(row => formData.append(row.key.trim(), row.value));
+
+    Object.keys(headers).forEach(key => {
+      if (key.toLowerCase() === 'content-type') {
+        delete headers[key];
+      }
+    });
+
+    return { headers, body: formData };
+  }
+
+  if (!body) {
+    return { headers };
+  }
+
+  if (bodyMode === 'json' && !headers['Content-Type'] && !headers['content-type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return { headers, body };
 }
 
 /**
@@ -181,10 +259,6 @@ export async function sendHttpRequest(options: HttpRequestOptions): Promise<Http
   // 只有需要请求体的方法才添加 body
   if (methodNeedsBody(method) && body) {
     fetchOptions.body = body;
-    // 如果没有设置 Content-Type，默认使用 application/json
-    if (!headers['Content-Type'] && !headers['content-type']) {
-      (fetchOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
-    }
   }
   
   const response = await fetch(url, fetchOptions);

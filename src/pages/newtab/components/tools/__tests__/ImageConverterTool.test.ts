@@ -3,9 +3,11 @@ import i18n from '../../../../../i18n';
 import {
   ConvertOptions,
   ImageInfo,
+  compressImageToTargetSize,
   createImageBase64Result,
   detectImageMimeType,
   extractImageDataUrlParts,
+  extractImageMetadata,
   convertImage,
   generateOutputFileName,
   getImageBase64ErrorKey,
@@ -32,6 +34,10 @@ const imageInfo: ImageInfo = {
 const options: ConvertOptions = {
   targetFormat: 'png',
   quality: 85,
+  targetSize: {
+    enabled: false,
+    kilobytes: 0,
+  },
   resize: {
     enabled: false,
     width: 0,
@@ -55,6 +61,27 @@ class FailingImage extends LoadingImage {
   set src(_value: string) {
     queueMicrotask(() => this.onerror?.());
   }
+}
+
+function createExifJpegBytes(): Uint8Array {
+  const bytes = [
+    0xff, 0xd8,
+    0xff, 0xe1,
+    0x00, 0x48,
+    ...Array.from(new TextEncoder().encode('Exif\0\0')),
+    0x4d, 0x4d, 0x00, 0x2a,
+    0x00, 0x00, 0x00, 0x08,
+    0x00, 0x03,
+    0x01, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x00,
+    0x01, 0x0f, 0x00, 0x02, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x32,
+    0x01, 0x10, 0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x38,
+    0x00, 0x00, 0x00, 0x00,
+    ...Array.from(new TextEncoder().encode('Acme\0')),
+    0x00,
+    ...Array.from(new TextEncoder().encode('Cam X\0')),
+    0xff, 0xd9,
+  ];
+  return new Uint8Array(bytes);
 }
 
 describe('ImageConverterTool helpers', () => {
@@ -135,6 +162,31 @@ describe('ImageConverterTool helpers', () => {
     expect(detectImageMimeType(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml');
     expect(getImageExtensionFromMimeType('image/svg+xml')).toBe('svg');
     expect(getImageExtensionFromMimeType('image/vnd.microsoft.icon')).toBe('ico');
+  });
+
+  it('extracts JPEG EXIF metadata without loading the image', () => {
+    const metadata = extractImageMetadata(createExifJpegBytes(), 'image/jpeg');
+
+    expect(metadata.hasExif).toBe(true);
+    expect(metadata.orientation).toBe(6);
+    expect(metadata.make).toBe('Acme');
+    expect(metadata.model).toBe('Cam X');
+  });
+
+  it('compresses toward a target byte size by lowering quality', async () => {
+    const qualities: number[] = [];
+    const result = await compressImageToTargetSize(
+      async (quality) => {
+        qualities.push(quality);
+        return new Blob([new Uint8Array(Math.round(quality * 1000))], { type: 'image/jpeg' });
+      },
+      420,
+      85,
+    );
+
+    expect(result.blob.size).toBeLessThanOrEqual(420);
+    expect(result.quality).toBeLessThan(85);
+    expect(qualities.length).toBeGreaterThan(1);
   });
 
   it('maps invalid Base64 image input to stable error keys', () => {

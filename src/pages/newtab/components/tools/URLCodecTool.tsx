@@ -11,6 +11,62 @@ import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdow
 import { SwapButton } from '../../../../components/SwapButton';
 import { BatchModeToggle } from '../../../../components/BatchModeToggle';
 
+export interface UrlQueryParam {
+  key: string;
+  value: string;
+  index: number;
+}
+
+export type UrlDetailsResult =
+  | {
+      success: true;
+      protocol: string;
+      host: string;
+      pathname: string;
+      hash: string;
+      queryParams: UrlQueryParam[];
+      normalizedUrl: string;
+    }
+  | { success: false; error: 'invalidUrl' };
+
+export const parseUrlDetails = (value: string): UrlDetailsResult => {
+  try {
+    const url = new URL(value.trim());
+    const queryParams = Array.from(url.searchParams.entries()).map(([key, paramValue], index) => ({
+      key,
+      value: paramValue,
+      index,
+    }));
+    const search = url.searchParams.toString();
+    const normalizedUrl = `${url.origin}${url.pathname}${search ? `?${search}` : ''}${url.hash}`;
+
+    return {
+      success: true,
+      protocol: url.protocol,
+      host: url.host,
+      pathname: url.pathname,
+      hash: url.hash,
+      queryParams,
+      normalizedUrl,
+    };
+  } catch {
+    return { success: false, error: 'invalidUrl' };
+  }
+};
+
+export const buildUrlWithQueryParams = (value: string, queryParams: UrlQueryParam[]): string => {
+  const url = new URL(value.trim());
+  url.search = '';
+  queryParams
+    .filter(param => param.key.trim())
+    .sort((a, b) => a.index - b.index)
+    .forEach(param => {
+      url.searchParams.append(param.key, param.value);
+    });
+  const search = url.searchParams.toString();
+  return `${url.origin}${url.pathname}${search ? `?${search}` : ''}${url.hash}`;
+};
+
 /**
  * URL 编解码工具组件
  */
@@ -22,6 +78,7 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
   const { copy } = useCopyToClipboard();
   const [mode, setMode] = useState<'encode' | 'decode'>('encode');
   const [encodeMethod, setEncodeMethod] = useState<'uri' | 'component'>('component');
+  const [queryParams, setQueryParams] = useState<UrlQueryParam[]>([]);
 
   // 根据模式和方法选择转换函数
   const converter = useMemo(() => {
@@ -54,6 +111,16 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
     getErrorMessage: getConversionErrorMessage,
     silentError: true,
   });
+
+  const urlDetails = useMemo(() => parseUrlDetails(input), [input]);
+
+  useEffect(() => {
+    if (urlDetails.success) {
+      setQueryParams(urlDetails.queryParams);
+    } else {
+      setQueryParams([]);
+    }
+  }, [urlDetails]);
 
   // 历史记录 Hook
   const { addToHistory } = useInputHistory({
@@ -110,6 +177,32 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
     clear();
     batchMode.clearResults();
   }, [clear, batchMode]);
+
+  const handleQueryParamChange = useCallback((
+    index: number,
+    field: 'key' | 'value',
+    value: string
+  ) => {
+    setQueryParams(params => params.map(param => (
+      param.index === index ? { ...param, [field]: value } : param
+    )));
+  }, []);
+
+  const handleAddQueryParam = useCallback(() => {
+    setQueryParams(params => [
+      ...params,
+      { key: '', value: '', index: params.length ? Math.max(...params.map(param => param.index)) + 1 : 0 },
+    ]);
+  }, []);
+
+  const handleRemoveQueryParam = useCallback((index: number) => {
+    setQueryParams(params => params.filter(param => param.index !== index));
+  }, []);
+
+  const handleApplyQueryParams = useCallback(() => {
+    if (!urlDetails.success) return;
+    setInput(buildUrlWithQueryParams(input, queryParams));
+  }, [input, queryParams, setInput, urlDetails]);
 
   const isBatchModeEnabled = batchMode.enabled;
   const processBatchInput = batchMode.process;
@@ -256,6 +349,85 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
         {!batchMode.enabled && error && (
           <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0" style={{ borderColor: 'var(--nb-accent-pink)' }}>
             <p className="text-sm" style={{ color: 'var(--color-error-text)' }}>{error}</p>
+          </div>
+        )}
+
+        {urlDetails.success && (
+          <div className="p-3 nb-bg-card nb-border rounded-lg flex-shrink-0 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 flex-1 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs nb-text-secondary">{t('tools.urlCodec.protocol')}</div>
+                  <div className="font-mono text-sm nb-text truncate">{urlDetails.protocol}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs nb-text-secondary">{t('tools.urlCodec.host')}</div>
+                  <div className="font-mono text-sm nb-text truncate">{urlDetails.host}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs nb-text-secondary">{t('tools.urlCodec.path')}</div>
+                  <div className="font-mono text-sm nb-text truncate">{urlDetails.pathname || '/'}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs nb-text-secondary">{t('tools.urlCodec.hash')}</div>
+                  <div className="font-mono text-sm nb-text truncate">{urlDetails.hash || '-'}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => copy(urlDetails.normalizedUrl)}
+                className="nb-btn nb-btn-secondary text-xs"
+              >
+                {t('tools.urlCodec.copyUrl')}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium nb-text">{t('tools.urlCodec.queryParams')}</span>
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleAddQueryParam} className="nb-btn nb-btn-secondary text-xs">
+                    {t('tools.urlCodec.addParam')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyQueryParams}
+                    className="nb-btn nb-btn-primary text-xs"
+                  >
+                    {t('tools.urlCodec.applyParams')}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 max-h-32 overflow-auto">
+                {queryParams.length === 0 ? (
+                  <div className="text-sm nb-text-secondary">{t('tools.urlCodec.noQueryParams')}</div>
+                ) : queryParams.map(param => (
+                  <div key={param.index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
+                    <input
+                      type="text"
+                      value={param.key}
+                      onChange={e => handleQueryParamChange(param.index, 'key', e.target.value)}
+                      placeholder={t('tools.urlCodec.paramKey')}
+                      className="nb-input font-mono text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={param.value}
+                      onChange={e => handleQueryParamChange(param.index, 'value', e.target.value)}
+                      placeholder={t('tools.urlCodec.paramValue')}
+                      className="nb-input font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveQueryParam(param.index)}
+                      className="nb-btn nb-btn-ghost text-xs"
+                    >
+                      {t('tools.urlCodec.removeParam')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

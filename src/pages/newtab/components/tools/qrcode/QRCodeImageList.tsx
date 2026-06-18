@@ -9,7 +9,9 @@ interface QRCodeImageListProps {
   onDelete: (id: string) => void;
   onDeleteSelected: () => void;
   onDownload: (id: string) => void;
+  onDownloadSvg: (id: string) => void;
   onDownloadSelected: () => void;
+  onPreview: (dataUrl: string, title: string, detail: string) => void;
   hasSelected: boolean;
   allSelected: boolean;
 }
@@ -21,7 +23,9 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
   onDelete,
   onDeleteSelected,
   onDownload,
+  onDownloadSvg,
   onDownloadSelected,
+  onPreview,
   hasSelected,
   allSelected,
 }) => {
@@ -98,9 +102,15 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
             </button>
 
             {/* 图片 */}
-            <div
-              className="p-2 cursor-pointer"
-              onClick={() => onSelect(image.id)}
+            <button
+              type="button"
+              className="block w-full p-2 cursor-zoom-in"
+              onClick={() => onPreview(
+                image.dataUrl,
+                t('tools.qrcodeGenerator.previewTitle'),
+                image.content,
+              )}
+              aria-label={t('tools.qrcodeGenerator.preview')}
             >
               <img
                 src={image.dataUrl}
@@ -108,7 +118,10 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
                 className="w-full aspect-square object-contain"
                 style={{ imageRendering: 'pixelated' }}
               />
-            </div>
+              <span className="absolute bottom-2 left-2 z-10 w-11 h-11 rounded-full bg-[color:var(--nb-accent-yellow)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center shadow-[var(--nb-shadow-sm)]" aria-hidden="true">
+                <span className="material-symbols-outlined text-sm">zoom_in</span>
+              </span>
+            </button>
 
             {/* 内容预览 */}
             <div className="px-2 pb-2">
@@ -127,6 +140,16 @@ export const QRCodeImageList: React.FC<QRCodeImageListProps> = ({
               aria-label={t('tools.qrcodeGenerator.download')}
             >
               <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDownloadSvg(image.id)}
+              className={`absolute bottom-2 right-14 z-10 w-11 h-11 rounded-full bg-[color:var(--nb-accent-green)] border-2 border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)] transition-opacity flex items-center justify-center shadow-[var(--nb-shadow-sm)] ${
+                image.selected ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100'
+              }`}
+              aria-label={t('tools.qrcodeGenerator.downloadSvg')}
+            >
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">code</span>
             </button>
           </div>
         ))}

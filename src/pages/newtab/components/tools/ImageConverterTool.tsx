@@ -34,6 +34,10 @@ export interface ImageInfo {
 export interface ConvertOptions {
   targetFormat: ImageFormat;
   quality: number;
+  targetSize: {
+    enabled: boolean;
+    kilobytes: number;
+  };
   resize: {
     enabled: boolean;
     width: number;
@@ -74,6 +78,14 @@ export interface ImageBase64Result {
   fileName: string;
 }
 
+export interface ImageMetadata {
+  hasExif: boolean;
+  orientation?: number;
+  make?: string;
+  model?: string;
+  dateTime?: string;
+}
+
 interface ImagePreviewState {
   dataUrl: string;
   title: string;
@@ -104,6 +116,7 @@ export const ICO_SIZES = [16, 32, 48, 64, 128, 256];
 export const DEFAULT_IMAGE_QUALITY = 85;
 export const DEFAULT_ICO_SIZE = 32;
 export const MAX_RESIZE_DIMENSION = 8192;
+export const MAX_TARGET_SIZE_KB = 10240;
 const SUPPORTED_INPUT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp'];
 const IMAGE_CONVERTER_ERROR_KEYS = ['loadError', 'convertError'] as const;
 type ImageConverterErrorKey = typeof IMAGE_CONVERTER_ERROR_KEYS[number];
@@ -221,6 +234,14 @@ export function parseImageQuality(
 
   if (!Number.isSafeInteger(rawValue)) return safeFallback;
   return Math.min(100, Math.max(1, rawValue));
+}
+
+export function parseTargetSizeKilobytes(value: string | number): number {
+  const rawValue = typeof value === 'string' ? value.trim() : value;
+  if (typeof rawValue === 'string' && !/^\d+$/.test(rawValue)) return 0;
+  const parsedValue = Number(rawValue);
+  if (!Number.isSafeInteger(parsedValue) || parsedValue <= 0) return 0;
+  return Math.min(parsedValue, MAX_TARGET_SIZE_KB);
 }
 
 export function parseIcoSizeOption(
@@ -383,6 +404,84 @@ export function detectImageMimeType(bytes: Uint8Array): string | null {
   return null;
 }
 
+function readExifAscii(
+  bytes: Uint8Array,
+  tiffOffset: number,
+  valueOffset: number,
+  count: number
+): string {
+  const start = tiffOffset + valueOffset;
+  const end = Math.min(bytes.length, start + count);
+  return new TextDecoder('ascii')
+    .decode(bytes.slice(start, end))
+    .replace(/\0+$/g, '')
+    .trim();
+}
+
+export function extractImageMetadata(bytes: Uint8Array, mimeType: string): ImageMetadata {
+  const metadata: ImageMetadata = { hasExif: false };
+  if (!mimeType.toLowerCase().includes('jpeg')) return metadata;
+
+  for (let offset = 2; offset + 10 < bytes.length;) {
+    if (bytes[offset] !== 0xff) break;
+    const marker = bytes[offset + 1];
+    const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+    const segmentStart = offset + 4;
+    if (marker === 0xe1) {
+      const header = new TextDecoder('ascii').decode(bytes.slice(segmentStart, segmentStart + 6));
+      if (header !== 'Exif\0\0') return metadata;
+
+      const tiffOffset = segmentStart + 6;
+      const littleEndian = bytes[tiffOffset] === 0x49 && bytes[tiffOffset + 1] === 0x49;
+      const readUint16 = (index: number) => littleEndian
+        ? bytes[index] | (bytes[index + 1] << 8)
+        : (bytes[index] << 8) | bytes[index + 1];
+      const readUint32 = (index: number) => littleEndian
+        ? bytes[index] | (bytes[index + 1] << 8) | (bytes[index + 2] << 16) | (bytes[index + 3] << 24)
+        : (bytes[index] << 24) | (bytes[index + 1] << 16) | (bytes[index + 2] << 8) | bytes[index + 3];
+
+      const firstIfdOffset = readUint32(tiffOffset + 4);
+      const ifdOffset = tiffOffset + firstIfdOffset;
+      const entryCount = readUint16(ifdOffset);
+      metadata.hasExif = true;
+
+      for (let index = 0; index < entryCount; index += 1) {
+        const entryOffset = ifdOffset + 2 + index * 12;
+        if (entryOffset + 12 > bytes.length) break;
+        const tag = readUint16(entryOffset);
+        const type = readUint16(entryOffset + 2);
+        const count = readUint32(entryOffset + 4);
+        const valueOffset = readUint32(entryOffset + 8);
+
+        if (tag === 0x0112 && type === 3) {
+          metadata.orientation = littleEndian
+            ? bytes[entryOffset + 8] | (bytes[entryOffset + 9] << 8)
+            : (bytes[entryOffset + 8] << 8) | bytes[entryOffset + 9];
+        } else if (tag === 0x010f && type === 2) {
+          metadata.make = count <= 4
+            ? new TextDecoder('ascii').decode(bytes.slice(entryOffset + 8, entryOffset + 8 + count)).replace(/\0+$/g, '').trim()
+            : readExifAscii(bytes, tiffOffset, valueOffset, count);
+        } else if (tag === 0x0110 && type === 2) {
+          metadata.model = count <= 4
+            ? new TextDecoder('ascii').decode(bytes.slice(entryOffset + 8, entryOffset + 8 + count)).replace(/\0+$/g, '').trim()
+            : readExifAscii(bytes, tiffOffset, valueOffset, count);
+        } else if (tag === 0x0132 && type === 2) {
+          metadata.dateTime = count <= 4
+            ? new TextDecoder('ascii').decode(bytes.slice(entryOffset + 8, entryOffset + 8 + count)).replace(/\0+$/g, '').trim()
+            : readExifAscii(bytes, tiffOffset, valueOffset, count);
+        }
+      }
+
+      return metadata;
+    }
+
+    if (segmentLength < 2) break;
+    offset += 2 + segmentLength;
+  }
+
+  return metadata;
+}
+
 export function getImageExtensionFromMimeType(mimeType: string): string {
   const normalizedMimeType = mimeType.toLowerCase();
   const mappedExtension = IMAGE_MIME_EXTENSION_MAP[normalizedMimeType];
@@ -515,9 +614,17 @@ export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions
     const mimeType = FORMAT_MIME_MAP[targetFormat];
     const qualityValue = shouldShowQualitySlider(targetFormat) ? quality / 100 : undefined;
 
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('convertError'))), mimeType, qualityValue);
+    const encodeCanvas = (nextQuality: number | undefined) => new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('convertError'))), mimeType, nextQuality);
     });
+
+    const targetSizeBytes = options.targetSize.enabled && shouldShowQualitySlider(targetFormat)
+      ? parseTargetSizeKilobytes(options.targetSize.kilobytes) * 1024
+      : 0;
+    const compressionResult = targetSizeBytes > 0
+      ? await compressImageToTargetSize(encodeCanvas, targetSizeBytes, quality)
+      : null;
+    const blob = compressionResult?.blob ?? await encodeCanvas(qualityValue);
 
     const dataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -534,6 +641,35 @@ export async function convertImage(imageInfo: ImageInfo, options: ConvertOptions
       error: i18n.t(`tools.imageConverter.${getImageConverterErrorKey(error)}`),
     };
   }
+}
+
+export async function compressImageToTargetSize(
+  encode: (quality: number) => Promise<Blob>,
+  targetBytes: number,
+  initialQuality = DEFAULT_IMAGE_QUALITY
+): Promise<{ blob: Blob; quality: number }> {
+  const safeTargetBytes = Number.isSafeInteger(targetBytes) && targetBytes > 0 ? targetBytes : 0;
+  let quality = parseImageQuality(initialQuality) / 100;
+  let bestBlob = await encode(quality);
+  let bestQuality = quality;
+
+  if (!safeTargetBytes || bestBlob.size <= safeTargetBytes) {
+    return { blob: bestBlob, quality: Math.round(bestQuality * 100) };
+  }
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    quality = Math.max(0.05, quality * 0.82);
+    const candidate = await encode(quality);
+    if (candidate.size < bestBlob.size) {
+      bestBlob = candidate;
+      bestQuality = quality;
+    }
+    if (candidate.size <= safeTargetBytes || quality <= 0.05) {
+      break;
+    }
+  }
+
+  return { blob: bestBlob, quality: Math.round(bestQuality * 100) };
 }
 
 export function downloadImage(result: ConvertResult): void {
@@ -619,6 +755,7 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
   const [options, setOptions] = useState<ConvertOptions>({
     targetFormat: 'png',
     quality: DEFAULT_IMAGE_QUALITY,
+    targetSize: { enabled: false, kilobytes: 0 },
     resize: { enabled: false, width: 0, height: 0, maintainAspectRatio: true },
     icoSize: DEFAULT_ICO_SIZE,
   });
@@ -635,6 +772,18 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
 
   const selectedImage = images[selectedIndex];
   const selectedResult = selectedImage ? results.get(selectedImage.id) : undefined;
+  const selectedMetadata = useMemo(() => {
+    if (!selectedImage) return null;
+    const parts = extractImageDataUrlParts(selectedImage.dataUrl);
+    if (!parts) return null;
+    try {
+      const binary = atob(parts.rawBase64);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return extractImageMetadata(bytes, parts.mimeType);
+    } catch {
+      return null;
+    }
+  }, [selectedImage]);
   const formats: ImageFormat[] = ['png', 'jpeg', 'webp', 'gif', 'bmp', 'ico'];
   const base64Output = useMemo(() => {
     if (!base64SourceImage) return '';
@@ -1048,6 +1197,34 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                 </div>
               )}
 
+              {shouldShowQualitySlider(options.targetFormat) && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm nb-text">
+                    <input
+                      type="checkbox"
+                      checked={options.targetSize.enabled}
+                      onChange={(e) => setOptions(prev => ({ ...prev, targetSize: { ...prev.targetSize, enabled: e.target.checked } }))}
+                      className="h-4 w-4 border-2 border-[color:var(--nb-border)] rounded-sm accent-[color:var(--nb-border)]"
+                    />
+                    {t('tools.imageConverter.targetSize')}
+                  </label>
+                  {options.targetSize.enabled && (
+                    <div className="mt-2 pl-6">
+                      <input
+                        type="number"
+                        min="1"
+                        max={MAX_TARGET_SIZE_KB}
+                        value={options.targetSize.kilobytes || ''}
+                        onChange={(e) => setOptions(prev => ({ ...prev, targetSize: { ...prev.targetSize, kilobytes: parseTargetSizeKilobytes(e.target.value) } }))}
+                        placeholder={t('tools.imageConverter.targetSizePlaceholder')}
+                        className="nb-input w-32 text-sm py-1 px-2"
+                      />
+                      <span className="ml-2 text-xs nb-text-secondary">KB</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ICO 尺寸 */}
               {options.targetFormat === 'ico' && (
                 <div>
@@ -1079,6 +1256,39 @@ export default function ImageConverterTool({ isExpanded, onToggleExpand }: ToolC
                 )}
               </div>
             </div>
+
+            {selectedMetadata?.hasExif && (
+              <div className="nb-card-static p-3 flex-shrink-0">
+                <p className="text-sm font-medium nb-text mb-2">{t('tools.imageConverter.metadata')}</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {selectedMetadata.make && (
+                    <div className="nb-border rounded-md p-2">
+                      <p className="nb-text-secondary">{t('tools.imageConverter.cameraMake')}</p>
+                      <p className="nb-text truncate" title={selectedMetadata.make}>{selectedMetadata.make}</p>
+                    </div>
+                  )}
+                  {selectedMetadata.model && (
+                    <div className="nb-border rounded-md p-2">
+                      <p className="nb-text-secondary">{t('tools.imageConverter.cameraModel')}</p>
+                      <p className="nb-text truncate" title={selectedMetadata.model}>{selectedMetadata.model}</p>
+                    </div>
+                  )}
+                  {selectedMetadata.orientation && (
+                    <div className="nb-border rounded-md p-2">
+                      <p className="nb-text-secondary">{t('tools.imageConverter.orientation')}</p>
+                      <p className="nb-text">{selectedMetadata.orientation}</p>
+                    </div>
+                  )}
+                  {selectedMetadata.dateTime && (
+                    <div className="nb-border rounded-md p-2">
+                      <p className="nb-text-secondary">{t('tools.imageConverter.dateTime')}</p>
+                      <p className="nb-text truncate" title={selectedMetadata.dateTime}>{selectedMetadata.dateTime}</p>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs nb-text-secondary">{t('tools.imageConverter.metadataStripHint')}</p>
+              </div>
+            )}
 
             {/* 预览区域 */}
             <div className="flex-1 nb-border rounded-md p-4 overflow-auto nb-bg-card">
