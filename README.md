@@ -174,6 +174,7 @@ npm run build:firefox
 | `storage` | 存储用户配置 |
 | `activeTab` | 当前页面交互 |
 | `clipboardRead` | 剪贴板读取 |
+| `http/https` | 内容脚本和用户主动输入链接时读取在线二维码图片 |
 
 ---
 

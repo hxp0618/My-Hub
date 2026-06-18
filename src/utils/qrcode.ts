@@ -8,6 +8,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type { QRCodeOptions, QRCodeImage } from '../types/qrcode';
 import { sanitizeQRCodeOptions } from '../types/qrcode';
 
+const IMAGE_CONTENT_TYPE_PREFIX = 'image/';
+const IMAGE_URL_EXTENSION_RE = /\.(?:png|jpe?g|webp|gif|bmp|svg|ico|avif)(?:[?#].*)?$/i;
+
 export function normalizeQRCodeContents(contents: string[]): string[] {
   const seen = new Set<string>();
 
@@ -121,6 +124,52 @@ export async function decodeQRCode(imageDataUrl: string): Promise<string | null>
   });
 }
 
+export function parseOnlineImageUrl(value: string): string | null {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  try {
+    const url = new URL(trimmedValue);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function isLikelyImageUrl(url: string): boolean {
+  return IMAGE_URL_EXTENSION_RE.test(url);
+}
+
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function fetchImageDataUrl(
+  value: string,
+  fetcher: (input: string) => Promise<Response> = fetch
+): Promise<string> {
+  const url = parseOnlineImageUrl(value);
+  if (!url) throw new Error('invalidImageUrl');
+
+  const response = await fetcher(url);
+  if (!response.ok) throw new Error('imageUrlLoadError');
+
+  const blob = await response.blob();
+  const contentTypeHeader = response.headers.get('content-type') || '';
+  const contentType = (contentTypeHeader || blob.type).toLowerCase();
+  if (!contentType.startsWith(IMAGE_CONTENT_TYPE_PREFIX) && (contentType || !isLikelyImageUrl(url))) {
+    throw new Error('invalidImageUrl');
+  }
+
+  return blobToDataUrl(blob);
+}
+
 /**
  * 将图片打包为 ZIP 文件
  * @param images 图片数组
@@ -173,10 +222,5 @@ export async function downloadAsZip(images: QRCodeImage[]): Promise<void> {
  * @returns Data URL
  */
 export function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  return blobToDataUrl(file);
 }

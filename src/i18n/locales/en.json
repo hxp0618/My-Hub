@@ -442,7 +442,7 @@
       "networkError": "Network connection failed. Please check the API URL."
     },
     "permissionsTitle": "Permission Notes",
-    "permissionsDesc": "These permissions are used only by the current feature entry points. Content scripts are limited to http/https pages.",
+    "permissionsDesc": "These permissions are used only by the current feature entry points. Web access is limited to http/https pages.",
     "permissions": {
       "bookmarks": {
         "title": "Bookmarks",
@@ -475,9 +475,9 @@
         "desc": "Power Bark scheduled notifications and subscription expiry reminders so the browser can trigger them on time in the background."
       },
       "contentScripts": {
-        "title": "Web Content Scripts",
+        "title": "Web Access",
         "scope": "http/https",
-        "desc": "Injected only into regular web protocols for page interaction and content assistance; not injected into file, chrome-extension, or browser internal pages."
+        "desc": "Limited to regular web protocols for page interaction, content assistance, and reading online QR code images after the user enters a link; file, chrome-extension, and browser internal pages are not accessed."
       }
     },
     "cardsPerRow": "Cards Per Row",
@@ -1186,9 +1186,21 @@
       "generatedImages": "Generated Images",
       "emptyContent": "Enter content to generate QR code",
       "preview": "QR Code Preview",
-      "uploadHint": "Click or drag image here to upload",
+      "uploadHint": "Click, drag, or paste an image here to scan",
+      "pasteHint": "You can also paste an image or an online image link.",
+      "imageUrl": "Online Image URL",
+      "imageUrlPlaceholder": "Enter QR code image URL...",
+      "scanFromUrl": "Read Link",
+      "readClipboard": "Read Clipboard",
+      "imageSourceHint": "Supports reading online image links directly. Clipboard images are scanned directly; clipboard links are loaded as images; other content fails scanning.",
       "scanResult": "Scan Result",
       "noQRCodeFound": "No QR code found",
+      "scanFailed": "Scan failed. Provide a QR code image or an online image link.",
+      "invalidImageUrl": "Enter a valid http/https image link",
+      "imageUrlLoadError": "Failed to read the online image. Check the link or site access.",
+      "clipboardUnsupported": "This browser does not support reading clipboard content",
+      "clipboardReadFailed": "Failed to read the clipboard. Grant permission and keep the page focused.",
+      "clipboardNoImageOrUrl": "Clipboard content is not an image or online image link. Scan failed.",
       "uploadedImages": "Uploaded Images",
       "copy": "Copy",
       "clear": "Clear",

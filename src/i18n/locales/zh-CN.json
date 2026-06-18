@@ -442,7 +442,7 @@
       "networkError": "网络连接失败，请检查 API URL 是否正确。"
     },
     "permissionsTitle": "权限说明",
-    "permissionsDesc": "这些权限仅用于当前功能入口，内容脚本范围已限制为 http/https 页面。",
+    "permissionsDesc": "这些权限仅用于当前功能入口，网页访问范围已限制为 http/https 页面。",
     "permissions": {
       "bookmarks": {
         "title": "书签",
@@ -475,9 +475,9 @@
         "desc": "驱动 Bark 定时通知和订阅到期提醒，保证浏览器后台可以按计划触发。"
       },
       "contentScripts": {
-        "title": "网页内容脚本",
+        "title": "网页访问",
         "scope": "http/https",
-        "desc": "只注入普通网页协议，用于页面交互和内容辅助；不会注入 file、chrome-extension 或浏览器内部页面。"
+        "desc": "只覆盖普通网页协议，用于页面交互、内容辅助，以及用户主动输入链接时读取在线二维码图片；不会访问 file、chrome-extension 或浏览器内部页面。"
       }
     },
     "cardsPerRow": "每行显示卡片数量",
@@ -1151,9 +1151,21 @@
       "generatedImages": "已生成的图片",
       "emptyContent": "请输入内容以生成二维码",
       "preview": "二维码预览",
-      "uploadHint": "点击或拖拽图片到此处上传",
+      "uploadHint": "点击、拖拽或粘贴图片到此处识别",
+      "pasteHint": "也可以粘贴图片，或粘贴在线图片链接。",
+      "imageUrl": "在线图片链接",
+      "imageUrlPlaceholder": "输入二维码图片 URL...",
+      "scanFromUrl": "读取链接",
+      "readClipboard": "读取剪贴板",
+      "imageSourceHint": "支持直接读取在线图片链接；剪贴板内容是图片时直接识别，是链接时会读取该链接图片，否则识别失败。",
       "scanResult": "识别结果",
       "noQRCodeFound": "未识别到二维码",
+      "scanFailed": "识别失败，请提供二维码图片或在线图片链接",
+      "invalidImageUrl": "请输入有效的 http/https 图片链接",
+      "imageUrlLoadError": "在线图片读取失败，请检查链接或站点访问权限",
+      "clipboardUnsupported": "当前浏览器不支持读取剪贴板内容",
+      "clipboardReadFailed": "剪贴板读取失败，请确认已授权并保持页面聚焦",
+      "clipboardNoImageOrUrl": "剪贴板内容不是图片或在线图片链接，识别失败",
       "uploadedImages": "已上传的图片",
       "copy": "复制",
       "clear": "清空",

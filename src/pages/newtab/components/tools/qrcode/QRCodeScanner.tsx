@@ -1,7 +1,13 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ScanImage } from '../../../../../types/qrcode';
-import { decodeQRCode, fileToDataUrl } from '../../../../../utils/qrcode';
+import {
+  blobToDataUrl,
+  decodeQRCode,
+  fetchImageDataUrl,
+  fileToDataUrl,
+  parseOnlineImageUrl,
+} from '../../../../../utils/qrcode';
 
 interface QRCodeScannerProps {
   scanImages: ScanImage[];
@@ -20,25 +26,69 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [latestResult, setLatestResult] = useState<string | null>(null);
+  const [latestResult, setLatestResult] = useState<string | null | undefined>(undefined);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
 
-  const handleFile = useCallback(
-    async (file: File) => {
-      if (!file.type.startsWith('image/')) return;
+  const markScanFailure = useCallback((message: string) => {
+    setLatestResult(undefined);
+    setScanError(message);
+  }, []);
+
+  const scanDataUrl = useCallback(
+    async (dataUrl: string) => {
+      const content = await decodeQRCode(dataUrl);
+      onAddScanImage(dataUrl, content);
+      setLatestResult(content);
+      setScanError(null);
+    },
+    [onAddScanImage]
+  );
+
+  const handleImageUrl = useCallback(
+    async (url: string) => {
+      const normalizedUrl = parseOnlineImageUrl(url);
+      if (!normalizedUrl) {
+        markScanFailure(t('tools.qrcodeGenerator.invalidImageUrl'));
+        return;
+      }
 
       setIsProcessing(true);
+      setScanError(null);
       try {
-        const dataUrl = await fileToDataUrl(file);
-        const content = await decodeQRCode(dataUrl);
-        onAddScanImage(dataUrl, content);
-        setLatestResult(content);
-      } catch {
-        setLatestResult(null);
+        const dataUrl = await fetchImageDataUrl(normalizedUrl);
+        await scanDataUrl(dataUrl);
+      } catch (error) {
+        const key = error instanceof Error && error.message === 'invalidImageUrl'
+          ? 'invalidImageUrl'
+          : 'imageUrlLoadError';
+        markScanFailure(t(`tools.qrcodeGenerator.${key}`));
       } finally {
         setIsProcessing(false);
       }
     },
-    [onAddScanImage]
+    [markScanFailure, scanDataUrl, t]
+  );
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      if (!file.type.startsWith('image/')) {
+        markScanFailure(t('tools.qrcodeGenerator.scanFailed'));
+        return;
+      }
+
+      setIsProcessing(true);
+      setScanError(null);
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        await scanDataUrl(dataUrl);
+      } catch {
+        markScanFailure(t('tools.qrcodeGenerator.scanFailed'));
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [markScanFailure, scanDataUrl, t]
   );
 
   const handleDrop = useCallback(
@@ -77,8 +127,129 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
     navigator.clipboard.writeText(text);
   }, []);
 
+  const handleUrlSubmit = useCallback(() => {
+    handleImageUrl(imageUrl);
+  }, [handleImageUrl, imageUrl]);
+
+  const handleClipboardRead = useCallback(async () => {
+    setIsProcessing(true);
+    setScanError(null);
+    try {
+      if (navigator.clipboard?.read) {
+        try {
+          const items = await navigator.clipboard.read();
+          for (const item of items) {
+            const imageType = item.types.find(type => type.startsWith('image/'));
+            if (imageType) {
+              const blob = await item.getType(imageType);
+              const dataUrl = await blobToDataUrl(blob);
+              await scanDataUrl(dataUrl);
+              return;
+            }
+          }
+        } catch {
+          // 某些浏览器不允许读取 ClipboardItem；继续尝试读取文本 URL。
+        }
+      }
+
+      if (!navigator.clipboard?.readText) {
+        markScanFailure(t('tools.qrcodeGenerator.clipboardUnsupported'));
+        return;
+      }
+
+      const text = await navigator.clipboard.readText();
+      const normalizedUrl = parseOnlineImageUrl(text);
+      if (!normalizedUrl) {
+        markScanFailure(t('tools.qrcodeGenerator.clipboardNoImageOrUrl'));
+        return;
+      }
+
+      const dataUrl = await fetchImageDataUrl(normalizedUrl);
+      await scanDataUrl(dataUrl);
+    } catch (error) {
+      const key = error instanceof Error && (
+        error.message === 'invalidImageUrl' ||
+        error.message === 'imageUrlLoadError'
+      )
+        ? error.message
+        : 'clipboardReadFailed';
+      markScanFailure(t(`tools.qrcodeGenerator.${key}`));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [markScanFailure, scanDataUrl, t]);
+
+  const handlePaste = useCallback(
+    async (event: React.ClipboardEvent) => {
+      const imageFile = Array.from(event.clipboardData.files).find(file => file.type.startsWith('image/'));
+      if (imageFile) {
+        event.preventDefault();
+        await handleFile(imageFile);
+        return;
+      }
+
+      const pastedText = event.clipboardData.getData('text/plain');
+      if (!pastedText.trim()) return;
+
+      event.preventDefault();
+      const normalizedUrl = parseOnlineImageUrl(pastedText);
+      if (normalizedUrl) {
+        await handleImageUrl(normalizedUrl);
+        return;
+      }
+
+      markScanFailure(t('tools.qrcodeGenerator.clipboardNoImageOrUrl'));
+    },
+    [handleFile, handleImageUrl, markScanFailure, t]
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onPaste={handlePaste}>
+      {/* 在线图片链接 / 剪贴板 */}
+      <div className="nb-card-static p-4 space-y-3">
+        <div>
+          <label className="block text-sm font-medium nb-text mb-2">
+            {t('tools.qrcodeGenerator.imageUrl')}
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
+              onKeyDown={event => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleUrlSubmit();
+                }
+              }}
+              placeholder={t('tools.qrcodeGenerator.imageUrlPlaceholder')}
+              className="nb-input min-w-0 flex-1 text-sm py-2 px-3"
+            />
+            <button
+              type="button"
+              onClick={handleUrlSubmit}
+              disabled={!imageUrl.trim() || isProcessing}
+              className="nb-btn nb-btn-primary text-sm px-3 py-2 gap-1.5"
+            >
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">link</span>
+              {t('tools.qrcodeGenerator.scanFromUrl')}
+            </button>
+            <button
+              type="button"
+              onClick={handleClipboardRead}
+              disabled={isProcessing}
+              className="nb-btn nb-btn-secondary text-sm px-3 py-2 gap-1.5"
+            >
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">content_paste</span>
+              {t('tools.qrcodeGenerator.readClipboard')}
+            </button>
+          </div>
+        </div>
+        <p className="text-xs leading-5 nb-text-secondary">
+          {t('tools.qrcodeGenerator.imageSourceHint')}
+        </p>
+      </div>
+
       {/* 上传区域 */}
       <div
         onClick={handleClick}
@@ -104,10 +275,20 @@ export const QRCodeScanner: React.FC<QRCodeScannerProps> = ({
         <p className={`text-sm ${isDragging ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text-secondary'}`}>
           {isProcessing ? t('common.loading') : t('tools.qrcodeGenerator.uploadHint')}
         </p>
+        <p className={`mt-2 text-xs ${isDragging ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text-secondary'}`}>
+          {t('tools.qrcodeGenerator.pasteHint')}
+        </p>
       </div>
 
+      {/* 错误提示 */}
+      {scanError && (
+        <div className="p-3 nb-bg-card nb-border rounded-md" style={{ borderColor: 'var(--nb-accent-pink)' }}>
+          <p className="text-sm text-[color:var(--color-error-text)]">{scanError}</p>
+        </div>
+      )}
+
       {/* 识别结果 */}
-      {latestResult !== null && (
+      {latestResult !== undefined && (
         <div className="space-y-2">
           <label className="text-sm font-medium nb-text">
             {t('tools.qrcodeGenerator.scanResult')}

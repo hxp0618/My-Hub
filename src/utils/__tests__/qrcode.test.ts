@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createQRCodeFileName, generateBatchQRCodes, normalizeQRCodeContents } from '../qrcode';
+import {
+  createQRCodeFileName,
+  fetchImageDataUrl,
+  generateBatchQRCodes,
+  isLikelyImageUrl,
+  normalizeQRCodeContents,
+  parseOnlineImageUrl,
+} from '../qrcode';
 import { DEFAULT_QRCODE_OPTIONS } from '../../types/qrcode';
 
 describe('qrcode utilities', () => {
@@ -28,5 +35,45 @@ describe('qrcode utilities', () => {
     expect(images).toHaveLength(1);
     expect(images[0].options.size).toBe(512);
     expect(images[0].options.margin).toBe(10);
+  });
+
+  it('accepts only http and https image links', () => {
+    expect(parseOnlineImageUrl(' https://example.com/qrcode.png ')).toBe('https://example.com/qrcode.png');
+    expect(parseOnlineImageUrl('http://example.com/qrcode')).toBe('http://example.com/qrcode');
+    expect(parseOnlineImageUrl('data:image/png;base64,abc')).toBeNull();
+    expect(parseOnlineImageUrl('not a url')).toBeNull();
+
+    expect(isLikelyImageUrl('https://example.com/qr.webp?size=2')).toBe(true);
+    expect(isLikelyImageUrl('https://example.com/file.txt')).toBe(false);
+  });
+
+  it('fetches online image links as data URLs', async () => {
+    const fetcher = async () => new Response(
+      new Blob(['image-bytes'], { type: 'image/png' }),
+      { status: 200, headers: { 'content-type': 'image/png' } },
+    );
+
+    await expect(fetchImageDataUrl('https://example.com/qrcode.png', fetcher))
+      .resolves.toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('allows extension-backed image links when the response has no content type', async () => {
+    const fetcher = async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+
+    await expect(fetchImageDataUrl('https://example.com/qrcode.png', fetcher))
+      .resolves.toMatch(/^data:application\/octet-stream;base64,|^data:;base64,/);
+  });
+
+  it('rejects non-image online responses', async () => {
+    const fetcher = async () => new Response(
+      new Blob(['not image'], { type: 'text/plain' }),
+      { status: 200, headers: { 'content-type': 'text/plain' } },
+    );
+
+    await expect(fetchImageDataUrl('https://example.com/readme', fetcher))
+      .rejects.toThrow('invalidImageUrl');
+
+    await expect(fetchImageDataUrl('https://example.com/fake.png', fetcher))
+      .rejects.toThrow('invalidImageUrl');
   });
 });
