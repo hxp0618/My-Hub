@@ -393,7 +393,8 @@ public/manifest.json
 about.md
 
 
-# ai idea
-.idea
-.kiro
-.vscode
+# local tool and IDE state
+.claude/
+.idea/
+.kiro/
+.vscode/
