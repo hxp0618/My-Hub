@@ -31,7 +31,8 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'no-undef': 'off',
       'no-redeclare': 'off',
       'no-empty': 'off',
@@ -43,7 +44,6 @@ export default [
         varsIgnorePattern: '^_',
         caughtErrors: 'none',
       }],
-      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 ];
