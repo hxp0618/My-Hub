@@ -29,7 +29,7 @@
     "cron-parser": "^5.4.0",
     "crypto-js": "^4.2.0",
     "date-fns": "^4.4.0",
-    "diff": "^8.0.3",
+    "diff": "^9.0.0",
     "i18next": "^25.6.0",
     "jsonrepair": "^3.14.0",
     "jsqr": "^1.4.0",
