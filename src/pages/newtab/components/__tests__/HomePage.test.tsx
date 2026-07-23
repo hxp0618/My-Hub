@@ -1,7 +1,13 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToolId } from '../../../../types/tools';
+import type { SearchResultItem } from '../../../../types/search';
 import { HomePage } from '../HomePage';
+
+const globalSearchState = vi.hoisted(() => ({
+  value: { results: [] as SearchResultItem[], loading: false },
+}));
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -58,7 +64,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../../../../hooks/useGlobalSearch', () => ({
-  useGlobalSearch: () => ({ results: [], loading: false }),
+  useGlobalSearch: () => globalSearchState.value,
 }));
 
 vi.mock('../../../../contexts/ToastContext', () => ({
@@ -72,11 +78,27 @@ vi.mock('../../../../contexts/ToastContext', () => ({
 }));
 
 vi.mock('../../../../components/UnifiedSearchBar', () => ({
-  default: () => <div>Search Bar</div>,
+  default: ({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+  }) => (
+    <label>
+      Search Bar
+      <input
+        aria-label="Search Bar Input"
+        value={value}
+        onChange={event => onChange(event.target.value)}
+      />
+    </label>
+  ),
 }));
 
 describe('HomePage web combo delete confirmation', () => {
   beforeEach(() => {
+    globalSearchState.value = { results: [], loading: false };
     localStorage.clear();
     Object.defineProperty(navigator, 'clipboard', {
       value: {
@@ -157,5 +179,42 @@ describe('HomePage web combo delete confirmation', () => {
     await waitFor(() => {
       expect(cardsSelect.value).toBe('5');
     });
+  });
+
+  it('opens a smart tool suggestion with a prefilled invocation', () => {
+    const onOpenTool = vi.fn();
+    globalSearchState.value = {
+      loading: false,
+      results: [
+        {
+          type: 'tool-intent',
+          intentId: 'json-format',
+          toolId: ToolId.JSON_FORMATTER,
+          mode: 'format',
+          title: 'Format JSON',
+          description: 'Format strict JSON with indentation.',
+          icon: 'code',
+          input: '{"name":"My Hub"}',
+          confidence: 0.98,
+        },
+      ],
+    };
+
+    render(<HomePage recommendations={[]} timeRange="day" onOpenTool={onOpenTool} />);
+
+    fireEvent.change(screen.getByLabelText('Search Bar Input'), {
+      target: { value: '{"name":"My Hub"}' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Format JSON/ }));
+
+    expect(onOpenTool).toHaveBeenCalledWith(
+      ToolId.JSON_FORMATTER,
+      expect.objectContaining({
+        toolId: ToolId.JSON_FORMATTER,
+        input: '{"name":"My Hub"}',
+        mode: 'format',
+        source: 'home-search',
+      }),
+    );
   });
 });

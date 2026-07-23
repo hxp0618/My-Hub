@@ -15,6 +15,7 @@ interface TagDetailViewProps {
   onDelete: (tag: TagInfo) => void;
   onRemoveTag: (bookmarkUrl: string) => Promise<void>;
   onRefresh: () => void;
+  onEditBookmark?: (bookmarkId: string) => void;
 }
 
 interface TagBookmarkItem {
@@ -31,6 +32,7 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
   onDelete,
   onRemoveTag,
   onRefresh,
+  onEditBookmark,
 }) => {
   const { t } = useTranslation();
   const [bookmarks, setBookmarks] = useState<TagBookmarkItem[]>([]);
@@ -129,6 +131,11 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
           tags={[tag.name]}
           timeLabel={bookmark.dateAdded ? timeAgo(bookmark.dateAdded) : undefined}
           actions={[
+            ...(onEditBookmark ? [{
+              label: t('tags.editBookmark'),
+              icon: 'edit',
+              onClick: () => onEditBookmark(bookmark.id),
+            }] : []),
             {
               label: t('tags.removeFromBookmark'),
               icon: 'label_off',
@@ -138,7 +145,7 @@ export const TagDetailView: React.FC<TagDetailViewProps> = ({
         />
       );
     });
-  }, [bookmarks, tag.name, t, handleRemoveTag]);
+  }, [bookmarks, tag.name, t, handleRemoveTag, onEditBookmark]);
 
   return (
     <div className="tag-detail-view">

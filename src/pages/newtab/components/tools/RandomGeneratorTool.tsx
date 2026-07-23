@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 import {
   generateUUID,
   generateNanoID,
@@ -46,6 +47,8 @@ export const parseClampedIntegerInput = (
 export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
@@ -76,6 +79,30 @@ export const RandomGeneratorTool: React.FC<ToolComponentProps> = ({
   // MD5 选项
   const [md5Input, setMd5Input] = useState('');
   const [md5Uppercase, setMd5Uppercase] = useState(false);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.RANDOM_GENERATOR,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      if (nextInvocation.mode?.startsWith('uuid')) {
+        setActiveTab('uuid');
+        setUuidVersion(nextInvocation.mode === 'uuid-v1' ? 'v1' : 'v4');
+      } else if (nextInvocation.mode === 'nanoid') {
+        setActiveTab('nanoid');
+        setNanoidLength(parseClampedIntegerInput(nextInvocation.input, 1, 64, 21));
+      } else if (nextInvocation.mode === 'string') {
+        setActiveTab('string');
+        setStringLength(parseClampedIntegerInput(nextInvocation.input, 1, 256, 16));
+      } else if (nextInvocation.mode === 'number') {
+        const [minValue, maxValue] = nextInvocation.input.split(',');
+        setActiveTab('number');
+        setNumberMin(parseIntegerInput(minValue ?? '', 0));
+        setNumberMax(parseIntegerInput(maxValue ?? '', 100));
+      }
+      setResults([]);
+    }, []),
+  });
 
   const tabs: { id: GeneratorType; label: string }[] = [
     { id: 'uuid', label: 'UUID' },

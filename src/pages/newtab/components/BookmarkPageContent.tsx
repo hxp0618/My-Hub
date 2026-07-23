@@ -66,8 +66,6 @@ export const BookmarkPageHeader: React.FC<{
   onToggleMoreMenu: () => void;
   onCloseMoreMenu: () => void;
   onToggleMultiSelectMode: () => void;
-  onRegenerateAllTags: () => void;
-  onStartDeduplicate: () => void;
   onOpenReorderConfirm: () => void;
 }> = ({
   title,
@@ -91,8 +89,6 @@ export const BookmarkPageHeader: React.FC<{
   onToggleMoreMenu,
   onCloseMoreMenu,
   onToggleMultiSelectMode,
-  onRegenerateAllTags,
-  onStartDeduplicate,
   onOpenReorderConfirm,
 }) => {
   const { t } = useTranslation();
@@ -211,30 +207,6 @@ export const BookmarkPageHeader: React.FC<{
                 <button
                   type="button"
                   onClick={() => {
-                    onRegenerateAllTags();
-                    onCloseMoreMenu();
-                  }}
-                  className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
-                  role="menuitem"
-                >
-                  <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">refresh</span>
-                  {t('bookmarks.regenerateAllTags')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onStartDeduplicate();
-                    onCloseMoreMenu();
-                  }}
-                  className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
-                  role="menuitem"
-                >
-                  <span className="material-symbols-outlined icon-linear text-lg nb-text-secondary">content_copy</span>
-                  {t('bookmarks.deduplicate')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
                     onOpenReorderConfirm();
                     onCloseMoreMenu();
                   }}
@@ -342,6 +314,7 @@ export const BookmarkMainContent: React.FC<{
   onStartDeduplicate: () => void;
   onOpenReorderConfirm: () => void;
   onSelectHealthIssue: (issue: BookmarkHealthIssue) => void;
+  onOpenOrganize: () => void;
   onToggleBookmarkSelection: (id: string) => void;
   onBookmarkDragStart: (event: React.DragEvent<HTMLDivElement>, item: EnhancedBookmark) => void;
   onBookmarkDragEnd: () => void;
@@ -375,6 +348,7 @@ export const BookmarkMainContent: React.FC<{
   onStartDeduplicate,
   onOpenReorderConfirm,
   onSelectHealthIssue,
+  onOpenOrganize,
   onToggleBookmarkSelection,
   onBookmarkDragStart,
   onBookmarkDragEnd,
@@ -402,8 +376,6 @@ export const BookmarkMainContent: React.FC<{
       onToggleMoreMenu={onToggleMoreMenu}
       onCloseMoreMenu={onCloseMoreMenu}
       onToggleMultiSelectMode={onToggleMultiSelectMode}
-      onRegenerateAllTags={onRegenerateAllTags}
-      onStartDeduplicate={onStartDeduplicate}
       onOpenReorderConfirm={onOpenReorderConfirm}
     />
 
@@ -411,6 +383,9 @@ export const BookmarkMainContent: React.FC<{
       report={healthReport}
       activeIssue={activeHealthIssue}
       onSelectIssue={onSelectHealthIssue}
+      onOpenOrganize={onOpenOrganize}
+      onRegenerateAllTags={onRegenerateAllTags}
+      onStartDeduplicate={onStartDeduplicate}
     />
 
     <BookmarkGrid

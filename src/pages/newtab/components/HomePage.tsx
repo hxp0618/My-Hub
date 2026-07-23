@@ -10,8 +10,10 @@ import WebComboCard from './WebComboCard';
 import { v4 as uuidv4 } from 'uuid';
 import UnifiedSearchBar from '../../../components/UnifiedSearchBar';
 import { useGlobalSearch } from '../../../hooks/useGlobalSearch';
-import { ActionSearchResultItem, SearchResultItem, ToolSearchResultItem } from '../../../types/search';
+import { ActionSearchResultItem, SearchResultItem, ToolIntentSearchResultItem, ToolSearchResultItem } from '../../../types/search';
 import { ToolId } from '../../../types/tools';
+import { createToolInvocation } from '../../../types/toolInvocation';
+import type { ToolInvocation } from '../../../types/toolInvocation';
 import { SearchActionTarget } from '../../../types/searchActions';
 import { getAllBookmarkTags, addBookmarkTag } from '../../../db/indexedDB';
 import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
@@ -51,10 +53,11 @@ import {
 } from '../../../utils/storageManager';
 
 const homePageLogger = createLogger('[HomePage]');
-type BrowsableSearchResultItem = Exclude<SearchResultItem, ToolSearchResultItem | ActionSearchResultItem>;
+type BrowsableSearchResultItem = Exclude<SearchResultItem, ToolSearchResultItem | ActionSearchResultItem | ToolIntentSearchResultItem>;
 
 const isToolSearchResult = (item: SearchResultItem): item is ToolSearchResultItem => item.type === 'tool';
 const isActionSearchResult = (item: SearchResultItem): item is ActionSearchResultItem => item.type === 'action';
+const isToolIntentSearchResult = (item: SearchResultItem): item is ToolIntentSearchResultItem => item.type === 'tool-intent';
 
 // Sortable Card wrapper
 interface SortableCardProps {
@@ -116,11 +119,19 @@ interface HomePageProps {
   recommendations: RecommendationItem[];
   timeRange: string;
   onRefresh?: () => void;
-  onOpenTool?: (toolId: ToolId) => void;
+  onOpenTool?: (toolId: ToolId, invocation?: ToolInvocation) => void;
   onOpenAction?: (target: SearchActionTarget) => void;
+  onOpenCommandPalette?: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, onRefresh, onOpenTool, onOpenAction }) => {
+export const HomePage: React.FC<HomePageProps> = ({
+  recommendations,
+  timeRange,
+  onRefresh,
+  onOpenTool,
+  onOpenAction,
+  onOpenCommandPalette,
+}) => {
   const { t } = useTranslation();
   const toast = useToastContext();
   const [noMoreDisplayed, setNoMoreDisplayed] = useState<string[]>(() => {
@@ -235,24 +246,10 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
     };
   }, []);
 
-  // Get grid columns class based on cardsPerRow
-  const getGridClass = () => {
-    const baseClass = 'grid gap-6 transition-all duration-300';
-    switch (cardsPerRow) {
-      case 2:
-        return `${baseClass} grid-cols-1 md:grid-cols-2`;
-      case 3:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3`;
-      case 4:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`;
-      case 5:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5`;
-      case 6:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6`;
-      default:
-        return `${baseClass} grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`;
-    }
-  };
+  const gridGapRem = 1.5;
+  const homeGridStyle = React.useMemo(() => ({
+    '--home-grid-min': `min(100%, max(15rem, calc(${100 / cardsPerRow}% - ${(gridGapRem * (cardsPerRow - 1)) / cardsPerRow}rem)))`,
+  }) as React.CSSProperties, [cardsPerRow]);
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
@@ -525,6 +522,18 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
             />
           </div>
 
+          {onOpenCommandPalette && (
+            <button
+              type="button"
+              className="home-page-command-help nb-btn nb-btn-ghost p-2"
+              onClick={onOpenCommandPalette}
+              aria-label={t('home.commandHelp')}
+              title={t('home.commandHelp')}
+            >
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">keyboard_command_key</span>
+            </button>
+          )}
+
           {/* 网格选择器 */}
           <div className="home-page-density-select nb-card-static flex items-center space-x-2 px-3 py-2">
             <span className="material-symbols-outlined text-sm nb-text-secondary">grid_view</span>
@@ -588,15 +597,52 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
               {searchResults.length}
             </span>
           </div>
-          <div className={getGridClass()}>
+          <div className="home-card-grid" style={homeGridStyle}>
             {searchResults.map(item => {
+              if (isToolIntentSearchResult(item)) {
+                return (
+                  <button
+                    key={`${item.intentId}-${item.toolId}-${item.input}`}
+                    type="button"
+                    onClick={() => onOpenTool?.(
+                      item.toolId,
+                      createToolInvocation(item.toolId, item.input, item.mode, 'home-search'),
+                    )}
+                    className="home-search-result-card nb-card relative flex flex-col p-5 text-left group"
+                    aria-label={item.title}
+                  >
+                    <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-deco-mint)] opacity-60 pointer-events-none"></div>
+                    <div className="flex items-start">
+                      <div className="w-9 h-9 mr-3 flex-shrink-0 flex items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] shadow-[var(--nb-shadow-sm)]">
+                        <span className="material-symbols-outlined text-[color:var(--nb-text-on-accent)] text-xl">{item.icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold nb-text text-base leading-tight line-clamp-2" title={item.title}>
+                          {item.title}
+                        </h3>
+                        <p className="text-xs nb-text-secondary truncate mt-1.5 font-medium">
+                          {t('home.smartToolCommandCategory', { confidence: Math.round(item.confidence * 100) })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm nb-text-secondary line-clamp-2">
+                      {item.description}
+                    </p>
+                    <span className="mt-auto pt-3 inline-flex items-center gap-1 text-xs font-bold nb-text uppercase tracking-wide">
+                      {t('home.openToolAction')}
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </span>
+                  </button>
+                );
+              }
+
               if (isToolSearchResult(item)) {
                 return (
                   <button
                     key={item.toolId}
                     type="button"
                     onClick={() => onOpenTool?.(item.toolId)}
-                    className="nb-card relative flex min-h-[140px] flex-col p-5 text-left group"
+                    className="home-search-result-card nb-card relative flex flex-col p-5 text-left group"
                     aria-label={t('home.openTool', { name: item.title })}
                   >
                     <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-deco-mint)] opacity-60 pointer-events-none"></div>
@@ -630,7 +676,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                     key={item.actionId}
                     type="button"
                     onClick={() => onOpenAction?.(item.target)}
-                    className="nb-card relative flex min-h-[140px] flex-col p-5 text-left group"
+                    className="home-search-result-card nb-card relative flex flex-col p-5 text-left group"
                     aria-label={t('home.openAction', { name: item.title })}
                   >
                     <div className="absolute -top-2 -right-2 w-4 h-4 border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-deco-sky)] opacity-60 pointer-events-none"></div>
@@ -687,7 +733,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
               items={sortedAllItems.map(item => item.url)}
               strategy={rectSortingStrategy}
             >
-              <div className={getGridClass()}>
+              <div className="home-card-grid" style={homeGridStyle}>
                 {sortedAllItems.map(item => (
                   <SortableCard
                     key={item.url}
@@ -710,7 +756,7 @@ export const HomePage: React.FC<HomePageProps> = ({ recommendations, timeRange, 
                     {webCombos.length}
                   </span>
                 </div>
-                <div className={getGridClass()}>
+                <div className="home-card-grid" style={homeGridStyle}>
                     {webCombos.map(combo => (
                         <WebComboCard
                             key={combo.id}

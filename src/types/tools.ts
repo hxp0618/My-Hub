@@ -2,11 +2,13 @@
  * 工具类型定义
  * 定义实用工具页面的核心类型和元数据
  */
+import type { ToolInvocation } from './toolInvocation';
 
 /**
  * 工具标识符枚举
  */
 export enum ToolId {
+  SMART_TOOL_ROUTER = 'smart-tool-router',
   JSON_FORMATTER = 'json-formatter',
   BARK_NOTIFIER = 'bark-notifier',
   TEXT_CRYPTOR = 'text-cryptor',
@@ -158,12 +160,22 @@ export function getValidToolOrder(stored: unknown): ToolId[] {
 export interface ToolComponentProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
+  invocation?: ToolInvocation | null;
+  onInvocationHandled?: (id: string) => void;
+  onOpenTool?: (toolId: ToolId, invocation?: ToolInvocation) => void;
 }
 
 /**
  * 所有工具的元数据常量
  */
 export const TOOL_METADATA: Record<ToolId, ToolMetadata> = {
+  [ToolId.SMART_TOOL_ROUTER]: {
+    id: ToolId.SMART_TOOL_ROUTER,
+    nameKey: 'tools.smartToolRouter.name',
+    descriptionKey: 'tools.smartToolRouter.description',
+    icon: 'auto_fix_high',
+    category: 'developer',
+  },
   [ToolId.JSON_FORMATTER]: {
     id: ToolId.JSON_FORMATTER,
     nameKey: 'tools.jsonFormatter.name',

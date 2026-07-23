@@ -3,6 +3,7 @@ import { PROVIDERS, ProviderKey } from '../data/models';
 import { createLogger } from '../utils/logger';
 import { ChatMessage } from '../types/llm';
 import i18n from '../i18n';
+import { notifyAIConfigurationRequired } from '../utils/aiEvents';
 
 const logger = createLogger('[LLM Service]');
 const SUPPORTED_PROMPT_API_OUTPUT_LANGUAGES = ['en', 'es', 'ja'] as const;
@@ -19,6 +20,7 @@ type SendMessageOptions = {
 };
 
 export type LLMServiceErrorCode =
+    | 'configurationRequired'
     | 'promptApiUnavailable'
     | 'geminiUnavailable'
     | 'apiRequestFailed'
@@ -38,6 +40,40 @@ export class LLMServiceError extends Error {
         this.status = options.status;
     }
 }
+
+const hasCloudLLMConfiguration = (settings: ReturnType<typeof getLLMSettings>): boolean => {
+    const selectedModel = settings.selectedModel === 'custom'
+        ? settings.customModel?.trim()
+        : settings.selectedModel.trim();
+    const hasEndpoint = settings.selectedProvider === 'custom'
+        ? Boolean(settings.customApiUrl?.trim())
+        : Boolean(PROVIDERS[settings.selectedProvider as ProviderKey]);
+
+    return Boolean(
+        settings.selectedProvider &&
+        settings.apiKey.trim() &&
+        selectedModel &&
+        hasEndpoint
+    );
+};
+
+const hasAvailableGeminiNano = async (settings: ReturnType<typeof getLLMSettings>): Promise<boolean> => {
+    if (!settings.prioritizeGeminiNano) return false;
+    if (typeof LanguageModel === 'undefined' || typeof LanguageModel.availability !== 'function') return false;
+
+    try {
+        return await LanguageModel.availability(getPromptApiSessionOptions()) === 'available';
+    } catch {
+        return false;
+    }
+};
+
+export const hasAvailableAIConfiguration = async (
+    settings: ReturnType<typeof getLLMSettings> = getLLMSettings(),
+): Promise<boolean> => {
+    if (hasCloudLLMConfiguration(settings)) return true;
+    return hasAvailableGeminiNano(settings);
+};
 
 export interface SseChunkParseResult {
     contents: string[];
@@ -185,6 +221,14 @@ export async function sendMessage(
   const settings = getLLMSettings();
   logger.info('Sending message with settings:', getSafeSettingsForLog(settings));
 
+  if (!await hasAvailableAIConfiguration(settings)) {
+      const error = new LLMServiceError('configurationRequired');
+      logger.warn('AI request blocked because no usable provider or Gemini Nano configuration is available.');
+      notifyAIConfigurationRequired();
+      callbacks.onError(error);
+      return;
+  }
+
   if (settings.prioritizeGeminiNano) {
       try {
           logger.info('Prioritizing Gemini Nano. Will attempt Prompt API first.');
@@ -197,8 +241,9 @@ export async function sendMessage(
   }
 
   if (!settings.selectedProvider || !settings.apiKey) {
-    const error = new Error(i18n.t('llmService.noProviderOrKey'));
+    const error = new LLMServiceError('configurationRequired');
     logger.error('Error:', error);
+    notifyAIConfigurationRequired();
     return callbacks.onError(error);
   }
 

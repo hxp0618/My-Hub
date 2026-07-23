@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
+import { loadToolDraft, useToolDraft } from '../../../../hooks/useToolDraft';
+import { useInputHistory } from '../../../../hooks/useInputHistory';
+import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
 
 export type EntityMode = 'encode' | 'decode';
 export type EncodeScope = 'all' | 'special';
@@ -37,13 +41,34 @@ export const decodeHtmlEntities = (text: string): string => {
   return textarea.value;
 };
 
-export const HTMLEntityTool: React.FC<ToolComponentProps> = ({ isExpanded, onToggleExpand }) => {
+export const HTMLEntityTool: React.FC<ToolComponentProps> = ({
+  isExpanded,
+  onToggleExpand,
+  invocation,
+  onInvocationHandled,
+}) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
-  const [mode, setMode] = useState<EntityMode>('encode');
+  const initialDraft = useMemo(() => loadToolDraft('html-entity'), []);
+  const [mode, setMode] = useState<EntityMode>(initialDraft?.mode === 'decode' ? 'decode' : 'encode');
   const [encodeScope, setEncodeScope] = useState<EncodeScope>('special');
-  const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
+  const [input, setInput] = useState(initialDraft?.input ?? '');
+  const [output, setOutput] = useState(initialDraft?.output ?? '');
+  const { addToHistory } = useInputHistory({ toolId: 'html-entity' });
+
+  useToolDraft('html-entity', { input, output, mode });
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.HTML_ENTITY,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      if (nextInvocation.mode === 'decode' || nextInvocation.mode === 'encode') {
+        setMode(nextInvocation.mode);
+      }
+      setInput(nextInvocation.input);
+    }, []),
+  });
 
   useEffect(() => {
     if (!input) {
@@ -56,6 +81,14 @@ export const HTMLEntityTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
       setOutput(decodeHtmlEntities(input));
     }
   }, [input, mode, encodeScope]);
+
+  useEffect(() => {
+    if (!input.trim() || !output) return;
+    const timer = window.setTimeout(() => {
+      addToHistory(input, { output, mode });
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [addToHistory, input, mode, output]);
 
   const handleClear = () => {
     setInput('');
@@ -84,6 +117,11 @@ export const HTMLEntityTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
               </select>
             </div>
           )}
+          <InputHistoryDropdown
+            toolId="html-entity"
+            onSelect={setInput}
+            onSelectOutput={setInput}
+          />
           <button onClick={() => copy(output)} disabled={!output}
             className="nb-btn nb-btn-secondary text-sm">
             {t('tools.htmlEntity.copy')}

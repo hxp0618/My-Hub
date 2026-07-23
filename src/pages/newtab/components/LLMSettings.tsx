@@ -242,7 +242,7 @@ const LLMSettings: React.FC = () => {
       
       <div className="settings-form-stack">
         {/* Gemini Nano Toggle - Neo-Brutalism 风格 */}
-        <div className="nb-card-static p-4">
+        <div className="nb-card-subtle p-4">
           <div className="flex items-center justify-between">
             <label htmlFor="prioritizeGeminiNano" className="text-sm font-medium text-[color:var(--nb-text)]">
               {t('settings.geminiNanoPriority')}
@@ -279,7 +279,7 @@ const LLMSettings: React.FC = () => {
             </label>
           </div>
           <p className="text-xs nb-text-secondary mt-2">
-            {t('settings.status')}: <span className={`font-medium ${geminiNanoStatus === 'available' ? 'text-[color:var(--nb-accent-green)]' : 'nb-text-secondary'}`}>{geminiNanoStatus}</span>
+            {t('settings.status')}: <span className={`font-medium ${geminiNanoStatus === 'available' ? 'text-[color:var(--nb-accent-green)]' : 'nb-text-secondary'}`}>{t(`settings.geminiNanoStatus.${geminiNanoStatus}`)}</span>
           </p>
         </div>
 

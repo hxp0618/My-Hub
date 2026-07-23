@@ -4,6 +4,7 @@ import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 import CryptoJS from 'crypto-js';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 
 export type HashAlgorithm = 'MD5' | 'SHA1' | 'SHA256' | 'SHA512';
 type HashMode = 'text' | 'hmac' | 'file';
@@ -85,6 +86,8 @@ export const calculateFileHash = async (file: File, algorithm: HashAlgorithm): P
 export const HashCalculatorTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
@@ -96,6 +99,22 @@ export const HashCalculatorTool: React.FC<ToolComponentProps> = ({
   const [uppercase, setUppercase] = useState(false);
   const [result, setResult] = useState('');
   const [fileError, setFileError] = useState('');
+
+  const applyInvocation = useCallback((nextInvocation: NonNullable<ToolComponentProps['invocation']>) => {
+    const nextAlgorithm = nextInvocation.mode;
+    if (nextAlgorithm === 'MD5' || nextAlgorithm === 'SHA1' || nextAlgorithm === 'SHA256' || nextAlgorithm === 'SHA512') {
+      setAlgorithm(nextAlgorithm);
+    }
+    setMode('text');
+    setInput(nextInvocation.input);
+  }, []);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.HASH_CALCULATOR,
+    onInvocationHandled,
+    onApply: applyInvocation,
+  });
 
   // 实时计算哈希
   useEffect(() => {

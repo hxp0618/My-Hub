@@ -25,7 +25,13 @@ const PERMISSION_ITEMS = [
   { key: 'contentScripts', icon: 'web' },
 ];
 
-const GeneralSettings: React.FC = () => {
+export type GeneralSettingsSection = 'general' | 'notifications' | 'permissions' | 'data';
+
+interface GeneralSettingsProps {
+  section?: GeneralSettingsSection;
+}
+
+const GeneralSettings: React.FC<GeneralSettingsProps> = ({ section = 'general' }) => {
   const { t, i18n } = useTranslation();
   const toast = useToastContext();
   const { brightness, setBrightness } = useTheme();
@@ -119,11 +125,13 @@ const GeneralSettings: React.FC = () => {
 
   return (
     <section className="settings-section">
-      <h2 className="settings-section-title">{t('settings.generalTitle')}</h2>
+      {section === 'general' && (
+        <>
+          <h2 className="settings-section-title">{t('settings.generalTitle')}</h2>
 
-      <div className="settings-card-stack">
+          <div className="settings-card-stack">
         {/* Theme Selection - Neo-Brutalism 风格 */}
-        <div className="nb-card-static p-4">
+        <div className="nb-card-subtle p-4">
           <div className="mb-4">
             <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.theme')}</h3>
             <p className="text-sm nb-text-secondary">{t('settings.themeDesc')}</p>
@@ -132,7 +140,7 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Brightness Slider - Neo-Brutalism 风格 */}
-        <div className="nb-card-static p-4">
+        <div className="nb-card-subtle p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.brightness')}</h3>
@@ -148,8 +156,9 @@ const GeneralSettings: React.FC = () => {
                   onClick={handleResetBrightness}
                   className="nb-btn nb-btn-ghost px-2 py-1 text-xs"
                   title={t('settings.brightnessReset')}
+                  aria-label={t('settings.brightnessReset')}
                 >
-                  <span className="material-symbols-outlined text-sm">restart_alt</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">restart_alt</span>
                 </button>
               )}
             </div>
@@ -158,6 +167,7 @@ const GeneralSettings: React.FC = () => {
             <span className="material-symbols-outlined text-lg nb-text-secondary">brightness_low</span>
             <input
               type="range"
+              aria-label={t('settings.brightness')}
               min="0.5"
               max="1.0"
               step="0.01"
@@ -188,7 +198,7 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Language Selection - Neo-Brutalism 风格 */}
-        <div className="settings-option-row nb-card-static">
+        <div className="settings-option-row nb-card-subtle">
           <div className="settings-option-copy">
             <h3 className="font-semibold text-[color:var(--nb-text)]">
               <label htmlFor={languageSelectId}>{t('settings.language')}</label>
@@ -208,7 +218,7 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Auto Suggest - Neo-Brutalism 风格开关 */}
-        <div className="nb-card-static flex items-center justify-between p-4">
+        <div className="nb-card-subtle flex items-center justify-between p-4">
           <div>
             <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.autoSuggestTitle')}</h3>
             <p className="text-sm nb-text-secondary">{t('settings.autoSuggestDesc')}</p>
@@ -219,6 +229,7 @@ const GeneralSettings: React.FC = () => {
               checked={autoSuggest}
               onChange={handleToggle}
               className="sr-only"
+              aria-label={t('settings.autoSuggestTitle')}
             />
             <div className={`nb-toggle-track ${autoSuggest ? 'active' : ''}`}>
               <div className="nb-toggle-thumb"></div>
@@ -227,7 +238,7 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Cards Per Row - Neo-Brutalism 风格 */}
-        <div className="nb-card-static flex items-center justify-between p-4">
+        <div className="settings-cards-per-row nb-card-subtle flex items-center justify-between p-4">
           <div>
             <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.cardsPerRow')}</h3>
             <p className="text-sm nb-text-secondary">{t('settings.cardsPerRowDesc')}</p>
@@ -236,6 +247,7 @@ const GeneralSettings: React.FC = () => {
             value={cardsPerRow}
             onChange={handleCardsPerRowChange}
             className="nb-input px-4 py-2"
+            aria-label={t('settings.cardsPerRow')}
           >
             <option value="2">{t('settings.cardsPerRowOption', { count: 2 })}</option>
             <option value="3">{t('settings.cardsPerRowOption', { count: 3 })}</option>
@@ -246,45 +258,57 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {/* Menu Order - Neo-Brutalism 风格 */}
-        <div className="nb-card-static p-4">
+        <div className="nb-card-subtle p-4">
           <MenuOrderConfig />
         </div>
-      </div>
+          </div>
+        </>
+      )}
 
-      <h2 className="settings-section-title settings-section-title--spaced">{t('settings.notificationTitle')}</h2>
-      <p className="settings-section-desc">{t('settings.notificationDesc')}</p>
-      <NotificationSettings />
+      {section === 'notifications' && (
+        <>
+          <h2 className="settings-section-title">{t('settings.notificationTitle')}</h2>
+          <p className="settings-section-desc">{t('settings.notificationDesc')}</p>
+          <NotificationSettings />
+        </>
+      )}
 
-      <h2 className="settings-section-title settings-section-title--spaced">{t('settings.permissionsTitle')}</h2>
-      <p className="settings-section-desc">{t('settings.permissionsDesc')}</p>
-      <div className="nb-card-static p-4">
-        <div className="divide-y-2 divide-[color:var(--nb-border)]">
-          {PERMISSION_ITEMS.map((item) => (
-            <div key={item.key} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[var(--nb-shadow-sm)]">
-                <span className="material-symbols-outlined text-base nb-text">{item.icon}</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <h3 className="text-sm font-bold text-[color:var(--nb-text)]">
-                    {t(`settings.permissions.${item.key}.title`)}
-                  </h3>
-                  <span className="w-fit border border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] px-2 py-0.5 text-xs font-bold text-[color:var(--nb-text-on-accent)]">
-                    {t(`settings.permissions.${item.key}.scope`)}
-                  </span>
+      {section === 'permissions' && (
+        <>
+          <h2 className="settings-section-title">{t('settings.permissionsTitle')}</h2>
+          <p className="settings-section-desc">{t('settings.permissionsDesc')}</p>
+          <div className="nb-card-subtle p-4">
+            <div className="divide-y-2 divide-[color:var(--nb-border)]">
+              {PERMISSION_ITEMS.map((item) => (
+                <div key={item.key} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[color:var(--nb-border)] bg-[color:var(--nb-accent-blue)] shadow-[var(--nb-shadow-sm)]">
+                    <span className="material-symbols-outlined text-base nb-text" aria-hidden="true">{item.icon}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <h3 className="text-sm font-bold text-[color:var(--nb-text)]">
+                        {t(`settings.permissions.${item.key}.title`)}
+                      </h3>
+                      <span className="w-fit border border-[color:var(--nb-border)] bg-[color:var(--nb-accent-yellow)] px-2 py-0.5 text-xs font-bold text-[color:var(--nb-text-on-accent)]">
+                        {t(`settings.permissions.${item.key}.scope`)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 nb-text-secondary">
+                      {t(`settings.permissions.${item.key}.desc`)}
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs leading-5 nb-text-secondary">
-                  {t(`settings.permissions.${item.key}.desc`)}
-                </p>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
-      <h2 className="settings-section-title settings-section-title--spaced">{t('settings.dataManagement')}</h2>
-      <div className="settings-card-stack">
-        <div className="nb-card-static p-4">
+      {section === 'data' && (
+        <>
+          <h2 className="settings-section-title">{t('settings.dataManagement')}</h2>
+          <div className="settings-card-stack">
+        <div className="nb-card-subtle p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.exportDataTitle')}</h3>
@@ -327,7 +351,7 @@ const GeneralSettings: React.FC = () => {
             </label>
           </div>
         </div>
-        <div className="nb-card-static flex items-center justify-between p-4">
+        <div className="nb-card-subtle flex items-center justify-between p-4">
           <div>
             <h3 className="font-semibold text-[color:var(--nb-text)]">{t('settings.importDataTitle')}</h3>
             <p className="text-sm nb-text-secondary">{t('settings.importDataDesc')}</p>
@@ -347,19 +371,21 @@ const GeneralSettings: React.FC = () => {
             accept="application/json"
           />
         </div>
-      </div>
+          </div>
+        </>
+      )}
 
-      <p className="settings-more-note nb-text-secondary">{t('settings.moreFeaturesComing')}</p>
-
-      <ConfirmDialog
-        isOpen={showSensitiveExportConfirm}
-        onClose={() => setShowSensitiveExportConfirm(false)}
-        onConfirm={handleConfirmSensitiveExport}
-        title={t('settings.exportSensitiveTitle')}
-        message={t('settings.exportSensitiveConfirm')}
-        confirmText={t('settings.exportButton')}
-        danger
-      />
+      {section === 'data' && (
+        <ConfirmDialog
+          isOpen={showSensitiveExportConfirm}
+          onClose={() => setShowSensitiveExportConfirm(false)}
+          onConfirm={handleConfirmSensitiveExport}
+          title={t('settings.exportSensitiveTitle')}
+          message={t('settings.exportSensitiveConfirm')}
+          confirmText={t('settings.exportButton')}
+          danger
+        />
+      )}
     </section>
   );
 };

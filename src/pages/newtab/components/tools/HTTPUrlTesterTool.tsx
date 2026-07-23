@@ -27,13 +27,27 @@ import {
   formatTime,
   isJsonContent,
 } from '../../../../utils/httpUtils';
-import { generateCurl } from '../../../../utils/curlUtils';
+import { generateCurl, parseCurl } from '../../../../utils/curlUtils';
 import { CurlParseSuccess } from '../../../../types/curl';
 import { useHttpHistory } from '../../../../hooks/useHttpHistory';
 import { CurlImportModal } from '../../../../components/CurlImportModal';
 import { createLogger } from '../../../../utils/logger';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 
 const logger = createLogger('[HTTPUrlTesterTool]');
+
+export const HTTP_TESTER_LAYOUT_CLASSES = {
+  shell: 'h-auto 2xl:h-full grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_18rem] gap-6 min-w-0',
+  requestPanel: 'min-w-0 2xl:min-h-0 flex flex-col gap-4',
+  requestBar: 'grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 items-start',
+  urlBar: 'grid grid-cols-1 sm:grid-cols-[8rem_minmax(0,1fr)] gap-3 min-w-0',
+  requestActions: 'flex flex-wrap gap-2 xl:justify-end',
+  configGrid: 'grid grid-cols-1 2xl:grid-cols-[minmax(420px,1fr)_minmax(320px,0.85fr)] gap-4 items-start',
+  entryRow: 'grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-center min-w-0',
+  entryInput: 'nb-input min-w-0 w-full text-sm py-1',
+  authGrid: 'grid grid-cols-1 gap-2',
+  historyPanel: 'min-w-0 2xl:w-72 nb-card-static p-4 flex flex-col',
+} as const;
 
 /**
  * HTTP URL 测试工具组件
@@ -41,6 +55,8 @@ const logger = createLogger('[HTTPUrlTesterTool]');
 export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { history, addEntry, removeEntry, clearAll, restoreEntry } = useHttpHistory();
@@ -250,6 +266,21 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
     setResponse(null);
   }, []);
 
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.HTTP_URL_TESTER,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      if (nextInvocation.mode === 'curl') {
+        const parsed = parseCurl(nextInvocation.input);
+        if (parsed.success) handleCurlImport(parsed.data);
+        return;
+      }
+      setUrl(nextInvocation.input.trim());
+      setResponse(null);
+    }, [handleCurlImport]),
+  });
+
   // 导出 curl 命令
   const handleCurlExport = useCallback(async () => {
     const curlCommand = generateCurl({
@@ -287,82 +318,90 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
     >
-      <div className="h-full flex gap-6">
+      <div className={HTTP_TESTER_LAYOUT_CLASSES.shell} data-testid="http-tester-shell">
         {/* 左侧：请求配置 */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0">
+        <div className={HTTP_TESTER_LAYOUT_CLASSES.requestPanel}>
           {/* URL 和方法 */}
-          <div className="flex gap-3">
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as HttpMethod)}
-              className="nb-input w-32 font-medium"
-            >
-              {HTTP_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-            <div className="flex-1">
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder={t('tools.httpTester.urlPlaceholder')}
-                className={`nb-input w-full ${urlError ? 'border-[color:var(--nb-accent-pink)]' : ''}`}
-              />
-              {urlError && (
-                <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
-                  {urlError}
-                </p>
-              )}
+          <div className={HTTP_TESTER_LAYOUT_CLASSES.requestBar} data-testid="http-tester-request-bar">
+            <div className={HTTP_TESTER_LAYOUT_CLASSES.urlBar}>
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value as HttpMethod)}
+                className="nb-input w-full font-medium"
+              >
+                {HTTP_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              <div className="min-w-0">
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder={t('tools.httpTester.urlPlaceholder')}
+                  className={`nb-input w-full ${urlError ? 'border-[color:var(--nb-accent-pink)]' : ''}`}
+                />
+                {urlError && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-error-text)' }}>
+                    {urlError}
+                  </p>
+                )}
+              </div>
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!canSend}
-              className="nb-btn nb-btn-primary px-6"
-            >
-              {loading ? (
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
-              ) : (
-                t('tools.httpTester.send')
-              )}
-            </button>
-            <button onClick={handleClear} className="nb-btn nb-btn-ghost">
-              {t('tools.httpTester.clear')}
-            </button>
-            <button
-              onClick={() => setShowCurlImport(true)}
-              className="nb-btn nb-btn-ghost"
-              title={t('tools.httpTester.importCurl')}
-            >
-              <span className="material-symbols-outlined text-sm">download</span>
-            </button>
-            <button
-              onClick={handleCurlExport}
-              disabled={!url.trim()}
-              className="nb-btn nb-btn-ghost"
-              title={t('tools.httpTester.exportCurl')}
-            >
-              <span className="material-symbols-outlined text-sm">
-                {copySuccess ? 'check' : 'upload'}
-              </span>
-            </button>
+            <div className={HTTP_TESTER_LAYOUT_CLASSES.requestActions}>
+              <button
+                onClick={handleSend}
+                disabled={!canSend}
+                className="nb-btn nb-btn-primary px-6"
+              >
+                {loading ? (
+                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                ) : (
+                  t('tools.httpTester.send')
+                )}
+              </button>
+              <button onClick={handleClear} className="nb-btn nb-btn-ghost">
+                {t('tools.httpTester.clear')}
+              </button>
+              <button
+                onClick={() => setShowCurlImport(true)}
+                className="nb-btn nb-btn-ghost"
+                title={t('tools.httpTester.importCurl')}
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+              </button>
+              <button
+                onClick={handleCurlExport}
+                disabled={!url.trim()}
+                className="nb-btn nb-btn-ghost"
+                title={t('tools.httpTester.exportCurl')}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {copySuccess ? 'check' : 'upload'}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* 环境变量和认证 */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <div className="nb-card-static p-4">
-              <div className="flex items-center justify-between mb-3">
+          <div className={HTTP_TESTER_LAYOUT_CLASSES.configGrid} data-testid="http-tester-config-grid">
+            <div className="nb-card-static p-4 min-w-0">
+              <div className="flex items-center justify-between gap-3 mb-3">
                 <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.variables')}</h3>
-                <button onClick={addVariable} className="nb-btn nb-btn-ghost text-xs py-1 px-2">
+                <button onClick={addVariable} className="nb-btn nb-btn-ghost text-xs py-1 px-2 shrink-0">
                   <span className="material-symbols-outlined text-sm">add</span>
                   {t('tools.httpTester.addVariable')}
                 </button>
               </div>
               <div className="space-y-2">
                 {variables.map((variable, index) => (
-                  <div key={index} className="flex items-center gap-2">
+                  <div
+                    key={index}
+                    className={HTTP_TESTER_LAYOUT_CLASSES.entryRow}
+                    data-testid="http-tester-variable-row"
+                  >
                     <input
                       type="checkbox"
                       checked={variable.enabled}
@@ -374,18 +413,18 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                       value={variable.key}
                       onChange={(e) => updateVariable(index, 'key', e.target.value)}
                       placeholder={t('tools.httpTester.variableKey')}
-                      className="nb-input flex-1 text-sm py-1"
+                      className={HTTP_TESTER_LAYOUT_CLASSES.entryInput}
                     />
                     <input
                       type="text"
                       value={variable.value}
                       onChange={(e) => updateVariable(index, 'value', e.target.value)}
                       placeholder={t('tools.httpTester.variableValue')}
-                      className="nb-input flex-1 text-sm py-1"
+                      className={HTTP_TESTER_LAYOUT_CLASSES.entryInput}
                     />
                     <button
                       onClick={() => removeVariable(index)}
-                      className="nb-btn nb-btn-ghost p-1"
+                      className="nb-btn nb-btn-ghost p-1 shrink-0"
                       disabled={variables.length === 1}
                     >
                       <span className="material-symbols-outlined text-sm">close</span>
@@ -396,13 +435,13 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
               <p className="mt-2 text-xs nb-text-secondary">{t('tools.httpTester.variablesHint')}</p>
             </div>
 
-            <div className="nb-card-static p-4">
+            <div className="nb-card-static p-4 min-w-0">
               <h3 className="text-sm font-semibold nb-text mb-3">{t('tools.httpTester.auth')}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className={HTTP_TESTER_LAYOUT_CLASSES.authGrid}>
                 <select
                   value={auth.type}
                   onChange={(e) => setAuth({ type: e.target.value as HttpAuthConfig['type'] })}
-                  className="nb-input text-sm"
+                  className="nb-input min-w-0 w-full text-sm"
                 >
                   <option value="none">{t('tools.httpTester.authNone')}</option>
                   <option value="bearer">Bearer Token</option>
@@ -415,19 +454,19 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                     value={auth.token ?? ''}
                     onChange={(e) => setAuth(prev => ({ ...prev, token: e.target.value }))}
                     placeholder="Token"
-                    className="nb-input text-sm"
+                    className="nb-input min-w-0 w-full text-sm"
                   />
                 )}
                 {auth.type === 'basic' && (
                   <>
-                    <input value={auth.username ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, username: e.target.value }))} placeholder={t('tools.httpTester.username')} className="nb-input text-sm" />
-                    <input type="password" value={auth.password ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, password: e.target.value }))} placeholder={t('tools.httpTester.password')} className="nb-input text-sm" />
+                    <input value={auth.username ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, username: e.target.value }))} placeholder={t('tools.httpTester.username')} className="nb-input min-w-0 w-full text-sm" />
+                    <input type="password" value={auth.password ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, password: e.target.value }))} placeholder={t('tools.httpTester.password')} className="nb-input min-w-0 w-full text-sm" />
                   </>
                 )}
                 {auth.type === 'apiKey' && (
                   <>
-                    <input value={auth.key ?? 'X-API-Key'} onChange={(e) => setAuth(prev => ({ ...prev, key: e.target.value }))} placeholder={t('tools.httpTester.headerKey')} className="nb-input text-sm" />
-                    <input type="password" value={auth.value ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, value: e.target.value }))} placeholder={t('tools.httpTester.headerValue')} className="nb-input text-sm" />
+                    <input value={auth.key ?? 'X-API-Key'} onChange={(e) => setAuth(prev => ({ ...prev, key: e.target.value }))} placeholder={t('tools.httpTester.headerKey')} className="nb-input min-w-0 w-full text-sm" />
+                    <input type="password" value={auth.value ?? ''} onChange={(e) => setAuth(prev => ({ ...prev, value: e.target.value }))} placeholder={t('tools.httpTester.headerValue')} className="nb-input min-w-0 w-full text-sm" />
                   </>
                 )}
               </div>
@@ -436,16 +475,20 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
 
           {/* 请求头 */}
           <div className="nb-card-static p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between gap-3 mb-3">
               <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.headers')}</h3>
-              <button onClick={addHeader} className="nb-btn nb-btn-ghost text-xs py-1 px-2">
+              <button onClick={addHeader} className="nb-btn nb-btn-ghost text-xs py-1 px-2 shrink-0">
                 <span className="material-symbols-outlined text-sm">add</span>
                 {t('tools.httpTester.addHeader')}
               </button>
             </div>
             <div className="space-y-2">
               {headers.map((header, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div
+                  key={index}
+                  className={HTTP_TESTER_LAYOUT_CLASSES.entryRow}
+                  data-testid="http-tester-header-row"
+                >
                   <input
                     type="checkbox"
                     checked={header.enabled}
@@ -457,18 +500,18 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                     value={header.key}
                     onChange={(e) => updateHeader(index, 'key', e.target.value)}
                     placeholder={t('tools.httpTester.headerKey')}
-                    className="nb-input flex-1 text-sm py-1"
+                    className={HTTP_TESTER_LAYOUT_CLASSES.entryInput}
                   />
                   <input
                     type="text"
                     value={header.value}
                     onChange={(e) => updateHeader(index, 'value', e.target.value)}
                     placeholder={t('tools.httpTester.headerValue')}
-                    className="nb-input flex-1 text-sm py-1"
+                    className={HTTP_TESTER_LAYOUT_CLASSES.entryInput}
                   />
                   <button
                     onClick={() => removeHeader(index)}
-                    className="nb-btn nb-btn-ghost p-1"
+                    className="nb-btn nb-btn-ghost p-1 shrink-0"
                     disabled={headers.length === 1}
                   >
                     <span className="material-symbols-outlined text-sm">close</span>
@@ -492,16 +535,20 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
               {bodyMode === 'formData' ? (
                 <div className="flex-1 overflow-auto space-y-2">
                   {formRows.map((row, index) => (
-                    <div key={index} className="flex items-center gap-2">
+                    <div
+                      key={index}
+                      className={HTTP_TESTER_LAYOUT_CLASSES.entryRow}
+                      data-testid="http-tester-form-row"
+                    >
                       <input
                         type="checkbox"
                         checked={row.enabled}
                         onChange={(e) => updateFormRow(index, 'enabled', e.target.checked)}
                         className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
                       />
-                      <input value={row.key} onChange={(e) => updateFormRow(index, 'key', e.target.value)} placeholder={t('tools.httpTester.formKey')} className="nb-input flex-1 text-sm py-1" />
-                      <input value={row.value} onChange={(e) => updateFormRow(index, 'value', e.target.value)} placeholder={t('tools.httpTester.formValue')} className="nb-input flex-1 text-sm py-1" />
-                      <button onClick={() => removeFormRow(index)} className="nb-btn nb-btn-ghost p-1" disabled={formRows.length === 1}>
+                      <input value={row.key} onChange={(e) => updateFormRow(index, 'key', e.target.value)} placeholder={t('tools.httpTester.formKey')} className={HTTP_TESTER_LAYOUT_CLASSES.entryInput} />
+                      <input value={row.value} onChange={(e) => updateFormRow(index, 'value', e.target.value)} placeholder={t('tools.httpTester.formValue')} className={HTTP_TESTER_LAYOUT_CLASSES.entryInput} />
+                      <button onClick={() => removeFormRow(index)} className="nb-btn nb-btn-ghost p-1 shrink-0" disabled={formRows.length === 1}>
                         <span className="material-symbols-outlined text-sm">close</span>
                       </button>
                     </div>
@@ -568,7 +615,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
         </div>
 
         {/* 右侧：历史记录 */}
-        <div className="w-72 flex-shrink-0 nb-card-static p-4 flex flex-col">
+        <div className={HTTP_TESTER_LAYOUT_CLASSES.historyPanel} data-testid="http-tester-history-panel">
           <div className="flex items-center justify-between mb-3 flex-shrink-0">
             <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.history')}</h3>
             {history.length > 0 && (

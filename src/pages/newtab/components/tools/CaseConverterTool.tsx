@@ -6,6 +6,8 @@ import { ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 import { useInputHistory } from '../../../../hooks/useInputHistory';
 import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
+import { loadToolDraft, useToolDraft } from '../../../../hooks/useToolDraft';
 
 // 大小写转换类型
 export type CaseType =
@@ -170,11 +172,28 @@ const caseTypes: CaseType[] = [
 export const CaseConverterTool: React.FC<ToolComponentProps> = ({
     isExpanded,
     onToggleExpand,
+    invocation,
+    onInvocationHandled,
 }) => {
     const { t } = useTranslation();
     const { copy } = useCopyToClipboard();
-    const [input, setInput] = useState('');
-    const [batchMode, setBatchMode] = useState(false);
+    const initialDraft = useMemo(() => loadToolDraft('case-converter'), []);
+    const [input, setInput] = useState(initialDraft?.input ?? '');
+    const [batchMode, setBatchMode] = useState(initialDraft?.mode === 'batch');
+
+    useToolDraft('case-converter', { input, mode: batchMode ? 'batch' : 'single' });
+
+    const applyInvocation = useCallback((nextInvocation: NonNullable<ToolComponentProps['invocation']>) => {
+        setInput(nextInvocation.input);
+        setBatchMode(nextInvocation.input.includes('\n'));
+    }, []);
+
+    useToolInvocation({
+        invocation,
+        targetToolId: ToolId.CASE_CONVERTER,
+        onInvocationHandled,
+        onApply: applyInvocation,
+    });
 
     // 历史记录 Hook
     const { addToHistory } = useInputHistory({
@@ -244,11 +263,14 @@ export const CaseConverterTool: React.FC<ToolComponentProps> = ({
     useEffect(() => {
         if (input.trim()) {
             const timer = setTimeout(() => {
-                addToHistory(input);
+                addToHistory(input, {
+                    output: results?.[0]?.result,
+                    mode: batchMode ? 'batch' : 'single',
+                });
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [input, addToHistory]);
+    }, [addToHistory, batchMode, input, results]);
 
     return (
         <ToolCard
@@ -280,6 +302,7 @@ export const CaseConverterTool: React.FC<ToolComponentProps> = ({
                             <InputHistoryDropdown
                                 toolId="case-converter"
                                 onSelect={handleHistorySelect}
+                                onSelectOutput={handleHistorySelect}
                             />
                             <button
                                 onClick={handleClear}

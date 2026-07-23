@@ -36,7 +36,15 @@ import { createLogger } from '../../../utils/logger';
 
 const logger = createLogger('[SubscriptionsPage]');
 
-export const SubscriptionsPage: React.FC = () => {
+interface SubscriptionsPageProps {
+  initialSubscriptionId?: string | null;
+  onInitialSubscriptionHandled?: () => void;
+}
+
+export const SubscriptionsPage: React.FC<SubscriptionsPageProps> = ({
+  initialSubscriptionId,
+  onInitialSubscriptionHandled,
+}) => {
   const { t, i18n } = useTranslation();
   const toast = useToastContext();
   const toastRef = useRef(toast);
@@ -120,6 +128,14 @@ export const SubscriptionsPage: React.FC = () => {
       // 排序订阅
       const sortedSubs = subs.sort((a, b) => compareSubscriptions(a, b, Date.now()));
       setSubscriptions(sortedSubs);
+      if (initialSubscriptionId) {
+        const requestedSubscription = sortedSubs.find(subscription => subscription.id === initialSubscriptionId);
+        if (requestedSubscription) {
+          setEditingSubscription(requestedSubscription);
+          setShowFormModal(true);
+          onInitialSubscriptionHandled?.();
+        }
+      }
       
       // 加载设置
       const subSettings = await getSubscriptionSettings();
@@ -130,7 +146,7 @@ export const SubscriptionsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [initialSubscriptionId, onInitialSubscriptionHandled, t]);
 
   useEffect(() => {
     loadData();

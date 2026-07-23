@@ -1,6 +1,8 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ToolId } from '../../../../../types/tools';
+import type { ToolInvocation } from '../../../../../types/toolInvocation';
 import { JSONFormatterTool, queryJsonPath, repairJsonInput } from '../JSONFormatterTool';
 
 vi.mock('react-i18next', () => ({
@@ -40,6 +42,7 @@ vi.mock('../../../../../hooks/useCopyToClipboard', () => ({
 describe('JSONFormatterTool', () => {
   afterEach(() => {
     cleanup();
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -129,5 +132,45 @@ describe('JSONFormatterTool', () => {
 
     expect(screen.getByText('JSON Syntax Error')).toBeInTheDocument();
     expect(screen.queryByText(/Unexpected|unterminated|position/i)).not.toBeInTheDocument();
+  });
+
+  it('prefills input from a matching tool invocation and marks it handled once', async () => {
+    const onInvocationHandled = vi.fn();
+    const invocation: ToolInvocation = {
+      id: 'json-invocation',
+      toolId: ToolId.JSON_FORMATTER,
+      input: '{"name":"My Hub"}',
+      mode: 'format',
+      source: 'home-search',
+    };
+
+    const { rerender } = render(
+      <JSONFormatterTool
+        isExpanded
+        onToggleExpand={vi.fn()}
+        invocation={invocation}
+        onInvocationHandled={onInvocationHandled}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText('Paste or type JSON data...')).toHaveValue('{"name":"My Hub"}');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Formatted JSON will appear here...')).toHaveValue(
+        '{\n  "name": "My Hub"\n}',
+      );
+    });
+    expect(onInvocationHandled).toHaveBeenCalledTimes(1);
+    expect(onInvocationHandled).toHaveBeenCalledWith('json-invocation');
+
+    rerender(
+      <JSONFormatterTool
+        isExpanded
+        onToggleExpand={vi.fn()}
+        invocation={invocation}
+        onInvocationHandled={onInvocationHandled}
+      />,
+    );
+
+    expect(onInvocationHandled).toHaveBeenCalledTimes(1);
   });
 });

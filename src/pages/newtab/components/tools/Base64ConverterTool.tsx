@@ -7,9 +7,11 @@ import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 import { useRealTimeConvert } from '../../../../hooks/useRealTimeConvert';
 import { useInputHistory } from '../../../../hooks/useInputHistory';
 import { useBatchMode } from '../../../../hooks/useBatchMode';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
 import { SwapButton } from '../../../../components/SwapButton';
 import { BatchModeToggle } from '../../../../components/BatchModeToggle';
+import { loadToolDraft, useToolDraft } from '../../../../hooks/useToolDraft';
 
 const BASE64_CHUNK_SIZE = 0x8000;
 
@@ -40,10 +42,15 @@ export const decodeBase64 = (base64: string): string => {
 export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
-  const [mode, setMode] = useState<'encode' | 'decode'>('encode');
+  const initialDraft = useMemo(() => loadToolDraft('base64-converter'), []);
+  const [mode, setMode] = useState<'encode' | 'decode'>(
+    initialDraft?.mode === 'decode' ? 'decode' : 'encode',
+  );
 
   // 根据模式选择转换函数
   const converter = useMemo(() => {
@@ -70,6 +77,22 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
     debounceMs: 300,
     getErrorMessage: getConversionErrorMessage,
     silentError: true,
+    initialInput: initialDraft?.input ?? '',
+  });
+
+  useToolDraft('base64-converter', { input, output, mode });
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.BASE64_CONVERTER,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      if (nextInvocation.mode === 'decode' || nextInvocation.mode === 'encode') {
+        setMode(nextInvocation.mode);
+      }
+      setInput(nextInvocation.input);
+      setOutput('');
+    }, [setInput, setOutput]),
   });
 
   // 历史记录 Hook
@@ -92,9 +115,15 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
   const handleConvert = useCallback(() => {
     convert();
     if (input.trim()) {
-      addToHistory(input);
+      let nextOutput = output;
+      try {
+        nextOutput = converter(input);
+      } catch {
+        // The conversion hook surfaces the localized error.
+      }
+      addToHistory(input, { output: nextOutput, mode });
     }
-  }, [convert, input, addToHistory]);
+  }, [addToHistory, convert, converter, input, mode, output]);
 
   // 处理复制
   const handleCopy = useCallback(() => {
@@ -189,6 +218,7 @@ export const Base64ConverterTool: React.FC<ToolComponentProps> = ({
           <InputHistoryDropdown
             toolId="base64-converter"
             onSelect={handleHistorySelect}
+            onSelectOutput={handleHistorySelect}
           />
           
           {/* 交换按钮 */}

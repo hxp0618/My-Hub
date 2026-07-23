@@ -4,6 +4,10 @@ import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA } from '../../../../types/tools';
 import { ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
+import { loadToolDraft, useToolDraft } from '../../../../hooks/useToolDraft';
+import { useInputHistory } from '../../../../hooks/useInputHistory';
+import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
 import { jsonrepair } from 'jsonrepair';
 
 // 转义字符处理模式
@@ -140,16 +144,44 @@ export const queryJsonPath = (jsonText: string, path: string): JsonQueryResult =
 export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
-  const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
+  const initialDraft = useMemo(() => loadToolDraft('json-formatter'), []);
+  const [input, setInput] = useState(initialDraft?.input ?? '');
+  const [output, setOutput] = useState(initialDraft?.output ?? '');
   const [error, setError] = useState('');
-  const [escapeMode, setEscapeMode] = useState<EscapeMode>('preserve');
+  const [escapeMode, setEscapeMode] = useState<EscapeMode>(initialDraft?.mode === 'remove' ? 'remove' : 'preserve');
   const [queryPath, setQueryPath] = useState('');
   const [queryOutput, setQueryOutput] = useState('');
   const [queryError, setQueryError] = useState('');
+  const { addToHistory } = useInputHistory({ toolId: 'json-formatter' });
+
+  useToolDraft('json-formatter', { input, output, mode: escapeMode });
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.JSON_FORMATTER,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      setInput(nextInvocation.input);
+      setError('');
+      setQueryPath('');
+      setQueryOutput('');
+      setQueryError('');
+
+      try {
+        const formatted = nextInvocation.mode === 'repair'
+          ? repairJsonInput(nextInvocation.input)
+          : JSON.stringify(JSON.parse(nextInvocation.input), null, 2);
+        setOutput(formatted);
+      } catch {
+        setOutput('');
+      }
+    }, []),
+  });
 
   // 处理转义字符
   const processEscapeCharacters = useCallback((jsonString: string, mode: EscapeMode): string => {
@@ -184,11 +216,12 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
       const processed = processEscapeCharacters(formatted, escapeMode);
       setOutput(processed);
       setError('');
+      addToHistory(input, { output: processed, mode: 'format' });
     } catch {
       setError(t('tools.jsonFormatter.error'));
       setOutput('');
     }
-  }, [input, escapeMode, processEscapeCharacters, t]);
+  }, [addToHistory, input, escapeMode, processEscapeCharacters, t]);
 
   // 自动格式化（使用防抖）
   const debouncedAutoFormat = useMemo(
@@ -236,11 +269,12 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
       const compressed = JSON.stringify(parsed);
       setOutput(compressed);
       setError('');
+      addToHistory(input, { output: compressed, mode: 'compress' });
     } catch {
       setError(t('tools.jsonFormatter.error'));
       setOutput('');
     }
-  }, [input, t]);
+  }, [addToHistory, input, t]);
 
   // 修复宽松 JSON
   const handleRepair = useCallback(() => {
@@ -254,11 +288,12 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
       const repaired = repairJsonInput(input);
       setOutput(repaired);
       setError('');
+      addToHistory(input, { output: repaired, mode: 'repair' });
     } catch {
       setError(t('tools.jsonFormatter.error'));
       setOutput('');
     }
-  }, [input, t]);
+  }, [addToHistory, input, t]);
 
   const handleQuery = useCallback(() => {
     const path = queryPath.trim();
@@ -341,6 +376,11 @@ export const JSONFormatterTool: React.FC<ToolComponentProps> = ({
             >
               {t('tools.jsonFormatter.clear')}
             </button>
+            <InputHistoryDropdown
+              toolId="json-formatter"
+              onSelect={setInput}
+              onSelectOutput={setInput}
+            />
           </div>
           
           {/* 转义字符模式切换 */}

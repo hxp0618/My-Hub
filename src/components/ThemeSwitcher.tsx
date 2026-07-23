@@ -132,7 +132,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
                 </span>
               )}
               {showDescriptions && (
-                <span className="text-xs nb-text-secondary mt-1 text-center">
+                <span className={`text-xs mt-1 text-center ${isActive ? 'theme-switcher-accent-text' : 'nb-text-secondary'}`}>
                   {themeDescription}
                 </span>
               )}
@@ -186,7 +186,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
                 {themeName}
               </div>
               {showDescriptions && (
-                <div className="text-sm nb-text-secondary mt-1">
+                <div className={`text-sm mt-1 ${isActive ? 'theme-switcher-accent-text' : 'nb-text-secondary'}`}>
                   {themeDescription}
                 </div>
               )}

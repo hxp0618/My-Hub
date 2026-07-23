@@ -120,4 +120,25 @@ describe('llmService request errors', () => {
     expect(error.code).toBe('networkError');
     expect(error.message).not.toContain('raw host detail');
   });
+
+  it('blocks unconfigured AI requests before fetch and emits setup guidance', async () => {
+    localStorage.clear();
+    const fetchMock = vi.fn();
+    const onError = vi.fn();
+    const eventListener = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    window.addEventListener('myhub:ai-configuration-required', eventListener);
+
+    await sendMessage(
+      [{ role: 'user', content: 'hello' }],
+      { onUpdate: vi.fn(), onFinish: vi.fn(), onError },
+      undefined,
+      { stream: false }
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(eventListener).toHaveBeenCalledTimes(1);
+    expect((onError.mock.calls[0][0] as LLMServiceError).code).toBe('configurationRequired');
+    window.removeEventListener('myhub:ai-configuration-required', eventListener);
+  });
 });

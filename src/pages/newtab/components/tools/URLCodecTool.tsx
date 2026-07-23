@@ -7,9 +7,11 @@ import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 import { useRealTimeConvert } from '../../../../hooks/useRealTimeConvert';
 import { useInputHistory } from '../../../../hooks/useInputHistory';
 import { useBatchMode } from '../../../../hooks/useBatchMode';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
 import { SwapButton } from '../../../../components/SwapButton';
 import { BatchModeToggle } from '../../../../components/BatchModeToggle';
+import { loadToolDraft, useToolDraft } from '../../../../hooks/useToolDraft';
 
 export interface UrlQueryParam {
   key: string;
@@ -73,10 +75,15 @@ export const buildUrlWithQueryParams = (value: string, queryParams: UrlQueryPara
 export const URLCodecTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
-  const [mode, setMode] = useState<'encode' | 'decode'>('encode');
+  const initialDraft = useMemo(() => loadToolDraft('url-codec'), []);
+  const [mode, setMode] = useState<'encode' | 'decode'>(
+    initialDraft?.mode === 'decode' ? 'decode' : 'encode',
+  );
   const [encodeMethod, setEncodeMethod] = useState<'uri' | 'component'>('component');
   const [queryParams, setQueryParams] = useState<UrlQueryParam[]>([]);
 
@@ -110,6 +117,22 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
     debounceMs: 300,
     getErrorMessage: getConversionErrorMessage,
     silentError: true,
+    initialInput: initialDraft?.input ?? '',
+  });
+
+  useToolDraft('url-codec', { input, output, mode });
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.URL_CODEC,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      if (nextInvocation.mode === 'decode' || nextInvocation.mode === 'encode') {
+        setMode(nextInvocation.mode);
+      }
+      setInput(nextInvocation.input);
+      setOutput('');
+    }, [setInput, setOutput]),
   });
 
   const urlDetails = useMemo(() => parseUrlDetails(input), [input]);
@@ -142,9 +165,15 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
   const handleConvert = useCallback(() => {
     convert();
     if (input.trim()) {
-      addToHistory(input);
+      let nextOutput = output;
+      try {
+        nextOutput = converter(input);
+      } catch {
+        // The conversion hook surfaces the localized error.
+      }
+      addToHistory(input, { output: nextOutput, mode });
     }
-  }, [convert, input, addToHistory]);
+  }, [addToHistory, convert, converter, input, mode, output]);
 
   // 处理复制
   const handleCopy = useCallback(() => {
@@ -290,6 +319,7 @@ export const URLCodecTool: React.FC<ToolComponentProps> = ({
           <InputHistoryDropdown
             toolId="url-codec"
             onSelect={handleHistorySelect}
+            onSelectOutput={handleHistorySelect}
           />
           
           {/* 交换按钮 */}

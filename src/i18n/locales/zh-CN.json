@@ -174,6 +174,9 @@
     "deduplicateError": "去重失败，请稍后重试",
     "health": {
       "title": "健康分",
+      "governanceTitle": "书签治理中心",
+      "governanceDescription": "集中处理重复项、缺失标签和 AI 整理建议。",
+      "governanceActions": "书签治理操作",
       "total": "共 {{count}} 个书签",
       "duplicates": "重复项",
       "duplicateGroups": "{{count}} 组重复",
@@ -237,6 +240,7 @@
     "backToList": "返回列表",
     "relatedBookmarks": "关联书签",
     "removeFromBookmark": "从书签移除标签",
+    "editBookmark": "定位并编辑书签",
     "removeTag": "移除标签",
     "openAll": "全部打开",
     "exportList": "导出列表",
@@ -263,11 +267,13 @@
     "momentsInHistory": "历史时刻",
     "momentsDescription": "在过去14天中，您在当前时间段经常访问这些网站",
     "timeRangeFormat": "({{start}}:00 - {{end}}:00 高频访问)",
-    "searchPlaceholder": "搜索历史、书签，或输入 tool:json / tag:ai / url:github / action:settings...",
+    "searchPlaceholder": "搜索历史和书签...",
+    "commandHelp": "打开搜索命令帮助",
     "searchResults": "搜索结果",
     "openTool": "打开工具 {{name}}",
     "openToolAction": "打开工具",
     "toolCommandCategory": "工具 · {{category}}",
+    "smartToolCommandCategory": "智能建议 · {{confidence}}%",
     "openAction": "执行操作 {{name}}",
     "openActionAction": "执行操作",
     "actionCommandCategory": "操作 · 导航",
@@ -331,6 +337,9 @@
     "active": "当前",
     "previewingTheme": "预览主题",
     "general": "通用",
+    "notificationMenu": "通知",
+    "permissionsMenu": "权限",
+    "dataMenu": "数据",
     "appearance": "外观",
     "language": "语言",
     "languageDesc": "选择界面显示语言",
@@ -415,6 +424,13 @@
     "geminiNanoDesc": "使用设备端 AI，速度更快且无需 API Key。",
     "hardwareRequirements": "(硬件要求)",
     "status": "状态",
+    "geminiNanoStatus": {
+      "checking": "检查中",
+      "available": "可用",
+      "unavailable": "不可用",
+      "downloading": "下载中",
+      "downloadable": "可下载"
+    },
     "providerLabel": "服务商",
     "selectProvider": "请选择服务商",
     "custom": "自定义",
@@ -492,6 +508,41 @@
     "brightness": "亮度",
     "brightnessDesc": "调整扩展界面的亮度，不影响系统亮度",
     "brightnessReset": "重置亮度"
+  },
+  "commandPalette": {
+    "title": "全局命令",
+    "open": "搜索与命令",
+    "placeholder": "搜索页面、工具、标签、书签、订阅或 Web Combo...",
+    "results": "命令结果",
+    "empty": "没有找到匹配的命令或内容。",
+    "hint": "↑↓ 选择 · Enter 打开 · Esc 关闭",
+    "commandHelp": "命令筛选",
+    "hints": {
+      "tool": "工具",
+      "tag": "标签",
+      "url": "网址",
+      "action": "操作"
+    },
+    "groups": {
+      "smart": "智能建议",
+      "actions": "页面与操作",
+      "tools": "工具",
+      "tags": "标签",
+      "bookmarks": "书签",
+      "history": "历史",
+      "subscriptions": "订阅",
+      "webCombos": "Web Combo"
+    },
+    "tagDescription": "关联 {{count}} 个书签",
+    "subscriptionDescription": "到期日 {{date}}",
+    "webComboDescription": "打开 {{count}} 个网页",
+    "settings": {
+      "general": { "title": "设置 · 通用", "description": "主题、语言、首页密度和菜单顺序。" },
+      "notifications": { "title": "设置 · 通知", "description": "配置订阅到期通知渠道。" },
+      "permissions": { "title": "设置 · 权限", "description": "查看扩展权限及使用范围。" },
+      "data": { "title": "设置 · 数据", "description": "导入、导出和敏感数据备份。" },
+      "llm": { "title": "设置 · LLM", "description": "配置服务商、模型和 Gemini Nano。" }
+    }
   },
   "time": {
     "justNow": "刚刚",
@@ -660,6 +711,7 @@
     "noApiUrl": "API URL 未配置",
     "noModelSelected": "未选择模型",
     "errors": {
+      "configurationRequired": "请先配置 LLM 服务商，或启用可用的 Gemini Nano",
       "promptApiUnavailable": "浏览器内置 AI 不可用",
       "geminiUnavailable": "浏览器内置 AI 当前不可用，已尝试切换到云端模型",
       "apiRequestFailed": "LLM 请求失败，状态码：{{status}}",
@@ -672,6 +724,13 @@
   "tagGeneration": {
     "promptTemplate": "标题: \"{{title}}\"\nURL: \"{{url}}\"",
     "successMessage": "成功生成 {{count}} 个标签"
+  },
+  "aiSetup": {
+    "title": "先配置 AI 能力",
+    "description": "当前没有可用的 LLM 服务商，也没有启用可用的 Gemini Nano。本次 AI 操作尚未发出请求。",
+    "hint": "可以配置云端服务商，或在设备支持时启用 Gemini Nano。",
+    "configureProvider": "配置服务商",
+    "enableNano": "启用 Gemini Nano"
   },
   "aiSuggestion": {
     "generating": "正在生成AI建议...",
@@ -688,16 +747,29 @@
     "noToolsEnabled": "暂无启用的工具",
     "enableTools": "启用工具",
     "searchPlaceholder": "搜索工具...",
+    "searchResults": "搜索结果",
     "noSearchResults": "未找到匹配的工具",
     "copySuccess": "已复制到剪贴板",
     "copyError": "复制失败",
     "copyEmpty": "没有内容可复制",
     "recent": "最近",
+    "navigation": "工具导航",
+    "addFavorite": "收藏{{name}}",
+    "removeFavorite": "取消收藏{{name}}",
+    "groups": {
+      "recent": "最近使用",
+      "favorites": "收藏工具",
+      "developer": "开发工具",
+      "utility": "实用工具",
+      "network": "网络工具"
+    },
     "management": {
       "title": "管理工具",
       "description": "选择要显示的工具",
       "enableAll": "全部启用",
       "disableAll": "全部禁用",
+      "enableTool": "启用{{name}}",
+      "disableTool": "停用{{name}}",
       "save": "保存",
       "tabEnable": "启用/禁用",
       "tabOrder": "排序"
@@ -711,6 +783,116 @@
       "noTools": "暂无启用的工具"
     },
     "selectTool": "选择一个工具开始使用",
+    "smartToolRouter": {
+      "name": "智能处理",
+      "description": "自动识别输入内容并推荐合适的本地工具",
+      "inputLabel": "输入内容",
+      "inputPlaceholder": "粘贴 JSON、URL、cURL、颜色、Cron、Base64、JWT，或输入 uuid / sha256: / url encode: 等命令...",
+      "recommendations": "推荐工具",
+      "preview": "处理预览",
+      "previewNextSteps": "下一步处理",
+      "openTool": "打开工具",
+      "copyPreview": "复制预览",
+      "openPreviewWithTool": "用预览结果{{name}}",
+      "emptyInput": "粘贴内容后会自动识别可用工具",
+      "noSuggestions": "暂未识别到合适工具",
+      "previewFailed": "无法生成预览，请打开目标工具继续处理",
+      "intentConfidence": "置信度 {{confidence}}%",
+      "intents": {
+        "jsonFormat": {
+          "title": "格式化 JSON",
+          "description": "识别严格 JSON，并用缩进格式化。"
+        },
+        "jsonRepair": {
+          "title": "修复 JSON",
+          "description": "尝试修复宽松 JSON，再输出标准格式。"
+        },
+        "urlEncode": {
+          "title": "URL 编码",
+          "description": "使用 url encode: 把文本安全编码为 URL 参数。"
+        },
+        "urlDecode": {
+          "title": "URL 解码",
+          "description": "解码百分号编码的 URL 或参数文本。"
+        },
+        "base64Encode": {
+          "title": "Base64 编码",
+          "description": "使用 base64 encode: 编码 UTF-8 文本。"
+        },
+        "base64Decode": {
+          "title": "Base64 解码",
+          "description": "解码 UTF-8 Base64 文本。"
+        },
+        "htmlEntityEncode": {
+          "title": "HTML 实体编码",
+          "description": "使用 html encode: 转义 HTML 特殊字符。"
+        },
+        "htmlEntityDecode": {
+          "title": "HTML 实体解码",
+          "description": "把 &amp;、&#123; 等实体还原为文本。"
+        },
+        "jwtDecode": {
+          "title": "JWT 解码",
+          "description": "解析 JWT header 和 payload。"
+        },
+        "timestampToDate": {
+          "title": "时间戳转日期",
+          "description": "识别 10 位秒级或 13 位毫秒级时间戳。"
+        },
+        "yamlConvert": {
+          "title": "转换 YAML",
+          "description": "识别 YAML 文本并预览为标准 JSON。"
+        },
+        "tomlConvert": {
+          "title": "转换 TOML",
+          "description": "识别 TOML 配置并预览为标准 JSON。"
+        },
+        "regexTest": {
+          "title": "测试正则",
+          "description": "识别 /pattern/flags 形式的正则表达式。"
+        },
+        "hashCalculate": {
+          "title": "计算哈希",
+          "description": "使用 md5:、sha1:、sha256: 或 sha512: 指定算法。"
+        },
+        "caseConvert": {
+          "title": "转换大小写",
+          "description": "使用 camel:、snake:、kebab:、upper: 或 lower: 转换文本。"
+        },
+        "colorConvert": {
+          "title": "转换颜色",
+          "description": "识别 HEX 或 RGB 颜色并预览等价值。"
+        },
+        "uuidGenerate": {
+          "title": "生成 UUID",
+          "description": "输入 uuid、uuid v1 或 uuid v4 生成标识符。"
+        },
+        "nanoidGenerate": {
+          "title": "生成 NanoID",
+          "description": "输入 nanoid 或 nanoid 32 生成指定长度标识符。"
+        },
+        "randomString": {
+          "title": "生成随机字符串",
+          "description": "输入 random string 32 生成指定长度字符串。"
+        },
+        "randomNumber": {
+          "title": "生成随机数",
+          "description": "输入 random number 1..100 生成区间整数。"
+        },
+        "cronInspect": {
+          "title": "解析 Cron",
+          "description": "验证五段 Cron 表达式并预览后续执行时间。"
+        },
+        "curlImport": {
+          "title": "导入 cURL 请求",
+          "description": "解析 cURL 的方法、URL、请求头和请求体。"
+        },
+        "httpRequest": {
+          "title": "测试 HTTP 地址",
+          "description": "识别 HTTP/HTTPS 地址并带入请求测试器。"
+        }
+      }
+    },
     "jsonFormatter": {
       "name": "JSON 格式化",
       "description": "格式化和验证 JSON 数据",
@@ -1424,6 +1606,10 @@
       "history": "历史记录",
       "clearAll": "清空全部",
       "delete": "删除",
+      "reuseInput": "复用输入",
+      "reuseOutput": "把输出作为新输入",
+      "pin": "固定记录",
+      "unpin": "取消固定",
       "swap": "交换",
       "batchMode": "批量模式",
       "onePerLine": "每行一个",

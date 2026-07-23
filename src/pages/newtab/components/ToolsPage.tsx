@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState, Suspense, lazy, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, Suspense, lazy, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolId, ToolConfig, getToolMetadata, ToolComponentProps } from '../../../types/tools';
+import type { ToolInvocation } from '../../../types/toolInvocation';
 import {
   getLastSelectedTool,
   getToolConfig,
@@ -14,12 +15,23 @@ import { ToolManagementModal } from '../../../components/ToolManagementModal';
 import { useToolOrder } from '../../../hooks/useToolOrder';
 import { createLogger } from '../../../utils/logger';
 import { parseDragIndex } from '../../../utils/dragIndex';
+import {
+  loadFavoriteTools,
+  loadRecentTools,
+  prependRecentTool,
+  saveFavoriteTools,
+  saveRecentTools,
+  toggleFavoriteTool,
+} from '../../../utils/toolPreferences';
 
 const logger = createLogger('[ToolsPage]');
 
 export const parseToolDragIndex = parseDragIndex;
 
 const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType<ToolComponentProps>>> = {
+  [ToolId.SMART_TOOL_ROUTER]: lazy(() =>
+    import('./tools/SmartToolRouter').then(mod => ({ default: mod.SmartToolRouter })),
+  ),
   [ToolId.JSON_FORMATTER]: lazy(() =>
     import('./tools/JSONFormatterTool').then(mod => ({ default: mod.JSONFormatterTool })),
   ),
@@ -105,6 +117,16 @@ const TOOL_LOADERS: Record<ToolId, React.LazyExoticComponent<React.ComponentType
 
 interface ToolsPageProps {
   initialToolId?: ToolId | null;
+  initialInvocation?: ToolInvocation | null;
+  onInvocationHandled?: (id: string) => void;
+  onOpenTool?: (toolId: ToolId, invocation?: ToolInvocation) => void;
+}
+
+interface ToolNavigationGroup {
+  id: string;
+  label: string;
+  icon: string;
+  toolIds: ToolId[];
 }
 
 /**
@@ -114,16 +136,21 @@ interface ToolsPageProps {
  * - 管理工具的启用/禁用状态
  * - 处理工具管理弹窗
  */
-export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) => {
+export const ToolsPage: React.FC<ToolsPageProps> = ({
+  initialToolId = null,
+  initialInvocation = null,
+  onInvocationHandled,
+  onOpenTool,
+}) => {
   const { t } = useTranslation();
   const [config, setConfig] = useState<ToolConfig>({ enabledTools: Object.values(ToolId) });
   const [selectedTool, setSelectedTool] = useState<ToolId | null>(null);
-  const [recentToolId, setRecentToolId] = useState<ToolId | null>(null);
+  const [recentTools, setRecentTools] = useState<ToolId[]>(loadRecentTools);
+  const [favoriteTools, setFavoriteTools] = useState<ToolId[]>(loadFavoriteTools);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { toolOrder, setToolOrder, moveItem } = useToolOrder();
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const { toolOrder, setToolOrder } = useToolOrder();
+  const toolButtonRefs = useRef(new Map<ToolId, HTMLButtonElement>());
 
   // 从 IndexedDB 加载工具配置和上次选择的工具（包含一次性迁移）
   useEffect(() => {
@@ -140,14 +167,21 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
         const lastSelected = await getLastSelectedTool();
         if (cancelled) return;
 
+        const requestedInitialToolId = initialInvocation?.toolId ?? initialToolId;
         const initialTool =
-          (initialToolId && loadedConfig.enabledTools.includes(initialToolId) && initialToolId) ||
+          (requestedInitialToolId && loadedConfig.enabledTools.includes(requestedInitialToolId) && requestedInitialToolId) ||
           (lastSelected && loadedConfig.enabledTools.includes(lastSelected) && lastSelected) ||
           loadedConfig.enabledTools[0] ||
           null;
 
         setSelectedTool(initialTool);
-        setRecentToolId(lastSelected || initialTool);
+        if (lastSelected || initialTool) {
+          setRecentTools(current => {
+            const next = prependRecentTool(current, (lastSelected || initialTool) as ToolId);
+            saveRecentTools(next);
+            return next;
+          });
+        }
 
         if (!lastSelected && initialTool) {
           await setLastSelectedTool(initialTool);
@@ -162,7 +196,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
     return () => {
       cancelled = true;
     };
-  }, [initialToolId]);
+  }, [initialInvocation?.toolId, initialToolId]);
 
   // 保存工具配置和顺序
   const handleSaveConfig = async (newConfig: ToolConfig, newOrder: ToolId[]) => {
@@ -187,97 +221,34 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
   // 选择工具
   const handleSelectTool = useCallback((toolId: ToolId) => {
     setSelectedTool(toolId);
-    setRecentToolId(toolId);
+    setRecentTools(current => {
+      const next = prependRecentTool(current, toolId);
+      saveRecentTools(next);
+      return next;
+    });
     setLastSelectedTool(toolId).catch(error => logger.error('Failed to save last selected tool', error));
     incrementToolUsageCount(toolId).catch(error => logger.error('Failed to record tool usage', error));
   }, []);
 
+  const handleToggleFavorite = useCallback((toolId: ToolId) => {
+    setFavoriteTools(current => {
+      const next = toggleFavoriteTool(current, toolId);
+      saveFavoriteTools(next);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
-    if (initialToolId && config.enabledTools.includes(initialToolId)) {
-      handleSelectTool(initialToolId);
+    const requestedToolId = initialInvocation?.toolId ?? initialToolId;
+    if (requestedToolId && config.enabledTools.includes(requestedToolId)) {
+      handleSelectTool(requestedToolId);
     }
-  }, [config.enabledTools, handleSelectTool, initialToolId]);
+  }, [config.enabledTools, handleSelectTool, initialInvocation?.toolId, initialToolId]);
 
   // 按顺序排列的启用工具列表
   const orderedEnabledTools = useMemo(() => {
     return toolOrder.filter(id => config.enabledTools.includes(id));
   }, [toolOrder, config.enabledTools]);
-
-  // 键盘快捷键支持
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 如果焦点在输入框中，不处理快捷键
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-        return;
-      }
-
-      const currentIndex = orderedEnabledTools.findIndex(id => id === selectedTool);
-
-      if (e.key === 'ArrowUp' && currentIndex > 0) {
-        e.preventDefault();
-        handleSelectTool(orderedEnabledTools[currentIndex - 1]);
-      } else if (e.key === 'ArrowDown' && currentIndex < orderedEnabledTools.length - 1) {
-        e.preventDefault();
-        handleSelectTool(orderedEnabledTools[currentIndex + 1]);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSelectTool, orderedEnabledTools, selectedTool]);
-
-  // 拖拽事件处理
-  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index.toString());
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverIndex(index);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setDragOverIndex(null);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, toIndex: number) => {
-      e.preventDefault();
-      const fromIndex = parseToolDragIndex(
-        e.dataTransfer.getData('text/plain'),
-        orderedEnabledTools.length,
-      );
-      const targetIndex = Number.isInteger(toIndex) && toIndex >= 0 && toIndex < orderedEnabledTools.length
-        ? toIndex
-        : null;
-
-      if (fromIndex !== null && targetIndex !== null && fromIndex !== targetIndex) {
-        // 计算在完整 toolOrder 中的实际索引
-        const fromToolId = orderedEnabledTools[fromIndex];
-        const toToolId = orderedEnabledTools[targetIndex];
-
-        const actualFromIndex = toolOrder.indexOf(fromToolId);
-        const actualToIndex = toolOrder.indexOf(toToolId);
-
-        if (actualFromIndex !== -1 && actualToIndex !== -1) {
-          moveItem(actualFromIndex, actualToIndex);
-        }
-      }
-
-      setDraggedIndex(null);
-      setDragOverIndex(null);
-    },
-    [toolOrder, orderedEnabledTools, moveItem]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  }, []);
 
   // 过滤工具列表
   const filteredTools = useMemo(() => {
@@ -291,12 +262,86 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
     });
   }, [orderedEnabledTools, searchQuery, t]);
 
+  const navigationGroups = useMemo<ToolNavigationGroup[]>(() => {
+    if (searchQuery.trim()) {
+      return filteredTools.length > 0
+        ? [{ id: 'search', label: t('tools.searchResults'), icon: 'search', toolIds: filteredTools }]
+        : [];
+    }
+
+    const enabled = new Set(orderedEnabledTools);
+    const assigned = new Set<ToolId>();
+    const groups: ToolNavigationGroup[] = [];
+    const addGroup = (group: ToolNavigationGroup) => {
+      const toolIds = group.toolIds.filter(toolId => enabled.has(toolId) && !assigned.has(toolId));
+      if (toolIds.length === 0) return;
+      toolIds.forEach(toolId => assigned.add(toolId));
+      groups.push({ ...group, toolIds });
+    };
+
+    addGroup({
+      id: 'recent',
+      label: t('tools.groups.recent'),
+      icon: 'history',
+      toolIds: recentTools.filter(toolId => !favoriteTools.includes(toolId)),
+    });
+    addGroup({ id: 'favorites', label: t('tools.groups.favorites'), icon: 'star', toolIds: favoriteTools });
+
+    (['developer', 'utility', 'network'] as const).forEach(category => {
+      addGroup({
+        id: category,
+        label: t(`tools.groups.${category}`),
+        icon: category === 'developer' ? 'code' : category === 'utility' ? 'widgets' : 'language',
+        toolIds: orderedEnabledTools.filter(toolId => getToolMetadata(toolId).category === category),
+      });
+    });
+
+    return groups;
+  }, [favoriteTools, filteredTools, orderedEnabledTools, recentTools, searchQuery, t]);
+
+  const navigationTools = useMemo(
+    () => navigationGroups.flatMap(group => group.toolIds),
+    [navigationGroups],
+  );
+  const rovingToolId = selectedTool && navigationTools.includes(selectedTool)
+    ? selectedTool
+    : navigationTools[0] ?? null;
+
+  const focusToolButton = useCallback((toolId: ToolId) => {
+    window.requestAnimationFrame(() => toolButtonRefs.current.get(toolId)?.focus());
+  }, []);
+
+  const handleRailKeyDown = useCallback((event: React.KeyboardEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    const toolButton = target.closest<HTMLButtonElement>('[data-tool-id]');
+    if (!toolButton || !event.currentTarget.contains(toolButton)) return;
+
+    const currentToolId = toolButton.dataset.toolId as ToolId | undefined;
+    const currentIndex = currentToolId ? navigationTools.indexOf(currentToolId) : -1;
+    if (currentIndex < 0) return;
+
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowUp') nextIndex = Math.max(0, currentIndex - 1);
+    if (event.key === 'ArrowDown') nextIndex = Math.min(navigationTools.length - 1, currentIndex + 1);
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = navigationTools.length - 1;
+    if (nextIndex === null || nextIndex === currentIndex) return;
+
+    event.preventDefault();
+    const nextToolId = navigationTools[nextIndex];
+    handleSelectTool(nextToolId);
+    focusToolButton(nextToolId);
+  }, [focusToolButton, handleSelectTool, navigationTools]);
+
   const toolProps = useMemo(
     () => ({
       isExpanded: true,
       onToggleExpand: () => { },
+      invocation: initialInvocation,
+      onInvocationHandled,
+      onOpenTool,
     }),
-    [],
+    [initialInvocation, onInvocationHandled, onOpenTool],
   );
 
   const ToolComponent = selectedTool ? TOOL_LOADERS[selectedTool] : null;
@@ -304,7 +349,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
   return (
     <div className="tools-page-shell nb-text">
       {/* 左侧工具列表 */}
-      <section className="tools-page-rail nb-card-static" aria-label={t('tools.title')}>
+      <section className="tools-page-rail nb-card-static" aria-label={t('tools.title')} onKeyDown={handleRailKeyDown}>
         <div className="tools-page-rail-header nb-border-b">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -341,53 +386,61 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ initialToolId = null }) =>
           )}
         </div>
 
-        <nav className="tools-page-list">
-          {filteredTools.map((toolId, index) => {
-            const metadata = getToolMetadata(toolId);
-            const isSelected = selectedTool === toolId;
-            const isRecent = toolId === recentToolId && !searchQuery;
-            const isDragging = draggedIndex === index;
-            const isDragOver = dragOverIndex === index;
-            const canDrag = !searchQuery;
+        <nav className="tools-page-list" aria-label={t('tools.navigation')}>
+          {navigationGroups.map(group => (
+            <section className="tools-page-group" key={group.id} aria-labelledby={`tools-group-${group.id}`}>
+              <h3 id={`tools-group-${group.id}`} className="tools-page-group-title">
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">{group.icon}</span>
+                {group.label}
+              </h3>
+              <div className="tools-page-group-items">
+                {group.toolIds.map(toolId => {
+                  const metadata = getToolMetadata(toolId);
+                  const isSelected = selectedTool === toolId;
+                  const isFavorite = favoriteTools.includes(toolId);
+                  const toolName = t(metadata.nameKey);
 
-            return (
-              <button
-                type="button"
-                key={toolId}
-                draggable={canDrag}
-                onDragStart={canDrag ? (e) => handleDragStart(e, index) : undefined}
-                onDragOver={canDrag ? (e) => handleDragOver(e, index) : undefined}
-                onDragLeave={canDrag ? handleDragLeave : undefined}
-                onDrop={canDrag ? (e) => handleDrop(e, index) : undefined}
-                onDragEnd={canDrag ? handleDragEnd : undefined}
-                onClick={() => handleSelectTool(toolId)}
-                aria-current={isSelected ? 'page' : undefined}
-                className={`tools-page-tool-button w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-100 border-2 ${isSelected
-                  ? 'bg-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)] border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)]'
-                  : 'bg-transparent border-transparent hover:border-[color:var(--nb-border)] hover:bg-[color:var(--nb-card)]'
-                  } ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-[color:var(--nb-accent-blue)]' : ''
-                  }`}
-              >
-                {canDrag && (
-                  <span className={`tools-page-drag-handle material-symbols-outlined text-sm ${isSelected ? 'text-[color:var(--nb-text-on-accent)] opacity-70' : 'nb-text-secondary opacity-50'}`}>
-                    drag_indicator
-                  </span>
-                )}
-                <span className={`material-symbols-outlined text-lg ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`}>{metadata.icon}</span>
-                <span className={`flex-1 text-sm font-medium truncate ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`}>
-                  {t(metadata.nameKey)}
-                </span>
-                {isRecent && (
-                  <span className="text-xs px-1.5 py-0.5 bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] nb-text-on-accent">
-                    {t('tools.recent')}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                  return (
+                    <div className={`tools-page-tool-row ${isSelected ? 'is-selected' : ''}`} key={toolId}>
+                      <button
+                        ref={node => {
+                          if (node) toolButtonRefs.current.set(toolId, node);
+                          else toolButtonRefs.current.delete(toolId);
+                        }}
+                        type="button"
+                        data-tool-id={toolId}
+                        tabIndex={rovingToolId === toolId ? 0 : -1}
+                        onClick={() => handleSelectTool(toolId)}
+                        aria-current={isSelected ? 'page' : undefined}
+                        className={`tools-page-tool-button flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors duration-100 ${isSelected
+                          ? 'bg-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)]'
+                          : 'bg-transparent hover:bg-[color:var(--nb-panel-muted)]'
+                        }`}
+                      >
+                        <span className={`material-symbols-outlined text-lg ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`} aria-hidden="true">{metadata.icon}</span>
+                        <span className={`flex-1 truncate text-sm font-medium ${isSelected ? 'text-[color:var(--nb-text-on-accent)]' : 'nb-text'}`}>
+                          {toolName}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`tools-page-favorite-button ${isFavorite ? 'is-favorite' : ''}`}
+                        onClick={() => handleToggleFavorite(toolId)}
+                        aria-label={t(isFavorite ? 'tools.removeFavorite' : 'tools.addFavorite', { name: toolName })}
+                        aria-pressed={isFavorite}
+                        title={t(isFavorite ? 'tools.removeFavorite' : 'tools.addFavorite', { name: toolName })}
+                      >
+                        <span className="material-symbols-outlined text-base" aria-hidden="true">{isFavorite ? 'star' : 'star_outline'}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
 
           {/* 搜索无结果 */}
-          {searchQuery && filteredTools.length === 0 && (
+          {searchQuery && navigationTools.length === 0 && (
             <div className="text-center py-8">
               <span className="material-symbols-outlined text-3xl nb-text-secondary mb-2">search_off</span>
               <p className="text-sm nb-text-secondary">{t('tools.noSearchResults')}</p>

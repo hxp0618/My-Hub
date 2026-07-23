@@ -86,10 +86,14 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
             </button>
           )}
           <button
+            type="button"
             onClick={onToggle}
             className="nb-toggle"
+            role="switch"
+            aria-checked={enabled}
+            aria-label={title}
           >
-            <span className={`nb-toggle-track ${enabled ? 'active' : ''}`}>
+            <span className={`nb-toggle-track ${enabled ? 'active' : ''}`} aria-hidden="true">
               <span className="nb-toggle-thumb" />
             </span>
           </button>
@@ -103,6 +107,8 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
               ? 'bg-[color:var(--nb-accent-green)]'
               : 'bg-[color:var(--nb-accent-pink)]'
           }`}
+          role={testResult.success ? 'status' : 'alert'}
+          aria-live={testResult.success ? 'polite' : 'assertive'}
         >
           {testResult.message}
         </div>

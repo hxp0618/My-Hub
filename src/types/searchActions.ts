@@ -1,4 +1,5 @@
 import { MenuItemId } from './menu';
+import type { SettingsMenu } from '../pages/newtab/components/SettingsPage';
 
 export type SearchActionId =
   | 'home'
@@ -11,7 +12,7 @@ export type SearchActionId =
 
 export type SearchActionTarget =
   | { kind: 'page'; page: MenuItemId }
-  | { kind: 'settings' };
+  | { kind: 'settings'; section?: SettingsMenu };
 
 export interface SearchActionMetadata {
   id: SearchActionId;
@@ -80,4 +81,3 @@ export const SEARCH_ACTIONS: SearchActionMetadata[] = [
     target: { kind: 'settings' },
   },
 ];
-

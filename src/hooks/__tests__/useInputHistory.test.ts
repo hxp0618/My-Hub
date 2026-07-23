@@ -27,4 +27,28 @@ describe('useInputHistory sanitizers', () => {
       { id: 'c', content: 'bad timestamp', timestamp: '102' },
     ])).toEqual([]);
   });
+
+  it('keeps safe output, mode, and pinned metadata', () => {
+    expect(sanitizeInputHistoryItems([
+      {
+        id: 'a',
+        content: 'input',
+        output: 'output',
+        mode: 'encode',
+        pinned: true,
+        timestamp: 100,
+      },
+      {
+        id: 'b',
+        content: 'second',
+        output: 42,
+        mode: null,
+        pinned: 'yes',
+        timestamp: 101,
+      },
+    ])).toEqual([
+      { id: 'a', content: 'input', output: 'output', mode: 'encode', pinned: true, timestamp: 100 },
+      { id: 'b', content: 'second', timestamp: 101 },
+    ]);
+  });
 });
