@@ -47,7 +47,7 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@crxjs/vite-plugin": "^2.0.3",
+    "@crxjs/vite-plugin": "^2.7.1",
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
