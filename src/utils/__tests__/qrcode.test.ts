@@ -87,7 +87,7 @@ describe('qrcode utilities', () => {
 
   it('fetches online image links as data URLs', async () => {
     const fetcher = async () => new Response(
-      new Blob(['image-bytes'], { type: 'image/png' }),
+      'image-bytes',
       { status: 200, headers: { 'content-type': 'image/png' } },
     );
 
@@ -104,7 +104,7 @@ describe('qrcode utilities', () => {
 
   it('rejects non-image online responses', async () => {
     const fetcher = async () => new Response(
-      new Blob(['not image'], { type: 'text/plain' }),
+      'not image',
       { status: 200, headers: { 'content-type': 'text/plain' } },
     );
 
