@@ -40,7 +40,15 @@ import {
 
 const logger = createLogger('[BookmarkPage]');
 
-export const BookmarkPage: React.FC = () => {
+interface BookmarkPageProps {
+  initialEditBookmarkId?: string | null;
+  onInitialEditHandled?: () => void;
+}
+
+export const BookmarkPage: React.FC<BookmarkPageProps> = ({
+  initialEditBookmarkId,
+  onInitialEditHandled,
+}) => {
   const { t } = useTranslation();
   const {
     bookmarks,
@@ -171,6 +179,17 @@ export const BookmarkPage: React.FC = () => {
     activeHealthIssue,
     sortOrder,
   });
+
+  useEffect(() => {
+    if (loading || !initialEditBookmarkId) return;
+    const requestedBookmark = findFolder(bookmarks, initialEditBookmarkId);
+    if (!requestedBookmark?.url) return;
+    setSelectedFolderId(requestedBookmark.parentId || '1');
+    setSearchTerm('');
+    setActiveHealthIssue(null);
+    setEditingItem(requestedBookmark);
+    onInitialEditHandled?.();
+  }, [bookmarks, initialEditBookmarkId, loading, onInitialEditHandled]);
 
   const handleGenerateTags = useCallback((item: EnhancedBookmark) => {
     void generateTags({
@@ -507,17 +526,6 @@ export const BookmarkPage: React.FC = () => {
                                 >
                                     {t('bookmarks.aiGenerateFolderStructure')}
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        openOrganizeModal();
-                                        setOrganizeMenuOpen(false);
-                                    }}
-                                    className="nb-dropdown-item w-full flex items-center gap-3 text-sm font-medium cursor-pointer"
-                                    role="menuitem"
-                                >
-                                    {t('bookmarks.aiOrganizeBookmarks')}
-                                </button>
                             </div>
                         </div>
                     )}
@@ -571,6 +579,7 @@ export const BookmarkPage: React.FC = () => {
         onStartDeduplicate={handleStartDeduplicate}
         onOpenReorderConfirm={() => setShowReorderConfirm(true)}
         onSelectHealthIssue={handleSelectHealthIssue}
+        onOpenOrganize={openOrganizeModal}
         onToggleBookmarkSelection={toggleBookmarkSelection}
         onBookmarkDragStart={handleBookmarkDragStart}
         onBookmarkDragEnd={handleBookmarkDragEnd}

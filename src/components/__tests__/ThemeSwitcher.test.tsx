@@ -52,6 +52,7 @@ describe('ThemeSwitcher', () => {
     expect(screen.getByRole('radiogroup', { name: 'Select theme' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Light Mode' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Dark Mode' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('A darker interface that reduces eye strain at night')).toHaveClass('theme-switcher-accent-text');
     expect(screen.getByText('A warmer palette that reduces blue light')).toBeInTheDocument();
     expect(screen.queryByText('浅色模式')).not.toBeInTheDocument();
     expect(screen.queryByText('护眼模式')).not.toBeInTheDocument();

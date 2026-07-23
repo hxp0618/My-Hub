@@ -10,6 +10,8 @@ export interface InputHistoryDropdownProps {
   toolId: string;
   /** 选择历史记录时的回调 */
   onSelect: (content: string) => void;
+  /** 使用历史输出作为新输入 */
+  onSelectOutput?: (output: string) => void;
   /** 自定义类名 */
   className?: string;
 }
@@ -22,13 +24,14 @@ export interface InputHistoryDropdownProps {
 export const InputHistoryDropdown: React.FC<InputHistoryDropdownProps> = ({
   toolId,
   onSelect,
+  onSelectOutput,
   className = '',
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const { history, selectFromHistory, clearHistory, removeFromHistory } = useInputHistory({
+  const { history, selectFromHistory, clearHistory, removeFromHistory, togglePinned } = useInputHistory({
     toolId,
   });
 
@@ -87,23 +90,32 @@ export const InputHistoryDropdown: React.FC<InputHistoryDropdownProps> = ({
     <div ref={dropdownRef} className={`relative ${className}`}>
       {/* 触发按钮 */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={history.length === 0}
         className="nb-btn nb-btn-secondary p-2 h-10 w-10 justify-center disabled:cursor-not-allowed"
         title={t('tools.common.history')}
+        aria-label={t('tools.common.history')}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
-        <span className="material-symbols-outlined text-sm">history</span>
+        <span className="material-symbols-outlined text-sm" aria-hidden="true">history</span>
       </button>
 
       {/* 下拉菜单 */}
       {isOpen && history.length > 0 && (
-        <div className="nb-dropdown absolute right-0 top-full mt-1 w-80 max-h-96 overflow-auto z-50">
+        <div
+          className="nb-dropdown absolute right-0 top-full mt-1 w-96 max-w-[min(24rem,calc(100vw-2rem))] max-h-96 overflow-auto z-50"
+          role="menu"
+          aria-label={t('tools.common.history')}
+        >
           {/* 头部 */}
           <div className="flex items-center justify-between px-3 py-2 nb-border-b">
             <span className="text-sm font-medium nb-text">
               {t('tools.common.history')}
             </span>
             <button
+              type="button"
               onClick={handleClear}
               className="text-xs text-[color:var(--nb-accent-pink)] hover:underline"
             >
@@ -116,23 +128,66 @@ export const InputHistoryDropdown: React.FC<InputHistoryDropdownProps> = ({
             {history.map((item) => (
               <div
                 key={item.id}
-                onClick={() => handleSelect(item)}
-                className="nb-dropdown-item flex items-start gap-2 cursor-pointer group"
+                className="nb-dropdown-item flex items-start gap-2 group"
               >
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleSelect(item)}
+                  className="min-w-0 flex-1 text-left"
+                  title={t('tools.common.reuseInput')}
+                >
                   <p className="text-sm nb-text truncate font-mono">
                     {truncateContent(item.content)}
                   </p>
+                  {item.output && (
+                    <p className="mt-0.5 truncate text-xs nb-text-secondary font-mono">
+                      → {truncateContent(item.output, 42)}
+                    </p>
+                  )}
+                  {item.mode && (
+                    <span className="mt-1 inline-block border border-[color:var(--nb-border)] px-1 text-xs nb-text-secondary">
+                      {item.mode}
+                    </span>
+                  )}
                   <p className="text-xs nb-text-secondary mt-0.5">
                     {formatTime(item.timestamp)}
                   </p>
-                </div>
+                </button>
+                {item.output && onSelectOutput && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectOutput(item.output as string);
+                      setIsOpen(false);
+                    }}
+                    className="nb-btn-ghost inline-flex min-h-11 min-w-11 items-center justify-center p-1"
+                    aria-label={t('tools.common.reuseOutput')}
+                    title={t('tools.common.reuseOutput')}
+                  >
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">redo</span>
+                  </button>
+                )}
                 <button
-                  onClick={(e) => handleRemove(e, item.id)}
-                  className="nb-btn-ghost p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                  title={t('tools.common.delete')}
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    togglePinned(item.id);
+                  }}
+                  className="nb-btn-ghost inline-flex min-h-11 min-w-11 items-center justify-center p-1"
+                  aria-label={t(item.pinned ? 'tools.common.unpin' : 'tools.common.pin')}
+                  title={t(item.pinned ? 'tools.common.unpin' : 'tools.common.pin')}
                 >
-                  <span className="material-symbols-outlined text-xs nb-text-secondary">
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">{item.pinned ? 'keep_off' : 'keep'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleRemove(e, item.id)}
+                  className="nb-btn-ghost inline-flex min-h-11 min-w-11 items-center justify-center rounded p-1"
+                  title={t('tools.common.delete')}
+                  aria-label={t('tools.common.delete')}
+                >
+                  <span className="material-symbols-outlined text-xs nb-text-secondary" aria-hidden="true">
                     close
                   </span>
                 </button>

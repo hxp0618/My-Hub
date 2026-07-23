@@ -1,14 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import '@pages/newtab/Newtab.css';
 import { useMomentInHistory } from './hooks/useMomentInHistory';
 import { HomePage } from './components/HomePage';
-import { HistoryPage } from './components/HistoryPage';
-import { BookmarkPage } from './components/BookmarkPage';
-import { TagsPage } from './components/TagsPage';
-import { ToolsPage } from './components/ToolsPage';
-import { SubscriptionsPage } from './components/SubscriptionsPage';
 import { Modal } from '../../components/Modal';
-import SettingsPage from './components/SettingsPage';
 import { ToastProvider } from '../../contexts/ToastContext';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -17,12 +11,23 @@ import { useMenuOrder } from '../../hooks/useMenuOrder';
 import { useMenuCustomization } from '../../hooks/useMenuCustomization';
 import { MENU_ITEMS } from '../../types/menu';
 import { ToolId } from '../../types/tools';
+import type { ToolInvocation } from '../../types/toolInvocation';
 import { SearchActionTarget } from '../../types/searchActions';
+import type { SettingsMenu } from './components/SettingsPage';
+import { AI_CONFIGURATION_REQUIRED_EVENT } from '../../utils/aiEvents';
 import {
   MAX_SIDEBAR_WIDTH,
   MIN_SIDEBAR_WIDTH,
   sidebarWidth as sidebarWidthStorage,
 } from '../../utils/storageManager';
+
+const HistoryPage = lazy(() => import('./components/HistoryPage').then(module => ({ default: module.HistoryPage })));
+const BookmarkPage = lazy(() => import('./components/BookmarkPage').then(module => ({ default: module.BookmarkPage })));
+const TagsPage = lazy(() => import('./components/TagsPage').then(module => ({ default: module.TagsPage })));
+const ToolsPage = lazy(() => import('./components/ToolsPage').then(module => ({ default: module.ToolsPage })));
+const SubscriptionsPage = lazy(() => import('./components/SubscriptionsPage').then(module => ({ default: module.SubscriptionsPage })));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const CommandPalette = lazy(() => import('./components/CommandPalette'));
 
 // =================================================================================
 // Main Component
@@ -32,6 +37,18 @@ import {
 type Page = 'home' | 'history' | 'bookmarks' | 'tags' | 'tools' | 'subscriptions';
 const SIDEBAR_KEYBOARD_STEP = 16;
 const SIDEBAR_KEYBOARD_LARGE_STEP = 48;
+
+const PageLoadingFallback: React.FC = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex min-h-72 items-center justify-center" role="status" aria-live="polite" aria-label={t('common.loading')}>
+      <div className="flex items-center gap-3 nb-text-secondary">
+        <span className="unified-search-spinner" aria-hidden="true" />
+        <span>{t('common.loading')}</span>
+      </div>
+    </div>
+  );
+};
 
 const clampSidebarWidth = (width: number): number => (
   Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, Math.round(width)))
@@ -46,7 +63,14 @@ export default function Newtab() {
   // 页面状态管理，用于在 'home', 'history', 'bookmarks' 之间切换
   const [page, setPage] = useState<Page>('home');
   const [requestedToolId, setRequestedToolId] = useState<ToolId | null>(null);
+  const [requestedToolInvocation, setRequestedToolInvocation] = useState<ToolInvocation | null>(null);
+  const [requestedTagName, setRequestedTagName] = useState<string | null>(null);
+  const [requestedBookmarkEditId, setRequestedBookmarkEditId] = useState<string | null>(null);
+  const [requestedSubscriptionId, setRequestedSubscriptionId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsMenu, setSettingsMenu] = useState<SettingsMenu | undefined>();
+  const [isAISetupOpen, setIsAISetupOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCompactLayout, setIsCompactLayout] = useState(false);
   // 自定义 hook，用于获取"历史上的今天"的推荐内容
@@ -64,14 +88,38 @@ export default function Newtab() {
   const shellRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const handleOpenTool = (toolId: ToolId) => {
+  const handleOpenTool = (toolId: ToolId, invocation?: ToolInvocation) => {
     setRequestedToolId(toolId);
+    setRequestedToolInvocation(invocation ?? null);
     setPage('tools');
+    setIsMobileSidebarOpen(false);
+  };
+
+  const handleToolInvocationHandled = (id: string) => {
+    setRequestedToolInvocation(current => current?.id === id ? null : current);
+  };
+
+  const handleOpenTag = (tagName: string) => {
+    setRequestedTagName(tagName);
+    setPage('tags');
+    setIsMobileSidebarOpen(false);
+  };
+
+  const handleEditBookmarkFromTag = (bookmarkId: string) => {
+    setRequestedBookmarkEditId(bookmarkId);
+    setPage('bookmarks');
+    setIsMobileSidebarOpen(false);
+  };
+
+  const handleOpenSubscription = (subscriptionId: string) => {
+    setRequestedSubscriptionId(subscriptionId);
+    setPage('subscriptions');
     setIsMobileSidebarOpen(false);
   };
 
   const handleOpenAction = (target: SearchActionTarget) => {
     if (target.kind === 'settings') {
+      setSettingsMenu(target.section);
       setIsSettingsOpen(true);
       setIsMobileSidebarOpen(false);
       return;
@@ -86,10 +134,28 @@ export default function Newtab() {
     setIsMobileSidebarOpen(false);
   };
 
-  const handleOpenSettings = () => {
+  const handleOpenSettings = (menu?: SettingsMenu) => {
+    setSettingsMenu(menu);
     setIsSettingsOpen(true);
     setIsMobileSidebarOpen(false);
   };
+
+  useEffect(() => {
+    const handleAIConfigurationRequired = () => setIsAISetupOpen(true);
+    window.addEventListener(AI_CONFIGURATION_REQUIRED_EVENT, handleAIConfigurationRequired);
+    return () => window.removeEventListener(AI_CONFIGURATION_REQUIRED_EVENT, handleAIConfigurationRequired);
+  }, []);
+
+  useEffect(() => {
+    const handleCommandPaletteShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleCommandPaletteShortcut);
+    return () => window.removeEventListener('keydown', handleCommandPaletteShortcut);
+  }, []);
 
   const updateSidebarWidth = (nextWidth: number) => {
     const clampedWidth = clampSidebarWidth(nextWidth);
@@ -206,37 +272,61 @@ export default function Newtab() {
               onRefresh={refreshRecommendations}
               onOpenTool={handleOpenTool}
               onOpenAction={handleOpenAction}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
             />
           </ErrorBoundary>
         );
       case 'history':
         return (
           <ErrorBoundary>
-            <HistoryPage />
+            <Suspense fallback={<PageLoadingFallback />}><HistoryPage /></Suspense>
           </ErrorBoundary>
         );
       case 'bookmarks':
         return (
           <ErrorBoundary>
-            <BookmarkPage />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <BookmarkPage
+                initialEditBookmarkId={requestedBookmarkEditId}
+                onInitialEditHandled={() => setRequestedBookmarkEditId(null)}
+              />
+            </Suspense>
           </ErrorBoundary>
         );
       case 'tags':
         return (
           <ErrorBoundary>
-            <TagsPage />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <TagsPage
+                initialTagName={requestedTagName}
+                onInitialTagHandled={() => setRequestedTagName(null)}
+                onEditBookmark={handleEditBookmarkFromTag}
+              />
+            </Suspense>
           </ErrorBoundary>
         );
       case 'tools':
         return (
           <ErrorBoundary>
-            <ToolsPage initialToolId={requestedToolId} />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <ToolsPage
+                initialToolId={requestedToolId}
+                initialInvocation={requestedToolInvocation}
+                onInvocationHandled={handleToolInvocationHandled}
+                onOpenTool={handleOpenTool}
+              />
+            </Suspense>
           </ErrorBoundary>
         );
       case 'subscriptions':
         return (
           <ErrorBoundary>
-            <SubscriptionsPage />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SubscriptionsPage
+                initialSubscriptionId={requestedSubscriptionId}
+                onInitialSubscriptionHandled={() => setRequestedSubscriptionId(null)}
+              />
+            </Suspense>
           </ErrorBoundary>
         );
       default:
@@ -280,7 +370,7 @@ export default function Newtab() {
               type="button"
               className="newtab-mobile-icon-button"
               aria-label={t('sidebar.settings')}
-              onClick={handleOpenSettings}
+              onClick={() => handleOpenSettings()}
             >
               <span className="material-symbols-outlined" aria-hidden="true">settings</span>
             </button>
@@ -290,6 +380,8 @@ export default function Newtab() {
             type="button"
             className={`newtab-sidebar-backdrop ${isMobileSidebarOpen ? 'is-visible' : ''}`}
             aria-label={t('sidebar.closeNavigation')}
+            aria-hidden={!isMobileSidebarOpen}
+            tabIndex={isMobileSidebarOpen ? 0 : -1}
             onClick={() => setIsMobileSidebarOpen(false)}
           />
 
@@ -298,11 +390,21 @@ export default function Newtab() {
             id="newtab-sidebar"
             ref={sidebarRef}
             aria-label={t('sidebar.navigation')}
+            aria-hidden={isCompactLayout && !isMobileSidebarOpen}
+            inert={isCompactLayout && !isMobileSidebarOpen ? true : undefined}
             style={{ width: `${sidebarWidth}px` }}
             className={`newtab-sidebar nb-card-static nb-bg-halftone p-8 flex flex-col relative flex-shrink-0 transition-none m-4 mr-0 overflow-hidden ${
               isMobileSidebarOpen ? 'mobile-open' : ''
             }`}
           >
+            <button
+              type="button"
+              className="newtab-sidebar-close"
+              aria-label={t('sidebar.closeNavigation')}
+              onClick={() => setIsMobileSidebarOpen(false)}
+            >
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
+            </button>
             {/* Logo / App Name */}
             <div className="newtab-sidebar-brand relative z-10">
               <div className="newtab-sidebar-logo">
@@ -311,6 +413,17 @@ export default function Newtab() {
                 </h1>
               </div>
             </div>
+
+            <button
+              type="button"
+              className="newtab-command-trigger nb-card-subtle"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              aria-label={t('commandPalette.open')}
+            >
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">search</span>
+              <span className="min-w-0 flex-1 truncate text-left">{t('commandPalette.open')}</span>
+              <kbd>⌘K</kbd>
+            </button>
 
             {/* 导航菜单 */}
             <nav className="flex-1">
@@ -339,7 +452,7 @@ export default function Newtab() {
             <div className="mt-6">
               <button
                 type="button"
-                onClick={handleOpenSettings}
+                onClick={() => handleOpenSettings()}
                 className="nb-nav-item"
               >
                 <span className="material-symbols-outlined text-xl" aria-hidden="true">settings</span>
@@ -380,7 +493,60 @@ export default function Newtab() {
             title={t('sidebar.settings')}
             widthClass="max-w-4xl"
           >
-            <SettingsPage onClose={() => setIsSettingsOpen(false)} />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SettingsPage
+                onClose={() => setIsSettingsOpen(false)}
+                initialMenu={settingsMenu}
+              />
+            </Suspense>
+          </Modal>
+
+          {isCommandPaletteOpen && (
+            <Suspense fallback={null}>
+              <CommandPalette
+                onClose={() => setIsCommandPaletteOpen(false)}
+                onOpenTool={handleOpenTool}
+                onOpenAction={handleOpenAction}
+                onOpenTag={handleOpenTag}
+                onOpenSubscription={handleOpenSubscription}
+              />
+            </Suspense>
+          )}
+
+          <Modal
+            isOpen={isAISetupOpen}
+            onClose={() => setIsAISetupOpen(false)}
+            title={t('aiSetup.title')}
+            widthClass="max-w-lg"
+          >
+            <div className="space-y-5">
+              <div className="nb-card-subtle p-4">
+                <p className="nb-text leading-relaxed">{t('aiSetup.description')}</p>
+                <p className="mt-2 text-sm nb-text-secondary">{t('aiSetup.hint')}</p>
+              </div>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  className="nb-btn nb-btn-secondary"
+                  onClick={() => {
+                    setIsAISetupOpen(false);
+                    handleOpenSettings('LLM');
+                  }}
+                >
+                  {t('aiSetup.enableNano')}
+                </button>
+                <button
+                  type="button"
+                  className="nb-btn nb-btn-primary"
+                  onClick={() => {
+                    setIsAISetupOpen(false);
+                    handleOpenSettings('LLM');
+                  }}
+                >
+                  {t('aiSetup.configureProvider')}
+                </button>
+              </div>
+            </div>
           </Modal>
         </div>
       </ToastProvider>

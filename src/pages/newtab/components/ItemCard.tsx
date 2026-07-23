@@ -205,7 +205,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
       )}
 
       {/* -- Header -- */}
-      <div className={`flex items-start ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
+      <div className={`flex items-start ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''} ${actions && !isMultiSelectMode ? 'pr-12' : ''}`}>
         <div className="item-card-favicon">
           <img alt={`${title} favicon`} className="w-full h-full object-cover" src={faviconUrl} />
         </div>

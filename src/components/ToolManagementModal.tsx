@@ -163,6 +163,10 @@ export const ToolManagementModal: React.FC<ToolManagementModalProps> = ({
                         checked={isEnabled}
                         onChange={() => toggleTool(tool.id)}
                         className="sr-only"
+                        aria-label={t(
+                          isEnabled ? 'tools.management.disableTool' : 'tools.management.enableTool',
+                          { name: t(tool.nameKey) },
+                        )}
                       />
                       <div className={`nb-toggle-track ${isEnabled ? 'active' : ''}`}>
                         <div className="nb-toggle-thumb"></div>

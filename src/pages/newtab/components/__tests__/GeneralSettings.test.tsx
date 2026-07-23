@@ -119,7 +119,7 @@ describe('GeneralSettings export confirmation', () => {
   });
 
   it('exports redacted data directly when sensitive export is disabled', () => {
-    render(<GeneralSettings />);
+    render(<GeneralSettings section="data" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
@@ -130,7 +130,7 @@ describe('GeneralSettings export confirmation', () => {
   it('shows a toast when export fails', async () => {
     mocks.exportData.mockRejectedValueOnce(new Error('nope'));
 
-    render(<GeneralSettings />);
+    render(<GeneralSettings section="data" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
@@ -142,7 +142,7 @@ describe('GeneralSettings export confirmation', () => {
   it('uses an app confirmation dialog before exporting sensitive data', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-    render(<GeneralSettings />);
+    render(<GeneralSettings section="data" />);
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Include Sensitive Settings' }));
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
@@ -179,9 +179,17 @@ describe('GeneralSettings export confirmation', () => {
     expect(mocks.setBrightness).toHaveBeenLastCalledWith(0.75);
   });
 
+  it('provides accessible names for display controls', () => {
+    render(<GeneralSettings />);
+
+    expect(screen.getByRole('slider', { name: 'Brightness' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Auto suggest' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Cards per row' })).toBeInTheDocument();
+  });
+
   it('shows an import success toast with a reload action', async () => {
     mocks.importData.mockResolvedValueOnce(undefined);
-    const { container } = render(<GeneralSettings />);
+    const { container } = render(<GeneralSettings section="data" />);
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['{}'], 'backup.json', { type: 'application/json' });
 
@@ -195,7 +203,7 @@ describe('GeneralSettings export confirmation', () => {
 
   it('shows an import error toast when import fails', async () => {
     mocks.importData.mockRejectedValueOnce(new Error('bad import'));
-    const { container } = render(<GeneralSettings />);
+    const { container } = render(<GeneralSettings section="data" />);
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['bad'], 'bad.json', { type: 'application/json' });
 

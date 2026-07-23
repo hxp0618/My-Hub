@@ -14,6 +14,17 @@ export interface HistoryItem {
   content: string;
   /** 保存时间戳 */
   timestamp: number;
+  /** 最近一次处理输出 */
+  output?: string;
+  /** 处理模式 */
+  mode?: string;
+  /** 固定在历史顶部 */
+  pinned?: boolean;
+}
+
+export interface HistoryItemMetadata {
+  output?: string;
+  mode?: string;
 }
 
 /**
@@ -33,13 +44,15 @@ export interface UseInputHistoryReturn {
   /** 历史记录列表 */
   history: HistoryItem[];
   /** 添加到历史记录 */
-  addToHistory: (content: string) => void;
+  addToHistory: (content: string, metadata?: HistoryItemMetadata) => void;
   /** 从历史记录中选择，返回内容 */
   selectFromHistory: (id: string) => string | undefined;
   /** 清空历史记录 */
   clearHistory: () => void;
   /** 删除单条历史记录 */
   removeFromHistory: (id: string) => void;
+  /** 固定或取消固定记录 */
+  togglePinned: (id: string) => void;
 }
 
 // localStorage key 前缀
@@ -73,7 +86,7 @@ export function sanitizeInputHistoryItems(value: unknown, maxItems = 20): Histor
       continue;
     }
 
-    const { id, content, timestamp } = item;
+    const { id, content, timestamp, output, mode, pinned } = item;
     if (
       typeof id !== 'string' ||
       id.trim().length === 0 ||
@@ -85,7 +98,14 @@ export function sanitizeInputHistoryItems(value: unknown, maxItems = 20): Histor
       continue;
     }
 
-    sanitized.push({ id, content, timestamp });
+    sanitized.push({
+      id,
+      content,
+      timestamp,
+      ...(typeof output === 'string' && output.trim() ? { output } : {}),
+      ...(typeof mode === 'string' && mode.trim() ? { mode } : {}),
+      ...(pinned === true ? { pinned: true } : {}),
+    });
     seenIds.add(id);
 
     if (sanitized.length >= limit) {
@@ -152,7 +172,7 @@ export function useInputHistory(options: UseInputHistoryOptions): UseInputHistor
   }, [toolId, maxItems]);
 
   // 添加到历史记录
-  const addToHistory = useCallback((content: string) => {
+  const addToHistory = useCallback((content: string, metadata: HistoryItemMetadata = {}) => {
     if (!content.trim()) return;
 
     setHistory(prev => {
@@ -164,16 +184,26 @@ export function useInputHistory(options: UseInputHistoryOptions): UseInputHistor
       if (existingIndex !== -1) {
         // 如果已存在，移到最前面并更新时间戳
         const existing = prev[existingIndex];
-        const updated = { ...existing, timestamp: Date.now() };
-        newHistory = [updated, ...prev.filter((_, i) => i !== existingIndex)];
+        const updated: HistoryItem = {
+          ...existing,
+          timestamp: Date.now(),
+          ...(metadata.output?.trim() ? { output: metadata.output } : {}),
+          ...(metadata.mode?.trim() ? { mode: metadata.mode } : {}),
+        };
+        const remaining = prev.filter((_, i) => i !== existingIndex);
+        newHistory = updated.pinned
+          ? [updated, ...remaining]
+          : [...remaining.filter(item => item.pinned), updated, ...remaining.filter(item => !item.pinned)];
       } else {
         // 添加新记录
         const newItem: HistoryItem = {
           id: uuidv4(),
           content,
           timestamp: Date.now(),
+          ...(metadata.output?.trim() ? { output: metadata.output } : {}),
+          ...(metadata.mode?.trim() ? { mode: metadata.mode } : {}),
         };
-        newHistory = [newItem, ...prev];
+        newHistory = [...prev.filter(item => item.pinned), newItem, ...prev.filter(item => !item.pinned)];
       }
 
       // 限制数量
@@ -209,12 +239,22 @@ export function useInputHistory(options: UseInputHistoryOptions): UseInputHistor
     });
   }, [toolId]);
 
+  const togglePinned = useCallback((id: string) => {
+    setHistory(prev => {
+      const next = prev.map(item => item.id === id ? { ...item, pinned: !item.pinned } : item);
+      const sorted = [...next.filter(item => item.pinned), ...next.filter(item => !item.pinned)];
+      saveHistory(toolId, sorted);
+      return sorted;
+    });
+  }, [toolId]);
+
   return {
     history,
     addToHistory,
     selectFromHistory,
     clearHistory,
     removeFromHistory,
+    togglePinned,
   };
 }
 

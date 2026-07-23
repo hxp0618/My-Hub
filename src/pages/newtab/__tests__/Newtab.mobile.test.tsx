@@ -88,6 +88,10 @@ vi.mock('../components/SettingsPage', () => ({
   default: () => <div>设置内容</div>,
 }));
 
+vi.mock('../components/CommandPalette', () => ({
+  default: () => <div>全局命令面板</div>,
+}));
+
 const setViewportWidth = (width: number) => {
   Object.defineProperty(window, 'innerWidth', {
     configurable: true,
@@ -115,12 +119,17 @@ describe('Newtab mobile sidebar', () => {
       expect(container.querySelector('.newtab-shell')).toHaveClass('mobile-layout');
     });
 
-    const sidebar = screen.getByLabelText('主导航');
+    const sidebar = container.querySelector('#newtab-sidebar') as HTMLElement;
     const toggleButton = screen.getByRole('button', { name: '打开导航菜单' });
+
+    expect(sidebar).toHaveAttribute('aria-hidden', 'true');
+    expect(sidebar).toHaveAttribute('inert');
 
     fireEvent.click(toggleButton);
 
     expect(sidebar).toHaveClass('mobile-open');
+    expect(sidebar).toHaveAttribute('aria-hidden', 'false');
+    expect(sidebar).not.toHaveAttribute('inert');
     expect(document.body).toHaveClass('newtab-mobile-nav-open');
     expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
 
@@ -129,15 +138,23 @@ describe('Newtab mobile sidebar', () => {
 
     expect(sidebar).not.toHaveClass('mobile-open');
     expect(document.body).not.toHaveClass('newtab-mobile-nav-open');
-    expect(screen.getByText('工具内容')).toBeInTheDocument();
+    expect(await screen.findByText('工具内容')).toBeInTheDocument();
   });
 
   it('falls back to the default sidebar width when saved width is invalid', () => {
     localStorage.setItem('sidebarWidth', '9999');
 
+    const { container } = render(<Newtab />);
+
+    expect(container.querySelector('#newtab-sidebar')).toHaveStyle({ width: '256px' });
+  });
+
+  it('opens the global command palette with Cmd+K', async () => {
     render(<Newtab />);
 
-    expect(screen.getByLabelText('主导航')).toHaveStyle({ width: '256px' });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+
+    expect(await screen.findByText('全局命令面板')).toBeInTheDocument();
   });
 
   it('supports keyboard resizing for the desktop sidebar handle', () => {
@@ -161,14 +178,15 @@ describe('Newtab mobile sidebar', () => {
   });
 
   it('closes the mobile sidebar with Escape', async () => {
-    render(<Newtab />);
+    const { container } = render(<Newtab />);
 
     fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
     expect(screen.getByLabelText('主导航')).toHaveClass('mobile-open');
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(screen.getByLabelText('主导航')).not.toHaveClass('mobile-open');
+    expect(container.querySelector('#newtab-sidebar')).not.toHaveClass('mobile-open');
+    expect(container.querySelector('#newtab-sidebar')).toHaveAttribute('aria-hidden', 'true');
     expect(document.body).not.toHaveClass('newtab-mobile-nav-open');
   });
 

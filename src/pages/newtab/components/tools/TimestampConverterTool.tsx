@@ -4,6 +4,7 @@ import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA } from '../../../../types/tools';
 import { ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 
 // 日期边界类型
 interface DateBoundary {
@@ -153,6 +154,8 @@ const getQuickDate = (option: QuickDateOption): Date => {
 export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
@@ -223,6 +226,26 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
       setDateOutput(t('tools.timestampConverter.invalidTimestamp'));
     }
   }, [timestampInput, t]);
+
+  const applyInvocation = useCallback((nextInvocation: NonNullable<ToolComponentProps['invocation']>) => {
+    setTimestampInput(nextInvocation.input);
+    const timestamp = parseTimestampInput(nextInvocation.input);
+    if (timestamp === null) {
+      setDateOutput(t('tools.timestampConverter.invalidTimestamp'));
+      return;
+    }
+    const date = new Date(timestamp > 10000000000 ? timestamp : timestamp * 1000);
+    setDateOutput(Number.isNaN(date.getTime())
+      ? t('tools.timestampConverter.invalidTimestamp')
+      : `ISO 8601: ${date.toISOString()}\n${t('tools.timestampConverter.local')}: ${date.toLocaleString()}`);
+  }, [t]);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.TIMESTAMP_CONVERTER,
+    onInvocationHandled,
+    onApply: applyInvocation,
+  });
 
   // 日期转时间戳
   const handleDateToTimestamp = useCallback(() => {

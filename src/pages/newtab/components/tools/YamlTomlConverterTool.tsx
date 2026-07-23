@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
+import { loadToolDraft, useToolDraft } from '../../../../hooks/useToolDraft';
+import { useInputHistory } from '../../../../hooks/useInputHistory';
+import { InputHistoryDropdown } from '../../../../components/InputHistoryDropdown';
 import {
   convert,
   detectFormat,
@@ -19,18 +23,49 @@ import {
 export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
+  const initialDraft = useMemo(() => loadToolDraft('yaml-toml-converter'), []);
+  const draftModes = initialDraft?.mode?.split('->') ?? [];
+  const isDataFormat = (value: string | undefined): value is DataFormat => (
+    value === 'json' || value === 'yaml' || value === 'toml'
+  );
+  const initialSourceFormat = isDataFormat(draftModes[0]) ? draftModes[0] : 'json';
+  const initialTargetFormat = isDataFormat(draftModes[1]) ? draftModes[1] : 'yaml';
   
   // 状态
-  const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
+  const [input, setInput] = useState(initialDraft?.input ?? '');
+  const [output, setOutput] = useState(initialDraft?.output ?? '');
   const [error, setError] = useState<{ message: string; line?: number } | null>(null);
-  const [sourceFormat, setSourceFormat] = useState<DataFormat>('json');
-  const [targetFormat, setTargetFormat] = useState<DataFormat>('yaml');
+  const [sourceFormat, setSourceFormat] = useState<DataFormat>(initialSourceFormat);
+  const [targetFormat, setTargetFormat] = useState<DataFormat>(initialTargetFormat);
   const [indentSize, setIndentSize] = useState<IndentSizeOption>(DEFAULT_INDENT_SIZE);
   const [autoDetect, setAutoDetect] = useState(true);
+  const { addToHistory } = useInputHistory({ toolId: 'yaml-toml-converter' });
+
+  useToolDraft('yaml-toml-converter', {
+    input,
+    output,
+    mode: `${sourceFormat}->${targetFormat}`,
+  });
+
+  const applyInvocation = useCallback((nextInvocation: NonNullable<ToolComponentProps['invocation']>) => {
+    const source = nextInvocation.mode?.startsWith('toml') ? 'toml' : 'yaml';
+    setAutoDetect(false);
+    setSourceFormat(source);
+    setTargetFormat('json');
+    setInput(nextInvocation.input);
+  }, []);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.YAML_TOML_CONVERTER,
+    onInvocationHandled,
+    onApply: applyInvocation,
+  });
 
   // 格式选项
   const formatOptions: { value: DataFormat; label: string }[] = useMemo(() => [
@@ -91,6 +126,7 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
     if (result.success) {
       setOutput(result.output);
       setError(null);
+      addToHistory(input, { output: result.output, mode: `${sourceFormat}->${targetFormat}` });
     } else {
       setOutput('');
       setError({
@@ -98,7 +134,7 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
         message: t('tools.yamlTomlConverter.convertError'),
       });
     }
-  }, [input, sourceFormat, targetFormat, indentSize, t]);
+  }, [addToHistory, input, sourceFormat, targetFormat, indentSize, t]);
 
   // 复制输出
   const handleCopy = useCallback(() => {
@@ -259,6 +295,11 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
           >
             {t('tools.yamlTomlConverter.clear')}
           </button>
+          <InputHistoryDropdown
+            toolId="yaml-toml-converter"
+            onSelect={setInput}
+            onSelectOutput={setInput}
+          />
         </div>
 
         {/* 错误提示 */}

@@ -9,7 +9,17 @@ export const BookmarkHealthOverview: React.FC<{
   report: ReturnType<typeof analyzeBookmarkHealth>;
   activeIssue: BookmarkHealthIssue | null;
   onSelectIssue: (issue: BookmarkHealthIssue) => void;
-}> = ({ report, activeIssue, onSelectIssue }) => {
+  onOpenOrganize: () => void;
+  onRegenerateAllTags: () => void;
+  onStartDeduplicate: () => void;
+}> = ({
+  report,
+  activeIssue,
+  onSelectIssue,
+  onOpenOrganize,
+  onRegenerateAllTags,
+  onStartDeduplicate,
+}) => {
   const { t } = useTranslation();
   const scoreTone = report.score >= 85
     ? 'bg-[color:var(--nb-accent-green)]'
@@ -57,6 +67,26 @@ export const BookmarkHealthOverview: React.FC<{
 
   return (
     <section className="px-8 mt-6">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold nb-text">{t('bookmarks.health.governanceTitle')}</h2>
+          <p className="text-sm nb-text-secondary">{t('bookmarks.health.governanceDescription')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2" aria-label={t('bookmarks.health.governanceActions')}>
+          <button type="button" className="nb-btn nb-btn-primary px-3 py-2 text-xs" onClick={onOpenOrganize}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">auto_awesome</span>
+            {t('bookmarks.aiOrganizeBookmarks')}
+          </button>
+          <button type="button" className="nb-btn nb-btn-secondary px-3 py-2 text-xs" onClick={onRegenerateAllTags}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">label</span>
+            {t('bookmarks.regenerateAllTags')}
+          </button>
+          <button type="button" className="nb-btn nb-btn-secondary px-3 py-2 text-xs" onClick={onStartDeduplicate}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
+            {t('bookmarks.deduplicate')}
+          </button>
+        </div>
+      </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
         <div className="nb-card-static p-4 min-w-[180px] flex items-center gap-4">
           <div className={`w-12 h-12 flex items-center justify-center border-2 border-[color:var(--nb-border)] shadow-[var(--nb-shadow-sm)] ${scoreTone}`}>

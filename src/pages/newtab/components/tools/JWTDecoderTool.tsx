@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 
 export interface JWTDecodeResult {
   header: Record<string, unknown> | null;
@@ -196,7 +197,12 @@ export async function fetchJwksKeyForToken(
     .find(key => key.kid === kid) ?? null;
 }
 
-export const JWTDecoderTool: React.FC<ToolComponentProps> = ({ isExpanded, onToggleExpand }) => {
+export const JWTDecoderTool: React.FC<ToolComponentProps> = ({
+  isExpanded,
+  onToggleExpand,
+  invocation,
+  onInvocationHandled,
+}) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
   const [token, setToken] = useState('');
@@ -207,6 +213,18 @@ export const JWTDecoderTool: React.FC<ToolComponentProps> = ({ isExpanded, onTog
   const [verifyResult, setVerifyResult] = useState<JWTVerifyResult | null>(null);
   const [jwksKey, setJwksKey] = useState<JsonWebKeyWithKid | null>(null);
   const [jwksLoading, setJwksLoading] = useState(false);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.JWT_DECODER,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      setToken(nextInvocation.input);
+      setSecret('');
+      setVerifyResult(null);
+      setJwksKey(null);
+    }, []),
+  });
 
   useEffect(() => {
     setResult(decodeJWT(token));

@@ -1,6 +1,7 @@
 import { HistoryItem } from '../pages/newtab/types';
 import { ToolId } from './tools';
 import { SearchActionId, SearchActionTarget } from './searchActions';
+import type { ToolIntentId } from '../utils/toolIntent';
 
 export type ToolSearchResultItem = {
   type: 'tool';
@@ -20,8 +21,21 @@ export type ActionSearchResultItem = {
   target: SearchActionTarget;
 };
 
+export type ToolIntentSearchResultItem = {
+  type: 'tool-intent';
+  intentId: ToolIntentId;
+  toolId: ToolId;
+  mode: string;
+  title: string;
+  description: string;
+  icon: string;
+  input: string;
+  confidence: number;
+};
+
 export type SearchResultItem =
   | (HistoryItem & { type: 'history' })
   | (chrome.bookmarks.BookmarkTreeNode & { type: 'bookmark' })
   | ToolSearchResultItem
-  | ActionSearchResultItem;
+  | ActionSearchResultItem
+  | ToolIntentSearchResultItem;

@@ -10,7 +10,17 @@ import { DeleteTagDialog } from './DeleteTagDialog';
 import { MergeTagsDialog } from './MergeTagsDialog';
 import { getTagClassName } from '../../../utils/tagColorUtils';
 
-export const TagsPage: React.FC = () => {
+interface TagsPageProps {
+  initialTagName?: string | null;
+  onInitialTagHandled?: () => void;
+  onEditBookmark?: (bookmarkId: string) => void;
+}
+
+export const TagsPage: React.FC<TagsPageProps> = ({
+  initialTagName,
+  onInitialTagHandled,
+  onEditBookmark,
+}) => {
   const { t } = useTranslation();
   const {
     tags,
@@ -123,6 +133,14 @@ export const TagsPage: React.FC = () => {
     }
   }, [allTags, detailTag]);
 
+  useEffect(() => {
+    if (!initialTagName) return;
+    const requestedTag = allTags.find(tag => tag.name === initialTagName);
+    if (!requestedTag) return;
+    setDetailTag(requestedTag);
+    onInitialTagHandled?.();
+  }, [allTags, initialTagName, onInitialTagHandled]);
+
   return (
     <div className="tags-page-shell nb-bg nb-text">
       {/* 顶部工具栏 - 紧凑布局 */}
@@ -177,6 +195,7 @@ export const TagsPage: React.FC = () => {
             onDelete={setDeleteTarget}
             onRemoveTag={handleRemoveTagFromBookmark}
             onRefresh={loadTags}
+            onEditBookmark={onEditBookmark}
           />
         ) : (
           <TagList

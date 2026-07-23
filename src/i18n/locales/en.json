@@ -174,6 +174,9 @@
     "deduplicateError": "Failed to deduplicate bookmarks, please try again",
     "health": {
       "title": "Health Score",
+      "governanceTitle": "Bookmark Governance",
+      "governanceDescription": "Resolve duplicates, missing tags, and AI organization from one place.",
+      "governanceActions": "Bookmark governance actions",
       "total": "{{count}} bookmarks total",
       "duplicates": "Duplicates",
       "duplicateGroups": "{{count}} duplicate groups",
@@ -237,6 +240,7 @@
     "backToList": "Back to list",
     "relatedBookmarks": "Related bookmarks",
     "removeFromBookmark": "Remove from bookmark",
+    "editBookmark": "Locate and edit bookmark",
     "removeTag": "Remove tag",
     "openAll": "Open all",
     "exportList": "Export list",
@@ -263,11 +267,13 @@
     "momentsInHistory": "Moments in History",
     "momentsDescription": "In the past 14 days, you have frequently visited these websites during the current time period",
     "timeRangeFormat": "({{start}}:00 - {{end}}:00 high frequency access)",
-    "searchPlaceholder": "Search history, bookmarks, or type tool:json / tag:ai / url:github / action:settings...",
+    "searchPlaceholder": "Search history and bookmarks...",
+    "commandHelp": "Open search command help",
     "searchResults": "Search Results",
     "openTool": "Open tool {{name}}",
     "openToolAction": "Open tool",
     "toolCommandCategory": "Tool · {{category}}",
+    "smartToolCommandCategory": "Smart suggestion · {{confidence}}%",
     "openAction": "Run action {{name}}",
     "openActionAction": "Run action",
     "actionCommandCategory": "Action · Navigation",
@@ -331,6 +337,9 @@
     "active": "Active",
     "previewingTheme": "Previewing theme",
     "general": "General",
+    "notificationMenu": "Notifications",
+    "permissionsMenu": "Permissions",
+    "dataMenu": "Data",
     "appearance": "Appearance",
     "language": "Language",
     "languageDesc": "Choose the interface display language",
@@ -415,6 +424,13 @@
     "geminiNanoDesc": "Use on-device AI for faster performance without an API Key.",
     "hardwareRequirements": "(Hardware Requirements)",
     "status": "Status",
+    "geminiNanoStatus": {
+      "checking": "Checking",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "downloading": "Downloading",
+      "downloadable": "Downloadable"
+    },
     "providerLabel": "Provider",
     "selectProvider": "Please select a provider",
     "custom": "Custom",
@@ -492,6 +508,41 @@
     "brightness": "Brightness",
     "brightnessDesc": "Adjust extension interface brightness without affecting system brightness",
     "brightnessReset": "Reset brightness"
+  },
+  "commandPalette": {
+    "title": "Global Command Palette",
+    "open": "Search and commands",
+    "placeholder": "Search pages, tools, tags, bookmarks, subscriptions, or Web Combos...",
+    "results": "Command results",
+    "empty": "No matching commands or content found.",
+    "hint": "↑↓ select · Enter open · Esc close",
+    "commandHelp": "Command filters",
+    "hints": {
+      "tool": "Tools",
+      "tag": "Tags",
+      "url": "URLs",
+      "action": "Actions"
+    },
+    "groups": {
+      "smart": "Smart suggestions",
+      "actions": "Pages and actions",
+      "tools": "Tools",
+      "tags": "Tags",
+      "bookmarks": "Bookmarks",
+      "history": "History",
+      "subscriptions": "Subscriptions",
+      "webCombos": "Web Combos"
+    },
+    "tagDescription": "Used by {{count}} bookmarks",
+    "subscriptionDescription": "Expires {{date}}",
+    "webComboDescription": "Open {{count}} web pages",
+    "settings": {
+      "general": { "title": "Settings · General", "description": "Theme, language, home density, and menu order." },
+      "notifications": { "title": "Settings · Notifications", "description": "Configure subscription expiry notification channels." },
+      "permissions": { "title": "Settings · Permissions", "description": "Review extension permissions and their scope." },
+      "data": { "title": "Settings · Data", "description": "Import, export, and sensitive-data backups." },
+      "llm": { "title": "Settings · LLM", "description": "Configure providers, models, and Gemini Nano." }
+    }
   },
   "time": {
     "justNow": "Just now",
@@ -660,6 +711,7 @@
     "noApiUrl": "API URL not configured",
     "noModelSelected": "No model selected",
     "errors": {
+      "configurationRequired": "Configure an LLM provider or enable an available Gemini Nano first.",
       "promptApiUnavailable": "Browser built-in AI is unavailable",
       "geminiUnavailable": "Browser built-in AI is currently unavailable. Falling back to the cloud model.",
       "apiRequestFailed": "LLM request failed with status {{status}}.",
@@ -672,6 +724,13 @@
   "tagGeneration": {
     "promptTemplate": "Title: \"{{title}}\"\nURL: \"{{url}}\"",
     "successMessage": "Successfully generated {{count}} tags"
+  },
+  "aiSetup": {
+    "title": "Set up AI first",
+    "description": "No usable LLM provider is configured and an available Gemini Nano is not enabled. This AI request was not sent.",
+    "hint": "Configure a cloud provider, or enable Gemini Nano when this device supports it.",
+    "configureProvider": "Configure provider",
+    "enableNano": "Enable Gemini Nano"
   },
   "aiSuggestion": {
     "generating": "Generating AI suggestions...",
@@ -688,16 +747,29 @@
     "noToolsEnabled": "No tools enabled",
     "enableTools": "Enable Tools",
     "searchPlaceholder": "Search tools...",
+    "searchResults": "Search results",
     "noSearchResults": "No matching tools found",
     "copySuccess": "Copied to clipboard",
     "copyError": "Failed to copy",
     "copyEmpty": "Nothing to copy",
     "recent": "Recent",
+    "navigation": "Tool navigation",
+    "addFavorite": "Add {{name}} to favorites",
+    "removeFavorite": "Remove {{name}} from favorites",
+    "groups": {
+      "recent": "Recently used",
+      "favorites": "Favorites",
+      "developer": "Developer",
+      "utility": "Utilities",
+      "network": "Network"
+    },
     "management": {
       "title": "Manage Tools",
       "description": "Select tools to display",
       "enableAll": "Enable All",
       "disableAll": "Disable All",
+      "enableTool": "Enable {{name}}",
+      "disableTool": "Disable {{name}}",
       "save": "Save",
       "tabEnable": "Enable/Disable",
       "tabOrder": "Order"
@@ -711,6 +783,116 @@
       "noTools": "No tools enabled"
     },
     "selectTool": "Select a tool to get started",
+    "smartToolRouter": {
+      "name": "Smart Processor",
+      "description": "Detect pasted developer text and recommend the right local tool",
+      "inputLabel": "Input",
+      "inputPlaceholder": "Paste JSON, URLs, cURL, colors, Cron, Base64, JWT, or commands such as uuid, sha256:, and url encode:...",
+      "recommendations": "Recommendations",
+      "preview": "Preview",
+      "previewNextSteps": "Next steps",
+      "openTool": "Open tool",
+      "copyPreview": "Copy preview",
+      "openPreviewWithTool": "Use preview with {{name}}",
+      "emptyInput": "Paste text to see tool suggestions",
+      "noSuggestions": "No matching tools found",
+      "previewFailed": "Preview failed. Open the target tool to continue.",
+      "intentConfidence": "Confidence {{confidence}}%",
+      "intents": {
+        "jsonFormat": {
+          "title": "Format JSON",
+          "description": "Detect strict JSON and format it with indentation."
+        },
+        "jsonRepair": {
+          "title": "Repair JSON",
+          "description": "Try to repair relaxed JSON and output standard JSON."
+        },
+        "urlEncode": {
+          "title": "Encode URL",
+          "description": "Use url encode: to safely encode text as a URL parameter."
+        },
+        "urlDecode": {
+          "title": "Decode URL",
+          "description": "Decode percent-encoded URLs or parameter text."
+        },
+        "base64Encode": {
+          "title": "Encode Base64",
+          "description": "Use base64 encode: to encode UTF-8 text."
+        },
+        "base64Decode": {
+          "title": "Decode Base64",
+          "description": "Decode UTF-8 Base64 text."
+        },
+        "htmlEntityEncode": {
+          "title": "Encode HTML entities",
+          "description": "Use html encode: to escape HTML special characters."
+        },
+        "htmlEntityDecode": {
+          "title": "Decode HTML entities",
+          "description": "Restore entities such as &amp; and &#123; to text."
+        },
+        "jwtDecode": {
+          "title": "Decode JWT",
+          "description": "Parse JWT header and payload."
+        },
+        "timestampToDate": {
+          "title": "Convert timestamp",
+          "description": "Detect 10-digit seconds or 13-digit millisecond timestamps."
+        },
+        "yamlConvert": {
+          "title": "Convert YAML",
+          "description": "Detect YAML text and preview it as standard JSON."
+        },
+        "tomlConvert": {
+          "title": "Convert TOML",
+          "description": "Detect TOML configuration and preview it as standard JSON."
+        },
+        "regexTest": {
+          "title": "Test regex",
+          "description": "Detect regular expressions written as /pattern/flags."
+        },
+        "hashCalculate": {
+          "title": "Calculate hash",
+          "description": "Choose an algorithm with md5:, sha1:, sha256:, or sha512:."
+        },
+        "caseConvert": {
+          "title": "Convert text case",
+          "description": "Transform text with camel:, snake:, kebab:, upper:, or lower:."
+        },
+        "colorConvert": {
+          "title": "Convert color",
+          "description": "Detect HEX or RGB colors and preview equivalent values."
+        },
+        "uuidGenerate": {
+          "title": "Generate UUID",
+          "description": "Enter uuid, uuid v1, or uuid v4 to generate an identifier."
+        },
+        "nanoidGenerate": {
+          "title": "Generate NanoID",
+          "description": "Enter nanoid or nanoid 32 to generate a chosen length."
+        },
+        "randomString": {
+          "title": "Generate random string",
+          "description": "Enter random string 32 to choose the output length."
+        },
+        "randomNumber": {
+          "title": "Generate random number",
+          "description": "Enter random number 1..100 to choose an integer range."
+        },
+        "cronInspect": {
+          "title": "Inspect Cron",
+          "description": "Validate a five-field Cron expression and preview upcoming runs."
+        },
+        "curlImport": {
+          "title": "Import cURL request",
+          "description": "Parse the method, URL, headers, and body from cURL."
+        },
+        "httpRequest": {
+          "title": "Test HTTP URL",
+          "description": "Detect an HTTP/HTTPS URL and prefill the request tester."
+        }
+      }
+    },
     "jsonFormatter": {
       "name": "JSON Formatter",
       "description": "Format and validate JSON data",
@@ -930,6 +1112,10 @@
       "history": "History",
       "clearAll": "Clear All",
       "delete": "Delete",
+      "reuseInput": "Reuse input",
+      "reuseOutput": "Use output as new input",
+      "pin": "Pin entry",
+      "unpin": "Unpin entry",
       "swap": "Swap",
       "batchMode": "Batch Mode",
       "onePerLine": "one per line",

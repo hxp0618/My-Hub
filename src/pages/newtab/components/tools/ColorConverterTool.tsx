@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 
 export interface RGB {
   r: number;
@@ -254,6 +255,8 @@ const getContrastLabelKey = (ratio: number): string => {
 export const ColorConverterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
@@ -376,6 +379,41 @@ export const ColorConverterTool: React.FC<ToolComponentProps> = ({
       setError(t('tools.colorConverter.invalidFormat'));
     }
   };
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.COLOR_CONVERTER,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      const value = nextInvocation.input.trim();
+      const parsedRgba = parseRgbaString(value);
+      if (parsedRgba) {
+        const rgbValue = { r: parsedRgba.r, g: parsedRgba.g, b: parsedRgba.b };
+        setRgb(rgbValue);
+        setAlpha(parsedRgba.a);
+        setHex(parsedRgba.a < 1 ? rgbaToHex(parsedRgba) : rgbToHex(parsedRgba));
+        setHsl(rgbToHsl(rgbValue));
+        setError(null);
+        return;
+      }
+
+      const parsedRgb = parseRgbString(value);
+      if (parsedRgb) {
+        setRgb(parsedRgb);
+        updateFromRgb(parsedRgb);
+        return;
+      }
+
+      const parsedHsl = parseHslString(value);
+      if (parsedHsl) {
+        setHsl(parsedHsl);
+        updateFromHsl(parsedHsl);
+        return;
+      }
+
+      updateFromHex(value);
+    }, [updateFromHex, updateFromHsl, updateFromRgb]),
+  });
 
   return (
     <ToolCard

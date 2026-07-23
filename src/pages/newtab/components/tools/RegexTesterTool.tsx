@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 
 interface MatchResult {
   match: string;
@@ -101,6 +102,8 @@ export const replaceRegex = (
 export const RegexTesterTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const [operationMode, setOperationMode] = useState<'match' | 'replace'>('match');
@@ -109,6 +112,20 @@ export const RegexTesterTool: React.FC<ToolComponentProps> = ({
   const [testText, setTestText] = useState('');
   const [replacement, setReplacement] = useState('');
   const [result, setResult] = useState<RegexTestResult>({ matches: [], error: null });
+
+  const applyInvocation = useCallback((nextInvocation: NonNullable<ToolComponentProps['invocation']>) => {
+    setPattern(nextInvocation.input);
+    if (nextInvocation.mode?.startsWith('regex:')) {
+      setFlags(nextInvocation.mode.slice('regex:'.length));
+    }
+  }, []);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.REGEX_TESTER,
+    onInvocationHandled,
+    onApply: applyInvocation,
+  });
 
   // 标志选项
   const flagOptions = [

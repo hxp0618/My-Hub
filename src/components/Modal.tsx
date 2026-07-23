@@ -10,7 +10,17 @@ interface ModalProps {
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
 }
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
 
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
@@ -21,32 +31,112 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnBackdrop = true,
   closeOnEscape = true,
   showCloseButton = true,
+  initialFocusRef,
 }) => {
   const { t } = useTranslation();
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    dialogRef.current?.focus();
+    const dialog = dialogRef.current;
+    const overlay = overlayRef.current;
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    returnFocusRef.current = previouslyFocused;
+
+    const backgroundElements = Array.from(overlay?.parentElement?.children ?? [])
+      .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== overlay)
+      .map(element => ({
+        element,
+        inert: element.inert,
+        hadInertAttribute: element.hasAttribute('inert'),
+        ariaHidden: element.getAttribute('aria-hidden'),
+      }));
+
+    backgroundElements.forEach(({ element }) => {
+      element.inert = true;
+      element.setAttribute('inert', '');
+      element.setAttribute('aria-hidden', 'true');
+    });
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      const initialFocusTarget = initialFocusRef?.current;
+      if (initialFocusTarget && dialog?.contains(initialFocusTarget)) {
+        initialFocusTarget.focus();
+        return;
+      }
+
+      const firstFocusable = dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (firstFocusable ?? dialog)?.focus();
+    });
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (closeOnEscape && event.key === 'Escape') {
+        event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !dialog) return;
+
+      const focusableElements = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+        .filter(element => element.tabIndex >= 0 && element.getAttribute('aria-hidden') !== 'true');
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstFocusable || activeElement === dialog)) {
+        event.preventDefault();
+        lastFocusable.focus();
+      } else if (!event.shiftKey && activeElement === lastFocusable) {
+        event.preventDefault();
+        firstFocusable.focus();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [closeOnEscape, isOpen, onClose]);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleKeyDown);
+      backgroundElements.forEach(({ element, inert, hadInertAttribute, ariaHidden }) => {
+        element.inert = inert;
+        if (!hadInertAttribute) element.removeAttribute('inert');
+        if (ariaHidden === null) {
+          element.removeAttribute('aria-hidden');
+        } else {
+          element.setAttribute('aria-hidden', ariaHidden);
+        }
+      });
+
+      const returnFocusTarget = returnFocusRef.current;
+      returnFocusRef.current = null;
+      if (returnFocusTarget?.isConnected) {
+        window.requestAnimationFrame(() => returnFocusTarget.focus());
+      }
+    };
+  }, [closeOnEscape, initialFocusRef, isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <div
+      ref={overlayRef}
       className="fixed inset-0 modal-overlay flex items-center justify-center z-50 transition-theme p-4"
-      onClick={closeOnBackdrop ? onClose : undefined}
+      onClick={closeOnBackdrop ? event => {
+        if (event.target === event.currentTarget) onClose();
+      } : undefined}
     >
       <div
         ref={dialogRef}

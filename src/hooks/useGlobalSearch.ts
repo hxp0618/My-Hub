@@ -12,10 +12,18 @@ import {
   historyItemMatchesSearchCommand,
   parseGlobalSearchCommand,
 } from '../utils/searchCommands';
+import { detectToolIntents, getToolIntentInvocationInput } from '../utils/toolIntent';
 import { createLogger } from '../utils/logger';
 
 const SEARCH_DEBOUNCE_TIME = 300; // ms
 const logger = createLogger('[useGlobalSearch]');
+
+const getChromeHistoryApi = () => (
+  typeof chrome !== 'undefined' &&
+  typeof (chrome as { history?: { search?: unknown } }).history?.search === 'function'
+    ? chrome.history
+    : null
+);
 
 export const useGlobalSearch = (searchTerm: string) => {
   const [results, setResults] = useState<SearchResultItem[]>([]);
@@ -91,8 +99,25 @@ export const useGlobalSearch = (searchTerm: string) => {
       }
 
       // 1. 搜索历史记录
+      const smartToolResults = command.type === 'default'
+        ? detectToolIntents(normalizedSearchTerm)
+          .filter(intent => intent.confidence >= 0.78)
+          .map<SearchResultItem>(intent => ({
+            type: 'tool-intent',
+            intentId: intent.id,
+            toolId: intent.toolId,
+            mode: intent.mode,
+            title: i18n.t(intent.titleKey),
+            description: i18n.t(intent.descriptionKey),
+            icon: getAllToolsMetadata().find(tool => tool.id === intent.toolId)?.icon ?? 'auto_fix_high',
+            input: getToolIntentInvocationInput(intent, normalizedSearchTerm),
+            confidence: intent.confidence,
+          }))
+        : [];
+
       const shouldSearchHistory = command.type !== 'tag';
-      const historyPromise = shouldSearchHistory ? chrome.history.search({ text: command.rawQuery, maxResults: 100 })
+      const historyApi = getChromeHistoryApi();
+      const historyPromise = shouldSearchHistory && historyApi ? historyApi.search({ text: command.rawQuery, maxResults: 100 })
         .then(historyItems =>
           historyItems
             .filter(item => historyItemMatchesSearchCommand(item, command))
@@ -131,7 +156,7 @@ export const useGlobalSearch = (searchTerm: string) => {
         const [historyResults, bookmarkResults] = await Promise.all([historyPromise, bookmarkPromise]);
 
         // 检查是否有任何结果
-        const totalResults: SearchResultItem[] = [...historyResults, ...bookmarkResults];
+        const totalResults: SearchResultItem[] = [...smartToolResults, ...historyResults, ...bookmarkResults];
         if (totalResults.length === 0 && historyResults.length === 0 && bookmarkResults.length === 0) {
           setError(i18n.t('search.noResults'));
         }

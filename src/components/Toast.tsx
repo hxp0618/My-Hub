@@ -96,7 +96,7 @@ export const ToastContainer: React.FC<{
 }> = ({ toasts, onRemove }) => {
   return (
     <div className="toast-container">
-      {toasts.map((toast) => (
+      {toasts.slice(0, 3).map((toast) => (
         <Toast
           key={toast.id}
           message={toast.message}

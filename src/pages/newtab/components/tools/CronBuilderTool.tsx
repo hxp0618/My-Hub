@@ -4,6 +4,7 @@ import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA } from '../../../../types/tools';
 import { ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
+import { useToolInvocation } from '../../../../hooks/useToolInvocation';
 import {
   CronField,
   FieldConfig,
@@ -27,6 +28,8 @@ import {
 export const CronBuilderTool: React.FC<ToolComponentProps> = ({
   isExpanded,
   onToggleExpand,
+  invocation,
+  onInvocationHandled,
 }) => {
   const { t } = useTranslation();
   const { copy } = useCopyToClipboard();
@@ -83,6 +86,18 @@ export const CronBuilderTool: React.FC<ToolComponentProps> = ({
     setManualExpression(expression);
     setIsManualMode(false);
   }, []);
+
+  useToolInvocation({
+    invocation,
+    targetToolId: ToolId.CRON_BUILDER,
+    onInvocationHandled,
+    onApply: useCallback((nextInvocation) => {
+      const expression = nextInvocation.input.trim();
+      setFieldConfigs(parseExpressionToConfig(expression));
+      setManualExpression(expression);
+      setIsManualMode(true);
+    }, []),
+  });
 
   // 复制表达式
   const handleCopy = useCallback(() => {
