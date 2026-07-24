@@ -20,6 +20,7 @@ import {
   setSubscriptionNotificationConfig,
 } from '../db/indexedDB';
 import { createLogger } from '../utils/logger';
+import { ensureHostPermission } from '../utils/extensionPermissions';
 
 const logger = createLogger('[NotificationSettings]');
 
@@ -131,6 +132,7 @@ export const NotificationSettings: React.FC = () => {
   const [config, setConfig] = useState<SubscriptionNotificationConfig>(DEFAULT_NOTIFICATION_CONFIG);
   const [barkKeys, setBarkKeys] = useState<BarkKeyConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [permissionWarning, setPermissionWarning] = useState<string | null>(null);
 
   // 加载配置
   useEffect(() => {
@@ -196,6 +198,53 @@ export const NotificationSettings: React.FC = () => {
     saveConfig(newConfig);
   }, [config, saveConfig]);
 
+  const handleWebhookToggle = useCallback(async () => {
+    const nextEnabled = !config.webhook.enabled;
+    if (nextEnabled && config.webhook.url && !(await ensureHostPermission(config.webhook.url))) {
+      logger.warn('Webhook host permission was not granted');
+      setPermissionWarning(t('settings.notification.hostPermissionDisabled'));
+      return;
+    }
+    setPermissionWarning(null);
+    updateWebhook({ enabled: nextEnabled });
+  }, [config.webhook.enabled, config.webhook.url, t, updateWebhook]);
+
+  const handleBarkToggle = useCallback(async () => {
+    const nextEnabled = !config.bark.enabled;
+    if (nextEnabled) {
+      const existingServer = config.bark.useExistingKey
+        ? barkKeys.find(key => key.id === config.bark.existingKeyId)?.server
+        : config.bark.server;
+      if (existingServer && !(await ensureHostPermission(existingServer))) {
+        logger.warn('Bark host permission was not granted');
+        setPermissionWarning(t('settings.notification.hostPermissionDisabled'));
+        return;
+      }
+    }
+    setPermissionWarning(null);
+    updateBark({ enabled: nextEnabled });
+  }, [barkKeys, config.bark, t, updateBark]);
+
+  const ensureEnabledWebhookPermission = useCallback(async () => {
+    if (!config.webhook.enabled || !config.webhook.url) return;
+    if (await ensureHostPermission(config.webhook.url)) {
+      setPermissionWarning(null);
+      return;
+    }
+    updateWebhook({ enabled: false });
+    setPermissionWarning(t('settings.notification.hostPermissionDisabled'));
+  }, [config.webhook.enabled, config.webhook.url, t, updateWebhook]);
+
+  const ensureEnabledBarkPermission = useCallback(async () => {
+    if (!config.bark.enabled || config.bark.useExistingKey || !config.bark.server) return;
+    if (await ensureHostPermission(config.bark.server)) {
+      setPermissionWarning(null);
+      return;
+    }
+    updateBark({ enabled: false });
+    setPermissionWarning(t('settings.notification.hostPermissionDisabled'));
+  }, [config.bark.enabled, config.bark.server, config.bark.useExistingKey, t, updateBark]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -208,6 +257,11 @@ export const NotificationSettings: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {permissionWarning && (
+        <div className="nb-card-static p-3 text-sm nb-text" role="alert">
+          {permissionWarning}
+        </div>
+      )}
       {/* Telegram */}
       <ChannelCard
         title={t('settings.notification.telegram.title')}
@@ -299,7 +353,7 @@ export const NotificationSettings: React.FC = () => {
         title={t('settings.notification.webhook.title')}
         icon="webhook"
         enabled={config.webhook.enabled}
-        onToggle={() => updateWebhook({ enabled: !config.webhook.enabled })}
+        onToggle={handleWebhookToggle}
         onTest={() => notificationService.testWebhook(config.webhook)}
       >
         <div>
@@ -310,6 +364,7 @@ export const NotificationSettings: React.FC = () => {
             type="url"
             value={config.webhook.url}
             onChange={(e) => updateWebhook({ url: e.target.value })}
+            onBlur={ensureEnabledWebhookPermission}
             placeholder={t('settings.notification.webhook.urlPlaceholder')}
             className="nb-input w-full text-sm"
           />
@@ -334,7 +389,7 @@ export const NotificationSettings: React.FC = () => {
         title={t('settings.notification.bark.title')}
         icon="notifications"
         enabled={config.bark.enabled}
-        onToggle={() => updateBark({ enabled: !config.bark.enabled })}
+        onToggle={handleBarkToggle}
         onTest={() => notificationService.testBark(config.bark)}
       >
         <div className="flex items-center gap-2 mb-2">
@@ -378,6 +433,7 @@ export const NotificationSettings: React.FC = () => {
                 type="url"
                 value={config.bark.server || ''}
                 onChange={(e) => updateBark({ server: e.target.value })}
+                onBlur={ensureEnabledBarkPermission}
                 placeholder={t('settings.notification.bark.serverPlaceholder')}
                 className="nb-input w-full text-sm"
               />

@@ -31,46 +31,37 @@ export const TagCard: React.FC<TagCardProps> = ({
     onViewDetails(tag);
   };
 
-  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    handleCardClick();
-  };
-
   return (
     <div
       className={`tag-card nb-card-data ${isSelected ? 'is-selected' : ''}`}
-      onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-pressed={isMultiSelectMode ? isSelected : undefined}
-      aria-label={isMultiSelectMode
-        ? t('tags.selectTag', { name: tag.name })
-        : `${t('tags.viewDetails')} ${tag.name}`
-      }
     >
       <div className="flex items-center gap-3">
-        {isMultiSelectMode && (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onToggleSelect(tag.name)}
-            onClick={e => e.stopPropagation()}
-            className="h-4 w-4 border-2 border-[color:var(--nb-border)] accent-[color:var(--nb-accent-yellow)] cursor-pointer"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-        )}
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold nb-text truncate">{tag.name}</h3>
-            <span className="px-2 py-0.5 text-xs bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)]">
-              {tag.count}
+        <button
+          type="button"
+          className="tag-card-main min-w-0 flex-1 text-left"
+          onClick={handleCardClick}
+          aria-pressed={isMultiSelectMode ? isSelected : undefined}
+          aria-label={isMultiSelectMode
+            ? t('tags.selectTag', { name: tag.name })
+            : `${t('tags.viewDetails')} ${tag.name}`
+          }
+        >
+          <span className="flex items-center gap-3">
+            {isMultiSelectMode && (
+              <span className={`flex h-5 w-5 items-center justify-center border-2 border-[color:var(--nb-border)] ${isSelected ? 'bg-[color:var(--nb-accent-yellow)]' : 'bg-[color:var(--nb-card)]'}`} aria-hidden="true">
+                {isSelected && <span className="material-symbols-outlined text-sm">check</span>}
+              </span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-2">
+                <span className="text-base font-bold nb-text truncate">{tag.name}</span>
+                <span className="px-2 py-0.5 text-xs bg-[color:var(--nb-accent-blue)] border border-[color:var(--nb-border)] text-[color:var(--nb-text-on-accent)]">
+                  {tag.count}
+                </span>
+              </span>
             </span>
-          </div>
-        </div>
+          </span>
+        </button>
 
         {!isMultiSelectMode && (
           <div className="flex items-center gap-1">
@@ -83,7 +74,7 @@ export const TagCard: React.FC<TagCardProps> = ({
               }}
               aria-label={`${t('tags.rename')} ${tag.name}`}
             >
-              <span className="material-symbols-outlined text-base text-[color:inherit]">edit</span>
+              <span className="material-symbols-outlined text-base text-[color:inherit]" aria-hidden="true">edit</span>
             </button>
             <button
               type="button"
@@ -94,7 +85,7 @@ export const TagCard: React.FC<TagCardProps> = ({
               }}
               aria-label={`${t('tags.delete')} ${tag.name}`}
             >
-              <span className="material-symbols-outlined text-base text-[color:inherit]">delete</span>
+              <span className="material-symbols-outlined text-base text-[color:inherit]" aria-hidden="true">delete</span>
             </button>
           </div>
         )}

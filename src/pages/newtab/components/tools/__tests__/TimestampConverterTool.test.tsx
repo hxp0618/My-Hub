@@ -1,7 +1,13 @@
 import React from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseDateString, parseTimestampInput, TimestampConverterTool } from '../TimestampConverterTool';
+import {
+  formatLocalDateInput,
+  parseDateString,
+  parseLocalDateInput,
+  parseTimestampInput,
+  TimestampConverterTool,
+} from '../TimestampConverterTool';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -64,5 +70,14 @@ describe('TimestampConverterTool', () => {
   it('accepts valid leap-day and datetime-local input', () => {
     expect(parseDateString('2024-02-29')?.getFullYear()).toBe(2024);
     expect(parseDateString('2026-05-26T09:30')?.getMinutes()).toBe(30);
+  });
+
+  it('formats and parses date inputs in local time instead of UTC', () => {
+    expect(formatLocalDateInput(new Date(2026, 0, 2, 1, 30))).toBe('2026-01-02');
+    const parsed = parseLocalDateInput('2026-07-23');
+    expect(parsed?.getFullYear()).toBe(2026);
+    expect(parsed?.getMonth()).toBe(6);
+    expect(parsed?.getDate()).toBe(23);
+    expect(parsed?.getHours()).toBe(0);
   });
 });

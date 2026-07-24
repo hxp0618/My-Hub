@@ -308,20 +308,30 @@
       }
     },
     "fromClipboard": "From Clipboard",
+    "clipboardPermissionDenied": "Clipboard access was not granted.",
+    "clipboardNoUrls": "The clipboard does not contain any web links.",
+    "clipboardReadFailed": "Could not read the clipboard. Keep this page focused and try again.",
+    "clipboardUrlsLoaded_one": "Loaded {{count}} link from the clipboard.",
+    "clipboardUrlsLoaded_other": "Loaded {{count}} links from the clipboard.",
     "moreActions": "More actions",
     "createWebCombo": "Create Web Combo",
     "editWebCombo": "Edit Web Combo",
     "deleteWebComboConfirm": "Are you sure you want to delete this web combo?",
     "dontShowAgain": "Don't show again",
+    "linksCount_one": "{{count}} link",
+    "linksCount_other": "{{count}} links",
     "linksCount": "{{count}} links",
     "comboTitle": "Title",
     "comboTitlePlaceholder": "Enter combo title",
     "comboUrls": "URLs",
     "comboUrlPlaceholder": "https://example.com",
+    "removeComboUrl": "Remove URL {{index}}",
     "addUrl": "Add URL"
   },
   "settings": {
     "title": "Settings",
+    "previousSection": "Show previous settings sections",
+    "nextSection": "Show more settings sections",
     "theme": "Theme",
     "themeDesc": "Choose your preferred theme appearance",
     "themeLight": "Light Mode",
@@ -372,6 +382,7 @@
       "testing": "Testing...",
       "testSuccess": "Test notification sent successfully",
       "testFailed": "Failed to send test notification",
+      "hostPermissionDisabled": "Access to the updated service host was not granted, so this channel was disabled.",
       "telegram": {
         "title": "Telegram",
         "botToken": "Bot Token",
@@ -455,10 +466,11 @@
       "emptyModel": "Model cannot be empty.",
       "apiRequestFailed": "API request failed with status {{status}}.",
       "invalidResponse": "API response format is invalid.",
-      "networkError": "Network connection failed. Please check the API URL."
+      "networkError": "Network connection failed. Please check the API URL.",
+      "hostPermissionDenied": "Access to this API host was not granted."
     },
     "permissionsTitle": "Permission Notes",
-    "permissionsDesc": "These permissions are used only by the current feature entry points. Web access is limited to http/https pages.",
+    "permissionsDesc": "These permissions are used only by the current feature entry points. Custom service hosts and clipboard access are requested only when you use them.",
     "permissions": {
       "bookmarks": {
         "title": "Bookmarks",
@@ -477,13 +489,13 @@
       },
       "tabs": {
         "title": "Tabs",
-        "scope": "tabs / activeTab",
+        "scope": "tabs",
         "desc": "Open bookmarks, read the active page, and handle page actions only after the user triggers related features."
       },
       "clipboard": {
         "title": "Clipboard Read",
         "scope": "clipboardRead",
-        "desc": "Used to detect URLs from the clipboard on the home page, add content quickly, and prefill some tools. Clipboard content is not uploaded automatically."
+        "desc": "Optional permission requested only when you choose From Clipboard. Clipboard content is never read automatically."
       },
       "alarms": {
         "title": "Scheduled Tasks",
@@ -491,9 +503,9 @@
         "desc": "Power Bark scheduled notifications and subscription expiry reminders so the browser can trigger them on time in the background."
       },
       "contentScripts": {
-        "title": "Web Access",
-        "scope": "http/https",
-        "desc": "Limited to regular web protocols for page interaction, content assistance, and reading online QR code images after the user enters a link; file, chrome-extension, and browser internal pages are not accessed."
+        "title": "On-demand Web Access",
+        "scope": "optional http/https hosts",
+        "desc": "Built-in service APIs are allowlisted. Access to custom LLM, webhook, Bark, HTTP test, and online image hosts is requested only after you trigger that feature. No script is injected into every webpage."
       }
     },
     "cardsPerRow": "Cards Per Row",
@@ -555,6 +567,8 @@
     "daysAgo_one": "{{count}} day ago",
     "daysAgo_other": "{{count}} days ago",
     "daysAgo": "{{count}} days ago",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
     "days": "{{count}} days",
     "weeksAgo": "{{count}} weeks ago",
     "monthsAgo_one": "{{count}} month ago",
@@ -718,6 +732,7 @@
       "streamUnavailable": "LLM response stream is unavailable. Please try again later.",
       "invalidResponse": "LLM response format is invalid.",
       "networkError": "LLM network request failed. Please check the API URL or network connection.",
+      "hostPermissionDenied": "Access to this LLM endpoint was not granted.",
       "unknownError": "LLM request failed. Please try again later."
     }
   },
@@ -942,6 +957,7 @@
       "errors": {
         "sendFailed": "Notification send failed",
         "networkError": "Network error. Please try again later.",
+        "hostPermissionDenied": "Access to this Bark server was not granted.",
         "unknownError": "An unknown error occurred"
       },
       "testConfig": "Test Configuration",
@@ -988,6 +1004,7 @@
         "duplicateKey": "This device key already exists",
         "labelTooLong": "Label cannot exceed 50 characters",
         "invalidServer": "Please enter a valid server URL",
+        "hostPermissionDenied": "Access to this Bark server was not granted",
         "saveFailed": "Save failed, please try again",
         "dataCorrupted": "Configuration data corrupted, reset",
         "notFound": "Configuration not found",
@@ -1618,6 +1635,7 @@
       "history": "History",
       "clearHistory": "Clear",
       "noHistory": "No history yet",
+      "useFromHistory": "Use this password from history",
       "delete": "Delete"
     },
     "htmlToMarkdown": {
@@ -1637,6 +1655,7 @@
       "emptyUrl": "Please enter a URL",
       "invalidUrl": "Invalid URL format",
       "fetchError": "Fetch failed",
+      "hostPermissionDenied": "Access to this webpage was not granted.",
       "convertError": "Conversion failed",
       "cleanHtml": "Smart extract content"
     },
@@ -1757,11 +1776,14 @@
       "urlPlaceholder": "Enter request URL...",
       "invalidUrl": "Please enter a valid URL (starting with http:// or https://)",
       "send": "Send",
+      "method": "HTTP method",
       "clear": "Clear",
       "headers": "Headers",
       "addHeader": "Add",
       "variables": "Variables",
       "addVariable": "Add",
+      "toggleVariable": "Enable variable {{index}}",
+      "removeVariable": "Remove variable {{index}}",
       "variableKey": "Variable",
       "variableValue": "Value",
       "variablesHint": "Use placeholders like {{baseUrl}} in URL, headers, and body.",
@@ -1773,17 +1795,25 @@
       "formKey": "Field",
       "formValue": "Value",
       "addFormRow": "Add Field",
+      "toggleFormField": "Enable form field {{index}}",
+      "removeFormField": "Remove form field {{index}}",
       "headerKey": "Key",
       "headerValue": "Value",
+      "toggleHeader": "Enable header {{index}}",
+      "removeHeader": "Remove header {{index}}",
       "body": "Body",
+      "bodyMode": "Request body format",
       "bodyPlaceholder": "Enter JSON request body...",
       "invalidJsonBody": "Request body must be valid JSON",
       "response": "Response",
       "error": "Error",
       "networkError": "Network request failed, please check URL or network connection",
+      "hostPermissionDenied": "Access to this host was not granted.",
       "history": "History",
       "clearHistory": "Clear",
       "noHistory": "No history yet",
+      "restoreHistory": "Restore {{method}} request to {{url}}",
+      "deleteHistory": "Delete {{method}} request to {{url}}",
       "importCurl": "Import curl",
       "exportCurl": "Export curl",
       "import": "Import",

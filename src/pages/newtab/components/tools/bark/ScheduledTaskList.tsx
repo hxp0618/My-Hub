@@ -138,23 +138,29 @@ const TaskItem: React.FC<{
         <div className="flex items-center gap-1 flex-shrink-0">
           {/* 查看历史 */}
           <button
+            type="button"
             onClick={onViewHistory}
-            className="nb-btn nb-btn-ghost p-2 rounded-lg"
+            className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-2 rounded-lg"
             title={t('tools.barkNotifier.scheduled.viewHistory')}
+            aria-label={t('tools.barkNotifier.scheduled.viewHistory')}
           >
-            <span className="material-symbols-outlined text-sm">history</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">history</span>
           </button>
 
           {/* 启用/禁用 */}
           {canToggle && (
             <button
+              type="button"
               onClick={onToggleStatus}
-              className="nb-btn nb-btn-ghost p-2 rounded-lg"
+              className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-2 rounded-lg"
               title={task.status === 'active'
                 ? t('tools.barkNotifier.scheduled.pause')
                 : t('tools.barkNotifier.scheduled.resume')}
+              aria-label={task.status === 'active'
+                ? t('tools.barkNotifier.scheduled.pause')
+                : t('tools.barkNotifier.scheduled.resume')}
             >
-              <span className="material-symbols-outlined text-sm">
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">
                 {task.status === 'active' ? 'pause' : 'play_arrow'}
               </span>
             </button>
@@ -162,21 +168,25 @@ const TaskItem: React.FC<{
 
           {/* 编辑 */}
           <button
+            type="button"
             onClick={onEdit}
-            className="nb-btn nb-btn-ghost p-2 rounded-lg"
+            className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-2 rounded-lg"
             title={t('common.edit')}
+            aria-label={t('common.edit')}
           >
-            <span className="material-symbols-outlined text-sm">edit</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">edit</span>
           </button>
 
           {/* 删除 */}
           <button
+            type="button"
             onClick={onDelete}
-            className="nb-btn nb-btn-ghost p-2 rounded-lg"
+            className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-2 rounded-lg"
             style={{ color: 'var(--nb-accent-pink)' }}
             title={t('common.delete')}
+            aria-label={t('common.delete')}
           >
-            <span className="material-symbols-outlined text-sm">delete</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">delete</span>
           </button>
         </div>
       </div>

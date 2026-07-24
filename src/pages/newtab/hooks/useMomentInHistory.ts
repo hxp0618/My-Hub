@@ -1,76 +1,105 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RecommendationItem } from '../types';
-import { getAllBookmarkTags } from '../../../db/indexedDB';
 import { getFaviconUrl } from '../../../utils/favicon';
 import { createLogger } from '../../../utils/logger';
+import { getBookmarkSnapshot } from '../../../utils/bookmarkSnapshot';
 
 const logger = createLogger('[useMomentInHistory]');
+const HISTORY_CACHE_KEY = 'moment-in-history-cache-v1';
+const HISTORY_CACHE_TTL_MS = 10 * 60 * 1000;
+const TIME_WINDOW_HOURS = 1;
+const DAYS_TO_SEARCH = 14;
+const NORMAL_WEBSITE_THRESHOLD = 2;
+const BOOKMARKED_WEBSITE_THRESHOLD = 1;
+
+interface MomentHistoryCache {
+  hourKey: string;
+  cachedAt: number;
+  recommendations: RecommendationItem[];
+}
+
+const getHourKey = (date: Date): string => (
+  [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+    String(date.getHours()).padStart(2, '0'),
+  ].join('-')
+);
+
+const readCachedRecommendations = (hourKey: string): RecommendationItem[] | null => {
+  try {
+    const raw = localStorage.getItem(HISTORY_CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw) as MomentHistoryCache;
+    if (
+      cache.hourKey !== hourKey ||
+      !Array.isArray(cache.recommendations) ||
+      Date.now() - cache.cachedAt >= HISTORY_CACHE_TTL_MS
+    ) {
+      return null;
+    }
+    return cache.recommendations;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedRecommendations = (hourKey: string, recommendations: RecommendationItem[]) => {
+  try {
+    const cache: MomentHistoryCache = {
+      hourKey,
+      cachedAt: Date.now(),
+      recommendations,
+    };
+    localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // 缓存不可用时继续使用实时查询结果。
+  }
+};
+
+const clearCachedRecommendations = () => {
+  try {
+    localStorage.removeItem(HISTORY_CACHE_KEY);
+  } catch {
+    // 忽略禁用存储或容量异常。
+  }
+};
 
 export function useMomentInHistory() {
   const { t } = useTranslation();
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
   const [timeRange, setTimeRange] = useState('');
 
-  const normalWebsiteThreshold = 2;
-  const bookmarkedWebsiteThreshold = 1;
-
-  const getRecommendations = useCallback(async () => {
-    if (!chrome || !chrome.history) {
+  const getRecommendations = useCallback(async (force = false) => {
+    if (typeof chrome === 'undefined' || typeof chrome.history?.search !== 'function') {
       logger.error(
         'Chrome History API is not available. Please ensure the extension is loaded correctly and has the "history" permission.',
       );
       return;
     }
-      const TIME_WINDOW_HOURS = 1;
-      const DAYS_TO_SEARCH = 14;
 
-      // --- Get Bookmark Data ---
-      const getBookmarkData = async (): Promise<{ urls: Set<string>; bookmarkMap: Map<string, { id: string; tags: string[] }> }> => {
-        try {
-          const [bookmarkTreeNodes, allTags] = await Promise.all([
-            new Promise<chrome.bookmarks.BookmarkTreeNode[]>(resolve =>
-              chrome.bookmarks.getTree(resolve)
-            ),
-            getAllBookmarkTags()
-          ]);
+    const now = new Date();
+    const currentHour = now.getHours();
+    const timeWindowStart = Math.max(0, currentHour - TIME_WINDOW_HOURS);
+    const timeWindowEnd = Math.min(23, currentHour + TIME_WINDOW_HOURS);
 
-          const urls = new Set<string>();
-          const bookmarkMap = new Map<string, { id: string; tags: string[] }>();
-          const tagsMap = new Map(allTags.map(bt => [bt.url, bt.tags]));
+    setTimeRange(t('home.timeRangeFormat', { start: timeWindowStart, end: timeWindowEnd + 1 }));
 
-          const flatten = (nodes: chrome.bookmarks.BookmarkTreeNode[]) => {
-            for (const node of nodes) {
-              if (node.url) {
-                urls.add(node.url);
-                bookmarkMap.set(node.url, {
-                  id: node.id,
-                  tags: tagsMap.get(node.url) || []
-                });
-              }
-              if (node.children) {
-                flatten(node.children);
-              }
-            }
-          };
-          flatten(bookmarkTreeNodes);
-          return { urls, bookmarkMap };
-        } catch (error) {
-          logger.error('Error getting bookmark data', error);
-          return { urls: new Set(), bookmarkMap: new Map() };
-        }
-      };
+    const hourKey = getHourKey(now);
+    if (!force) {
+      const cachedRecommendations = readCachedRecommendations(hourKey);
+      if (cachedRecommendations) {
+        setRecommendations(cachedRecommendations);
+        return;
+      }
+    }
 
-      const { urls: bookmarkUrls, bookmarkMap } = await getBookmarkData();
-
-      const currentHour = new Date().getHours();
-      const timeWindowStart = Math.max(0, currentHour - TIME_WINDOW_HOURS);
-      const timeWindowEnd = Math.min(23, currentHour + TIME_WINDOW_HOURS);
-
-      setTimeRange(t('home.timeRangeFormat', { start: timeWindowStart, end: timeWindowEnd + 1 }));
+    try {
+      const { urls: bookmarkUrls, bookmarkMap } = await getBookmarkSnapshot(force);
 
       const timeWindows: { start: number; end: number }[] = [];
-      const now = new Date();
 
       for (let dayOffset = 0; dayOffset < DAYS_TO_SEARCH; dayOffset++) {
         const targetDate = new Date(now);
@@ -152,7 +181,10 @@ export function useMomentInHistory() {
           const isBookmarked = bookmarks.has(item.url);
           const visitedDaysCount = item.visitedDays.size;
 
-          if ((isBookmarked && visitedDaysCount >= bookmarkedWebsiteThreshold) || (!isBookmarked && visitedDaysCount >= normalWebsiteThreshold)) {
+          if (
+            (isBookmarked && visitedDaysCount >= BOOKMARKED_WEBSITE_THRESHOLD) ||
+            (!isBookmarked && visitedDaysCount >= NORMAL_WEBSITE_THRESHOLD)
+          ) {
             const bookmarkData = bookmarkMap.get(item.url);
             recommendations.push({
               url: item.url,
@@ -171,11 +203,32 @@ export function useMomentInHistory() {
 
       const finalRecommendations = processRecommendations(allItems, bookmarkUrls, bookmarkMap);
       setRecommendations(finalRecommendations);
+      writeCachedRecommendations(hourKey, finalRecommendations);
+    } catch (error) {
+      logger.error('Error getting moment-in-history recommendations', error);
+      setRecommendations([]);
+    }
   }, [t]);
 
   useEffect(() => {
-    getRecommendations();
+    void getRecommendations();
   }, [getRecommendations]);
 
-  return { recommendations, timeRange, refreshRecommendations: getRecommendations };
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome.bookmarks) return;
+    const events = [
+      chrome.bookmarks.onChanged,
+      chrome.bookmarks.onCreated,
+      chrome.bookmarks.onMoved,
+      chrome.bookmarks.onRemoved,
+    ];
+    events.forEach(event => event?.addListener?.(clearCachedRecommendations));
+    return () => {
+      events.forEach(event => event?.removeListener?.(clearCachedRecommendations));
+    };
+  }, []);
+
+  const refreshRecommendations = useCallback(() => getRecommendations(true), [getRecommendations]);
+
+  return { recommendations, timeRange, refreshRecommendations };
 }

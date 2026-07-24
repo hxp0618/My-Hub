@@ -14,6 +14,7 @@ import {
   validateDeviceKey,
 } from '../utils/barkKeyManager';
 import { createLogger } from '../utils/logger';
+import { requireHostPermission } from '../utils/extensionPermissions';
 
 const logger = createLogger('[BarkKeyManager]');
 
@@ -241,6 +242,7 @@ export class BarkKeyManager implements IKeyManager {
 
     try {
       const url = `${key.server}/${key.deviceKey}/Test/Configuration test`;
+      await requireHostPermission(url);
       const response = await fetch(url);
       const data = await response.json();
       return data.code === 200;

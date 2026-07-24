@@ -18,6 +18,7 @@ export type SubscriptionNotificationErrorKey =
   | 'disabled'
   | 'missingBarkKey'
   | 'sendFailed'
+  | 'hostPermissionDenied'
   | 'networkError';
 
 function isChineseLocale(locale: string): boolean {
@@ -103,6 +104,7 @@ export function getSubscriptionNotificationErrorMessage(
       disabled: '未启用',
       missingBarkKey: '找不到已配置的 Bark Key',
       sendFailed: '发送失败',
+      hostPermissionDenied: '未授予该服务地址的访问权限',
       networkError: '网络错误',
     }
     : {
@@ -110,6 +112,7 @@ export function getSubscriptionNotificationErrorMessage(
       disabled: 'Not enabled',
       missingBarkKey: 'Configured Bark key not found',
       sendFailed: 'Send failed',
+      hostPermissionDenied: 'Access to this service address was not granted',
       networkError: 'Network error',
     };
 

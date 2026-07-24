@@ -310,27 +310,35 @@ export const PasswordGeneratorTool: React.FC<ToolComponentProps> = ({ isExpanded
                 history.map(item => (
                   <div
                     key={item.timestamp}
-                    className="p-2 nb-bg rounded-lg nb-border cursor-pointer hover:opacity-80 transition-opacity group"
-                    onClick={() => selectFromHistory(item)}
+                    className="relative nb-bg rounded-lg nb-border hover:opacity-80 transition-opacity group"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-mono text-sm truncate nb-text flex-1 min-w-0">{item.password}</p>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      type="button"
+                      className="block min-h-11 w-full p-2 pr-24 text-left"
+                      onClick={() => selectFromHistory(item)}
+                      aria-label={t('tools.passwordGenerator.useFromHistory')}
+                    >
+                      <span className="block font-mono text-sm truncate nb-text">{item.password}</span>
+                    </button>
+                    <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
                         <button
-                          onClick={(e) => { e.stopPropagation(); copy(item.password); }}
-                          className="p-1 rounded hover:bg-[color:var(--nb-bg)]"
+                          type="button"
+                          onClick={() => copy(item.password)}
+                          className="min-h-11 min-w-11 p-1 rounded hover:bg-[color:var(--nb-bg)]"
                           title={t('tools.passwordGenerator.copy')}
+                          aria-label={t('tools.passwordGenerator.copy')}
                         >
-                          <span className="material-symbols-outlined text-base nb-text-secondary">content_copy</span>
+                          <span className="material-symbols-outlined text-base nb-text-secondary" aria-hidden="true">content_copy</span>
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); removeFromHistory(item.timestamp); }}
-                          className="p-1 rounded hover:bg-[color:var(--nb-bg)] opacity-0 group-hover:opacity-100 transition-opacity"
+                          type="button"
+                          onClick={() => removeFromHistory(item.timestamp)}
+                          className="min-h-11 min-w-11 p-1 rounded hover:bg-[color:var(--nb-bg)] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                           title={t('tools.passwordGenerator.delete')}
+                          aria-label={t('tools.passwordGenerator.delete')}
                         >
-                          <span className="material-symbols-outlined text-base" style={{ color: 'var(--nb-accent-pink)' }}>delete</span>
+                          <span className="material-symbols-outlined text-base" style={{ color: 'var(--nb-accent-pink)' }} aria-hidden="true">delete</span>
                         </button>
-                      </div>
                     </div>
                   </div>
                 ))

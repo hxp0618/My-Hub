@@ -21,9 +21,7 @@ describe('ItemCard', () => {
     vi.restoreAllMocks();
   });
 
-  it('opens the target from keyboard with link semantics', () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-
+  it('uses a real external link for URL cards', () => {
     render(
       <ItemCard
         href="https://example.com/docs"
@@ -34,11 +32,10 @@ describe('ItemCard', () => {
     );
 
     const card = screen.getByRole('link', { name: 'Open Example Docs' });
-    expect(card).toHaveClass('item-card');
-
-    fireEvent.keyDown(card, { key: 'Enter' });
-
-    expect(openSpy).toHaveBeenCalledWith('https://example.com/docs', '_blank', 'noopener,noreferrer');
+    expect(card).toHaveClass('item-card-main');
+    expect(card).toHaveAttribute('href', 'https://example.com/docs');
+    expect(card).toHaveAttribute('target', '_blank');
+    expect(card).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('uses checkbox semantics in multi-select mode', () => {
@@ -59,8 +56,25 @@ describe('ItemCard', () => {
     const card = screen.getByRole('button', { name: 'Select Selectable Item' });
     expect(card).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.keyDown(card, { key: ' ' });
+    fireEvent.click(card);
     expect(handleSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the same custom activation callback for action cards', () => {
+    const handleActivate = vi.fn();
+
+    render(
+      <ItemCard
+        onActivate={handleActivate}
+        title="Action Card"
+        hostname="2 links"
+        faviconUrl="data:image/svg+xml,icon"
+      />
+    );
+
+    const card = screen.getByRole('button', { name: 'Open Action Card' });
+    fireEvent.click(card);
+    expect(handleActivate).toHaveBeenCalledTimes(1);
   });
 
   it('renders an accessible action menu with real buttons', () => {
@@ -83,5 +97,6 @@ describe('ItemCard', () => {
 
     fireEvent.click(menuItem);
     expect(handleEdit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: 'Open Action Item' }).contains(menuItem)).toBe(false);
   });
 });

@@ -11,7 +11,8 @@ export interface ItemCardAction {
 
 interface ItemCardProps {
   // 核心数据
-  href: string;
+  href?: string;
+  onActivate?: () => void;
   title: string;
   hostname: string;
   faviconUrl: string;
@@ -37,13 +38,15 @@ interface ItemCardProps {
 
   // 拖拽相关
   isDraggable?: boolean;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+  dragHandleProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+  dragHandleRef?: React.Ref<HTMLButtonElement>;
   dragProps?: React.HTMLAttributes<HTMLDivElement>;
   isDragging?: boolean;
 }
 
 export const ItemCard: React.FC<ItemCardProps> = ({
   href,
+  onActivate,
   title,
   hostname,
   faviconUrl,
@@ -59,6 +62,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   onSelect,
   isDraggable = false,
   dragHandleProps,
+  dragHandleRef,
   dragProps,
   isDragging = false,
 }) => {
@@ -66,45 +70,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   const [showActions, setShowActions] = useState(false);
   const [showFailureTooltip, setShowFailureTooltip] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   useClickOutside(dropdownRef, () => setShowActions(false));
 
   const cardLabel = isMultiSelectMode
     ? t('itemCard.select', { title })
     : t('itemCard.open', { title });
-
-  const activateCard = () => {
-    if (isMultiSelectMode) {
-      onSelect?.();
-    } else {
-      window.open(href, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const handleWrapperClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // 避免菜单、复选框和拖拽手柄触发卡片打开。
-    if (
-        dropdownRef.current?.contains(e.target as Node) ||
-        (e.target as HTMLElement).closest('button') ||
-        (e.target as HTMLElement).closest('input') ||
-        (e.target as HTMLElement).closest('.drag-handle')
-    ) {
-        return;
-    }
-
-    activateCard();
-  };
-
-  const handleWrapperKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget) {
-      return;
-    }
-
-    if (event.key === 'Enter' || (isMultiSelectMode && event.key === ' ')) {
-      event.preventDefault();
-      activateCard();
-    }
-  };
 
   const metadataElements: React.JSX.Element[] = [];
   if (timeLabel) {
@@ -163,51 +133,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     </div>
   );
 
-  return (
-    <div
-      ref={wrapperRef}
-      onClick={handleWrapperClick}
-      onKeyDown={handleWrapperKeyDown}
-      {...dragProps}
-      className={`item-card nb-card-data ${isMultiSelectMode ? 'item-card--selectable' : ''} ${isSelected ? 'nb-selected' : ''} ${
-        isDragging ? 'opacity-50 scale-105' : ''
-      } ${showActions ? 'z-30' : ''}`}
-      role={isMultiSelectMode ? 'button' : 'link'}
-      aria-pressed={isMultiSelectMode ? isSelected : undefined}
-      aria-label={cardLabel}
-      tabIndex={0}
-    >
-      {isMultiSelectMode && (
-        <div className="item-card-selection" onClick={e => e.stopPropagation()}>
-           <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={onSelect}
-            aria-hidden="true"
-            tabIndex={-1}
-            className="item-card-checkbox"
-          />
-        </div>
-      )}
-
-      {/* -- Drag Handle -- */}
-      {isDraggable && !isMultiSelectMode && (
-        <div
-          className="drag-handle item-card-drag-handle"
-          {...dragHandleProps}
-          aria-label={dragHandleProps?.['aria-label'] ?? t('itemCard.dragHandle', { title })}
-          onClick={e => e.stopPropagation()}
-        >
-          <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">
-            drag_indicator
-          </span>
-        </div>
-      )}
-
+  const cardContent = (
+    <>
       {/* -- Header -- */}
       <div className={`flex items-start ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''} ${actions && !isMultiSelectMode ? 'pr-12' : ''}`}>
         <div className="item-card-favicon">
-          <img alt={`${title} favicon`} className="w-full h-full object-cover" src={faviconUrl} />
+          <img alt="" className="w-full h-full object-cover" src={faviconUrl} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -236,17 +167,15 @@ export const ItemCard: React.FC<ItemCardProps> = ({
         </div>
       </div>
 
-      {actionMenu}
-
       {/* -- Tags -- */}
       {tags && tags.length > 0 && (
-          <div className={`flex items-center flex-wrap gap-2 text-xs mt-4 ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
-              {tags.map((tag, index) => (
-                  <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[var(--nb-shadow-sm)] hover:shadow-[var(--nb-shadow-xs)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-100`}>
-                      {tag}
-                  </span>
-              ))}
-          </div>
+        <div className={`flex items-center flex-wrap gap-2 text-xs mt-4 ${isMultiSelectMode ? 'pl-8' : ''} ${isDraggable && !isMultiSelectMode ? 'pl-8' : ''}`}>
+          {tags.map((tag, index) => (
+            <span key={tag} className={`${getTagClassName(index)} font-bold uppercase tracking-wide shadow-[var(--nb-shadow-sm)] transition-all duration-100`}>
+              {tag}
+            </span>
+          ))}
+        </div>
       )}
 
       {/* -- Footer (Metadata) -- */}
@@ -261,6 +190,77 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           }, [])}
         </div>
       )}
+    </>
+  );
+
+  return (
+    <div
+      {...dragProps}
+      className={`item-card nb-card-data ${isMultiSelectMode ? 'item-card--selectable' : ''} ${isSelected ? 'nb-selected' : ''} ${
+        isDragging ? 'opacity-50 scale-105' : ''
+      } ${showActions ? 'z-30' : ''}`}
+      aria-selected={isSelected || undefined}
+    >
+      {isMultiSelectMode && (
+        <div className="item-card-selection" onClick={e => e.stopPropagation()}>
+           <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onSelect}
+            aria-hidden="true"
+            tabIndex={-1}
+            className="item-card-checkbox"
+          />
+        </div>
+      )}
+
+      {isMultiSelectMode ? (
+        <button
+          type="button"
+          className="item-card-main"
+          aria-label={cardLabel}
+          aria-pressed={isSelected}
+          onClick={onSelect}
+        >
+          {cardContent}
+        </button>
+      ) : onActivate ? (
+        <button
+          type="button"
+          className="item-card-main"
+          aria-label={cardLabel}
+          onClick={onActivate}
+        >
+          {cardContent}
+        </button>
+      ) : (
+        <a
+          className="item-card-main"
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={cardLabel}
+        >
+          {cardContent}
+        </a>
+      )}
+
+      {/* -- Drag Handle -- */}
+      {isDraggable && !isMultiSelectMode && (
+        <button
+          ref={dragHandleRef}
+          type="button"
+          className="drag-handle item-card-drag-handle"
+          {...dragHandleProps}
+          aria-label={dragHandleProps?.['aria-label'] ?? t('itemCard.dragHandle', { title })}
+          onClick={e => e.stopPropagation()}
+        >
+          <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">
+            drag_indicator
+          </span>
+        </button>
+      )}
+      {actionMenu}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { LLMSettings, ProviderConfig } from '../types/llm';
 import { PROVIDERS, ProviderKey } from '../data/models';
 import { StorageKey } from '../utils/storageManager';
 import { createLogger } from '../utils/logger';
+import { HostPermissionDeniedError, requireHostPermission } from '../utils/extensionPermissions';
 
 const SETTINGS_KEY = StorageKey.LLM_SETTINGS;
 const logger = createLogger('[llmUtils]');
@@ -17,7 +18,8 @@ export type LLMConnectionErrorCode =
   | 'emptyModel'
   | 'apiRequestFailed'
   | 'invalidResponse'
-  | 'networkError';
+  | 'networkError'
+  | 'hostPermissionDenied';
 
 export class LLMConnectionError extends Error {
   code: LLMConnectionErrorCode;
@@ -177,6 +179,7 @@ export async function testLLMConnection(settings: LLMSettings): Promise<void> {
   }
 
   try {
+    await requireHostPermission(baseUrl);
     const response = await fetch(baseUrl, {
       method: 'POST',
       headers: {
@@ -205,6 +208,9 @@ export async function testLLMConnection(settings: LLMSettings): Promise<void> {
       throw new LLMConnectionError('invalidResponse');
     }
   } catch (error) {
+    if (error instanceof HostPermissionDeniedError) {
+      throw new LLMConnectionError('hostPermissionDenied');
+    }
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new LLMConnectionError('networkError');
     }

@@ -16,10 +16,7 @@ export default mergeConfig(
             scripts: [ 'src/pages/background/index.ts' ]
           },
         } as ManifestV3Export,
-        browser: 'firefox',
-        contentScripts: {
-          injectCss: true,
-        }
+        browser: 'firefox'
       })
     ],
     build: {

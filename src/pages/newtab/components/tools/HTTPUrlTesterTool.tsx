@@ -29,6 +29,7 @@ import {
 } from '../../../../utils/httpUtils';
 import { generateCurl, parseCurl } from '../../../../utils/curlUtils';
 import { CurlParseSuccess } from '../../../../types/curl';
+import { HostPermissionDeniedError } from '../../../../utils/extensionPermissions';
 import { useHttpHistory } from '../../../../hooks/useHttpHistory';
 import { CurlImportModal } from '../../../../components/CurlImportModal';
 import { createLogger } from '../../../../utils/logger';
@@ -222,7 +223,9 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
         body: '',
         time: 0,
         size: 0,
-        error: t('tools.httpTester.networkError'),
+        error: t(error instanceof HostPermissionDeniedError
+          ? 'tools.httpTester.hostPermissionDenied'
+          : 'tools.httpTester.networkError'),
       });
     } finally {
       setLoading(false);
@@ -325,6 +328,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
           <div className={HTTP_TESTER_LAYOUT_CLASSES.requestBar} data-testid="http-tester-request-bar">
             <div className={HTTP_TESTER_LAYOUT_CLASSES.urlBar}>
               <select
+                aria-label={t('tools.httpTester.method')}
                 value={method}
                 onChange={(e) => setMethod(e.target.value as HttpMethod)}
                 className="nb-input w-full font-medium"
@@ -352,33 +356,38 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
             </div>
             <div className={HTTP_TESTER_LAYOUT_CLASSES.requestActions}>
               <button
+                type="button"
                 onClick={handleSend}
                 disabled={!canSend}
                 className="nb-btn nb-btn-primary px-6"
               >
                 {loading ? (
-                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                  <span className="material-symbols-outlined animate-spin" aria-hidden="true">progress_activity</span>
                 ) : (
                   t('tools.httpTester.send')
                 )}
               </button>
-              <button onClick={handleClear} className="nb-btn nb-btn-ghost">
+              <button type="button" onClick={handleClear} className="nb-btn nb-btn-ghost">
                 {t('tools.httpTester.clear')}
               </button>
               <button
+                type="button"
                 onClick={() => setShowCurlImport(true)}
-                className="nb-btn nb-btn-ghost"
+                className="nb-btn nb-btn-ghost min-h-11 min-w-11"
                 title={t('tools.httpTester.importCurl')}
+                aria-label={t('tools.httpTester.importCurl')}
               >
-                <span className="material-symbols-outlined text-sm">download</span>
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>
               </button>
               <button
+                type="button"
                 onClick={handleCurlExport}
                 disabled={!url.trim()}
-                className="nb-btn nb-btn-ghost"
+                className="nb-btn nb-btn-ghost min-h-11 min-w-11"
                 title={t('tools.httpTester.exportCurl')}
+                aria-label={t('tools.httpTester.exportCurl')}
               >
-                <span className="material-symbols-outlined text-sm">
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">
                   {copySuccess ? 'check' : 'upload'}
                 </span>
               </button>
@@ -390,8 +399,8 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
             <div className="nb-card-static p-4 min-w-0">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.variables')}</h3>
-                <button onClick={addVariable} className="nb-btn nb-btn-ghost text-xs py-1 px-2 shrink-0">
-                  <span className="material-symbols-outlined text-sm">add</span>
+                <button type="button" onClick={addVariable} className="nb-btn nb-btn-ghost text-xs py-1 px-2 shrink-0">
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">add</span>
                   {t('tools.httpTester.addVariable')}
                 </button>
               </div>
@@ -404,6 +413,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                   >
                     <input
                       type="checkbox"
+                      aria-label={t('tools.httpTester.toggleVariable', { index: index + 1 })}
                       checked={variable.enabled}
                       onChange={(e) => updateVariable(index, 'enabled', e.target.checked)}
                       className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
@@ -423,11 +433,13 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                       className={HTTP_TESTER_LAYOUT_CLASSES.entryInput}
                     />
                     <button
+                      type="button"
                       onClick={() => removeVariable(index)}
-                      className="nb-btn nb-btn-ghost p-1 shrink-0"
+                      className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-1 shrink-0"
                       disabled={variables.length === 1}
+                      aria-label={t('tools.httpTester.removeVariable', { index: index + 1 })}
                     >
-                      <span className="material-symbols-outlined text-sm">close</span>
+                      <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                     </button>
                   </div>
                 ))}
@@ -439,6 +451,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
               <h3 className="text-sm font-semibold nb-text mb-3">{t('tools.httpTester.auth')}</h3>
               <div className={HTTP_TESTER_LAYOUT_CLASSES.authGrid}>
                 <select
+                  aria-label={t('tools.httpTester.auth')}
                   value={auth.type}
                   onChange={(e) => setAuth({ type: e.target.value as HttpAuthConfig['type'] })}
                   className="nb-input min-w-0 w-full text-sm"
@@ -477,8 +490,8 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
           <div className="nb-card-static p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.headers')}</h3>
-              <button onClick={addHeader} className="nb-btn nb-btn-ghost text-xs py-1 px-2 shrink-0">
-                <span className="material-symbols-outlined text-sm">add</span>
+              <button type="button" onClick={addHeader} className="nb-btn nb-btn-ghost text-xs py-1 px-2 shrink-0">
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">add</span>
                 {t('tools.httpTester.addHeader')}
               </button>
             </div>
@@ -491,6 +504,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                 >
                   <input
                     type="checkbox"
+                    aria-label={t('tools.httpTester.toggleHeader', { index: index + 1 })}
                     checked={header.enabled}
                     onChange={(e) => updateHeader(index, 'enabled', e.target.checked)}
                     className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
@@ -510,11 +524,13 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                     className={HTTP_TESTER_LAYOUT_CLASSES.entryInput}
                   />
                   <button
+                    type="button"
                     onClick={() => removeHeader(index)}
-                    className="nb-btn nb-btn-ghost p-1 shrink-0"
+                    className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-1 shrink-0"
                     disabled={headers.length === 1}
+                    aria-label={t('tools.httpTester.removeHeader', { index: index + 1 })}
                   >
-                    <span className="material-symbols-outlined text-sm">close</span>
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                   </button>
                 </div>
               ))}
@@ -526,7 +542,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
             <div className="nb-card-static p-4 flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.body')}</h3>
-                <select value={bodyMode} onChange={(e) => setBodyMode(e.target.value as HttpBodyMode)} className="nb-input text-xs py-1">
+                <select aria-label={t('tools.httpTester.bodyMode')} value={bodyMode} onChange={(e) => setBodyMode(e.target.value as HttpBodyMode)} className="nb-input text-xs py-1">
                   <option value="json">JSON</option>
                   <option value="raw">{t('tools.httpTester.rawBody')}</option>
                   <option value="formData">Form Data</option>
@@ -542,19 +558,20 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
                     >
                       <input
                         type="checkbox"
+                        aria-label={t('tools.httpTester.toggleFormField', { index: index + 1 })}
                         checked={row.enabled}
                         onChange={(e) => updateFormRow(index, 'enabled', e.target.checked)}
                         className="w-4 h-4 rounded nb-border accent-[var(--nb-accent-yellow)]"
                       />
                       <input value={row.key} onChange={(e) => updateFormRow(index, 'key', e.target.value)} placeholder={t('tools.httpTester.formKey')} className={HTTP_TESTER_LAYOUT_CLASSES.entryInput} />
                       <input value={row.value} onChange={(e) => updateFormRow(index, 'value', e.target.value)} placeholder={t('tools.httpTester.formValue')} className={HTTP_TESTER_LAYOUT_CLASSES.entryInput} />
-                      <button onClick={() => removeFormRow(index)} className="nb-btn nb-btn-ghost p-1 shrink-0" disabled={formRows.length === 1}>
-                        <span className="material-symbols-outlined text-sm">close</span>
+                      <button type="button" onClick={() => removeFormRow(index)} className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-1 shrink-0" disabled={formRows.length === 1} aria-label={t('tools.httpTester.removeFormField', { index: index + 1 })}>
+                        <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                       </button>
                     </div>
                   ))}
-                  <button onClick={addFormRow} className="nb-btn nb-btn-secondary text-xs px-3 py-1">
-                    <span className="material-symbols-outlined text-sm">add</span>
+                  <button type="button" onClick={addFormRow} className="nb-btn nb-btn-secondary text-xs px-3 py-1">
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">add</span>
                     {t('tools.httpTester.addFormRow')}
                   </button>
                 </div>
@@ -619,7 +636,7 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
           <div className="flex items-center justify-between mb-3 flex-shrink-0">
             <h3 className="text-sm font-semibold nb-text">{t('tools.httpTester.history')}</h3>
             {history.length > 0 && (
-              <button onClick={clearAll} className="nb-btn nb-btn-ghost text-xs py-1 px-2">
+              <button type="button" onClick={clearAll} className="nb-btn nb-btn-ghost text-xs py-1 px-2">
                 {t('tools.httpTester.clearHistory')}
               </button>
             )}
@@ -633,30 +650,35 @@ export const HTTPUrlTesterTool: React.FC<ToolComponentProps> = ({
               history.map((entry) => (
                 <div
                   key={entry.id}
-                  className="nb-card-static p-3 cursor-pointer hover:bg-[color:var(--nb-bg-hover)] transition-colors"
-                  onClick={() => handleRestore(entry.id)}
+                  className="nb-card-static relative overflow-hidden"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium nb-text">{entry.request.method}</span>
-                    {entry.response && (
-                      <span className={`nb-badge text-xs ${getStatusColorClass(entry.response.status)}`}>
-                        {entry.response.status}
-                      </span>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeEntry(entry.id);
-                      }}
-                      className="ml-auto nb-btn nb-btn-ghost p-0.5"
-                    >
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
-                  </div>
-                  <p className="text-xs nb-text-secondary truncate">{entry.request.url}</p>
-                  <p className="text-xs nb-text-secondary mt-1">
-                    {new Date(entry.timestamp).toLocaleString()}
-                  </p>
+                  <button
+                    type="button"
+                    className="block w-full p-3 pr-14 text-left hover:bg-[color:var(--nb-bg-hover)] transition-colors"
+                    onClick={() => handleRestore(entry.id)}
+                    aria-label={t('tools.httpTester.restoreHistory', { method: entry.request.method, url: entry.request.url })}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium nb-text">{entry.request.method}</span>
+                      {entry.response && (
+                        <span className={`nb-badge text-xs ${getStatusColorClass(entry.response.status)}`}>
+                          {entry.response.status}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs nb-text-secondary truncate">{entry.request.url}</p>
+                    <p className="text-xs nb-text-secondary mt-1">
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeEntry(entry.id)}
+                    className="nb-btn nb-btn-ghost absolute right-1 top-1 min-h-11 min-w-11 p-1"
+                    aria-label={t('tools.httpTester.deleteHistory', { method: entry.request.method, url: entry.request.url })}
+                  >
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+                  </button>
                 </div>
               ))
             )}

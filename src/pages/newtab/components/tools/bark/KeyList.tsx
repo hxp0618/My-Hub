@@ -52,9 +52,11 @@ export const KeyList: React.FC<KeyListProps> = ({
           >
             <div className="flex items-start justify-between gap-3">
               {/* 左侧：配置信息 */}
-              <div 
-                className="flex-1 min-w-0 cursor-pointer"
+              <button
+                type="button"
+                className="flex-1 min-w-0 cursor-pointer text-left"
                 onClick={() => onSelect(key.id)}
+                aria-pressed={isSelected}
               >
                 <div className="flex items-center gap-2 mb-1">
                   {/* 选中标识 */}
@@ -80,37 +82,43 @@ export const KeyList: React.FC<KeyListProps> = ({
                     <span className="truncate max-w-[220px]">{key.server}</span>
                   </span>
                 </div>
-              </div>
+              </button>
 
               {/* 右侧：操作按钮 */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
+                  type="button"
                   onClick={() => onEdit(key)}
-                  className="nb-btn nb-btn-ghost p-1.5 rounded transition-theme"
+                  className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-1.5 rounded transition-theme"
                   title={t('tools.barkNotifier.keys.edit')}
+                  aria-label={t('tools.barkNotifier.keys.edit')}
                 >
-                  <span className="material-symbols-outlined text-sm">edit</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">edit</span>
                 </button>
                 
                 <button
+                  type="button"
                   onClick={() => onTest(key.id)}
                   disabled={isTesting}
-                  className="nb-btn nb-btn-ghost p-1.5 rounded transition-theme disabled:cursor-not-allowed"
+                  className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-1.5 rounded transition-theme disabled:cursor-not-allowed"
                   title={t('tools.barkNotifier.keys.test')}
+                  aria-label={t('tools.barkNotifier.keys.test')}
                 >
                   {isCurrentTesting ? (
-                    <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                    <span className="material-symbols-outlined text-sm animate-spin" aria-hidden="true">progress_activity</span>
                   ) : (
-                    <span className="material-symbols-outlined text-sm">send</span>
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">send</span>
                   )}
                 </button>
                 
                 <button
+                  type="button"
                   onClick={() => onDelete(key.id)}
-                  className="nb-btn nb-btn-ghost p-1.5 rounded transition-theme text-[color:var(--nb-accent-pink)]"
+                  className="nb-btn nb-btn-ghost min-h-11 min-w-11 p-1.5 rounded transition-theme text-[color:var(--nb-accent-pink)]"
                   title={t('tools.barkNotifier.keys.delete')}
+                  aria-label={t('tools.barkNotifier.keys.delete')}
                 >
-                  <span className="material-symbols-outlined text-sm">delete</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">delete</span>
                 </button>
               </div>
             </div>

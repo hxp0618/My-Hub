@@ -30,7 +30,7 @@ describe('TagCard accessibility', () => {
     vi.clearAllMocks();
   });
 
-  it('opens details from keyboard when not in multi-select mode', () => {
+  it('uses a focusable native button to open details', () => {
     const onViewDetails = vi.fn();
 
     render(
@@ -45,12 +45,16 @@ describe('TagCard accessibility', () => {
       />
     );
 
-    fireEvent.keyDown(screen.getByRole('button', { name: 'View details Design' }), { key: 'Enter' });
+    const card = screen.getByRole('button', { name: 'View details Design' });
+    expect(card.tagName).toBe('BUTTON');
+    card.focus();
+    expect(card).toHaveFocus();
+    fireEvent.click(card);
 
     expect(onViewDetails).toHaveBeenCalledWith(tag);
   });
 
-  it('uses button + aria-pressed semantics and toggles selection from keyboard in multi-select mode', () => {
+  it('uses button + aria-pressed semantics in multi-select mode', () => {
     const onToggleSelect = vi.fn();
 
     render(
@@ -68,7 +72,7 @@ describe('TagCard accessibility', () => {
     const card = screen.getByRole('button', { name: 'Select tag Design' });
     expect(card).toHaveAttribute('aria-pressed', 'false');
 
-    fireEvent.keyDown(card, { key: ' ' });
+    fireEvent.click(card);
 
     expect(onToggleSelect).toHaveBeenCalledWith('Design');
   });

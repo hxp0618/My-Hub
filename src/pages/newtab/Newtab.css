@@ -282,6 +282,10 @@ body.newtab-mobile-nav-open {
     gap: 0.75rem;
 }
 
+.settings-page-nav-scroll-button {
+    display: none;
+}
+
 .settings-page-nav-button {
     min-height: 44px;
     width: 100%;
@@ -968,11 +972,14 @@ body.newtab-mobile-nav-open {
 /* hover 由 .nb-card-data 自身提供（背景色变化）。
    这里不再添加 transform translate，保持 Quiet 层级稳定。 */
 
-.tag-card:focus-visible {
-    outline: none;
+.tag-card:focus-within {
     box-shadow:
         inset 0 0 0 2px var(--nb-shadow-color),
         inset 0 0 0 5px var(--nb-accent-yellow);
+}
+
+.tag-card-main:focus-visible {
+    outline: none;
 }
 
 .tag-card.is-selected {
@@ -1383,6 +1390,46 @@ body.newtab-mobile-nav-open {
 .tools-page-workbench-card {
     min-height: 0;
     min-width: 0;
+}
+
+.timestamp-responsive-grid,
+.timestamp-conversion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    gap: 1rem;
+}
+
+.timestamp-value-row {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.timestamp-number {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.timestamp-copy-button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
+.timestamp-conversion-grid {
+    gap: 1.5rem;
+}
+
+.timestamp-conversion-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
 }
 
 .tools-page-rail {
@@ -1965,13 +2012,36 @@ body.newtab-mobile-nav-open {
     }
 
     .settings-page-nav-list {
+        min-width: 0;
         flex-direction: row;
         overflow-x: auto;
         padding: 0.25rem 0.25rem 0.5rem;
+        scroll-behavior: smooth;
+        scroll-snap-type: x proximity;
+        scrollbar-width: thin;
     }
 
     .settings-page-nav-list > li {
         flex: 0 0 auto;
+        scroll-snap-align: start;
+    }
+
+    .settings-page-nav-scroll {
+        display: grid;
+        min-width: 0;
+        grid-template-columns: 44px minmax(0, 1fr) 44px;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .settings-page-nav-scroll-button {
+        display: inline-flex;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
     }
 
     .settings-page-nav-button {
@@ -2015,6 +2085,14 @@ body.newtab-mobile-nav-open {
 
     .settings-action-row .nb-btn {
         flex: 1 1 auto;
+    }
+
+    .timestamp-conversion-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .timestamp-conversion-actions .nb-btn {
+        width: 100%;
     }
 
     .newtab-sidebar {

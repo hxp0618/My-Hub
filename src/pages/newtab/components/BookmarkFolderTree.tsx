@@ -286,8 +286,14 @@ const FolderNode: React.FC<FolderNodeProps> = ({
           data-level={level}
           draggable={draggable}
           role="treeitem"
+          tabIndex={isSelected ? 0 : -1}
           aria-selected={isSelected}
           onClick={() => onSelectFolder(node.id)}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+            event.preventDefault();
+            onSelectFolder(node.id);
+          }}
           onDragStart={draggable ? (event) => dragController.onFolderDragStart(event, node) : undefined}
           onDragEnd={draggable ? () => dragController.onDragEnd() : undefined}
           onDragOver={dragController.enabled ? (event) => dragController.onDragOver(event, node) : undefined}
@@ -296,13 +302,14 @@ const FolderNode: React.FC<FolderNodeProps> = ({
         >
           {indentGuides}
           <button
+            type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               if (!hasChildren) return;
               toggleExpanded();
             }}
-            className={`mr-2 nb-btn nb-btn-secondary p-0 w-9 h-9 flex-shrink-0 ${
+            className={`mr-2 nb-btn nb-btn-secondary p-0 min-w-11 min-h-11 flex-shrink-0 ${
               hasChildren ? '' : 'opacity-40 cursor-not-allowed'
             }`}
             aria-label={isExpanded ? t('bookmarks.collapse') : t('bookmarks.expand')}
@@ -311,6 +318,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
             <span
               className="material-symbols-outlined icon-linear text-base transition-transform"
               style={{ transform: hasChildren && isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+              aria-hidden="true"
             >
               chevron_right
             </span>
@@ -326,31 +334,36 @@ const FolderNode: React.FC<FolderNodeProps> = ({
         {!disableContextMenu && (
             <div className="absolute right-0 top-1/2 -translate-y-1/2" ref={menuRef}>
                 <button 
-                    className="nb-btn nb-btn-secondary p-2 w-10 h-10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    type="button"
+                    className="nb-btn nb-btn-secondary min-h-11 min-w-11 p-2 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                     onClick={() => setMenuOpen(!menuOpen)}
+                    aria-label={t('itemCard.moreActions', { title: node.title })}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
                 >
-                    <span className="material-symbols-outlined icon-linear text-lg">more_horiz</span>
+                    <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">more_horiz</span>
                 </button>
                 {menuOpen && (
                     <div
                         className="nb-dropdown absolute right-0 mt-2 w-56 z-[1000]"
-                        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                        onMouseUp={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                        onContextMenu={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                        role="menu"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onMouseUp={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onContextMenu={(e) => e.stopPropagation()}
                     >
                         <div className="py-1 select-none">
-                            <div onClick={() => { setModal('create'); setMenuOpen(false); }} className="nb-dropdown-item flex items-center px-4 py-2 text-sm cursor-pointer">
-                                <span className="material-symbols-outlined icon-linear text-lg mr-3">create_new_folder</span>{t('bookmarks.newFolder')}
-                            </div>
+                            <button type="button" role="menuitem" onClick={() => { setModal('create'); setMenuOpen(false); }} className="nb-dropdown-item w-full flex items-center px-4 py-2 text-sm cursor-pointer">
+                                <span className="material-symbols-outlined icon-linear text-lg mr-3" aria-hidden="true">create_new_folder</span>{t('bookmarks.newFolder')}
+                            </button>
                             {node.unmodifiable !== 'managed' && node.parentId !== '0' && (
                                 <>
-                                    <div onClick={() => { setModal('rename'); setMenuOpen(false); }} className="nb-dropdown-item flex items-center px-4 py-2 text-sm cursor-pointer">
-                                        <span className="material-symbols-outlined icon-linear text-lg mr-3">drive_file_rename_outline</span>{t('actions.rename')}
-                                    </div>
-                                    <div onClick={() => { setModal('delete'); setMenuOpen(false); }} className="nb-dropdown-item flex items-center px-4 py-2 text-sm cursor-pointer text-[color:var(--nb-accent-pink)]">
-                                        <span className="material-symbols-outlined icon-linear text-lg mr-3">delete</span>{t('common.delete')}
-                                    </div>
+                                    <button type="button" role="menuitem" onClick={() => { setModal('rename'); setMenuOpen(false); }} className="nb-dropdown-item w-full flex items-center px-4 py-2 text-sm cursor-pointer">
+                                        <span className="material-symbols-outlined icon-linear text-lg mr-3" aria-hidden="true">drive_file_rename_outline</span>{t('actions.rename')}
+                                    </button>
+                                    <button type="button" role="menuitem" onClick={() => { setModal('delete'); setMenuOpen(false); }} className="nb-dropdown-item w-full flex items-center px-4 py-2 text-sm cursor-pointer text-[color:var(--nb-accent-pink)]">
+                                        <span className="material-symbols-outlined icon-linear text-lg mr-3" aria-hidden="true">delete</span>{t('common.delete')}
+                                    </button>
                                 </>
                             )}
                         </div>

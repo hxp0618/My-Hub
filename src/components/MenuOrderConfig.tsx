@@ -126,11 +126,14 @@ export const MenuOrderConfig: React.FC<MenuOrderConfigProps> = ({ onReset }) => 
 
                 {/* 图标按钮 */}
                 <button
+                  type="button"
                   onClick={() => handleIconClick(itemId)}
-                  className={`p-1 rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${isIconPickerOpen ? 'bg-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)]' : ''}`}
+                  className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${isIconPickerOpen ? 'bg-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)]' : ''}`}
                   title={t('settings.changeIcon')}
+                  aria-label={`${t('settings.changeIcon')}: ${t(item.labelKey)}`}
+                  aria-expanded={isIconPickerOpen}
                 >
-                  <span className="material-symbols-outlined icon-linear text-[color:inherit]">{displayIcon}</span>
+                  <span className="material-symbols-outlined icon-linear text-[color:inherit]" aria-hidden="true">{displayIcon}</span>
                 </button>
 
                 <span className="nb-text flex-1">{t(item.labelKey)}</span>
@@ -144,13 +147,16 @@ export const MenuOrderConfig: React.FC<MenuOrderConfigProps> = ({ onReset }) => 
                     {AVAILABLE_ICONS.map((icon) => (
                       <button
                         key={icon}
+                        type="button"
                         onClick={() => handleSelectIcon(itemId, icon)}
-                        className={`p-2 rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${
+                        className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border-[length:var(--nb-border-width)] border-[color:var(--nb-border)] hover:bg-[color:var(--nb-bg)] transition ${
                           displayIcon === icon ? 'bg-[color:var(--nb-accent-yellow)] border-[color:var(--nb-accent-yellow)] text-[color:var(--nb-text-on-accent)]' : ''
                         }`}
                         title={icon}
+                        aria-label={`${t('settings.changeIcon')}: ${icon}`}
+                        aria-pressed={displayIcon === icon}
                       >
-                        <span className="material-symbols-outlined icon-linear text-[color:inherit]">{icon}</span>
+                        <span className="material-symbols-outlined icon-linear text-[color:inherit]" aria-hidden="true">{icon}</span>
                       </button>
                     ))}
                   </div>

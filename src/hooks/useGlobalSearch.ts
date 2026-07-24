@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useBookmarks } from '../pages/newtab/hooks/useBookmarks';
 import { SearchResultItem } from '../types/search';
 import { HistoryItem } from '../pages/newtab/types';
-import { flattenBookmarks } from '../utils/bookmarkUtils';
 import { getAllToolsMetadata } from '../types/tools';
 import { SEARCH_ACTIONS } from '../types/searchActions';
 import i18n from '../i18n';
 import { getFaviconUrl } from '../utils/favicon';
+import { getBookmarkSnapshot } from '../utils/bookmarkSnapshot';
 import {
   bookmarkMatchesSearchCommand,
   historyItemMatchesSearchCommand,
   parseGlobalSearchCommand,
 } from '../utils/searchCommands';
-import { detectToolIntents, getToolIntentInvocationInput } from '../utils/toolIntent';
 import { createLogger } from '../utils/logger';
 
 const SEARCH_DEBOUNCE_TIME = 300; // ms
@@ -30,18 +28,18 @@ export const useGlobalSearch = (searchTerm: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { bookmarks: allBookmarks, loading: bookmarksLoading } = useBookmarks();
-
   useEffect(() => {
+    const normalizedSearchTerm = searchTerm.trim();
+    if (!normalizedSearchTerm) {
+      setResults([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     const search = async () => {
-      const normalizedSearchTerm = searchTerm.trim();
-
-      if (!normalizedSearchTerm) {
-        setResults([]);
-        setError(null);
-        return;
-      }
-
       setLoading(true);
       setError(null);
       const command = parseGlobalSearchCommand(normalizedSearchTerm);
@@ -66,9 +64,11 @@ export const useGlobalSearch = (searchTerm: string) => {
             category: metadata.category,
           }));
 
-        setResults(toolResults);
-        setError(toolResults.length === 0 ? i18n.t('search.noResults') : null);
-        setLoading(false);
+        if (!cancelled) {
+          setResults(toolResults);
+          setError(toolResults.length === 0 ? i18n.t('search.noResults') : null);
+          setLoading(false);
+        }
         return;
       }
 
@@ -92,28 +92,32 @@ export const useGlobalSearch = (searchTerm: string) => {
             target: action.target,
           }));
 
-        setResults(actionResults);
-        setError(actionResults.length === 0 ? i18n.t('search.noResults') : null);
-        setLoading(false);
+        if (!cancelled) {
+          setResults(actionResults);
+          setError(actionResults.length === 0 ? i18n.t('search.noResults') : null);
+          setLoading(false);
+        }
         return;
       }
 
       // 1. 搜索历史记录
-      const smartToolResults = command.type === 'default'
-        ? detectToolIntents(normalizedSearchTerm)
-          .filter(intent => intent.confidence >= 0.78)
-          .map<SearchResultItem>(intent => ({
-            type: 'tool-intent',
-            intentId: intent.id,
-            toolId: intent.toolId,
-            mode: intent.mode,
-            title: i18n.t(intent.titleKey),
-            description: i18n.t(intent.descriptionKey),
-            icon: getAllToolsMetadata().find(tool => tool.id === intent.toolId)?.icon ?? 'auto_fix_high',
-            input: getToolIntentInvocationInput(intent, normalizedSearchTerm),
-            confidence: intent.confidence,
-          }))
-        : [];
+      const smartToolPromise: Promise<SearchResultItem[]> = command.type === 'default'
+        ? import('../utils/toolIntent').then(({ detectToolIntents, getToolIntentInvocationInput }) => (
+          detectToolIntents(normalizedSearchTerm)
+            .filter(intent => intent.confidence >= 0.78)
+            .map<SearchResultItem>(intent => ({
+              type: 'tool-intent',
+              intentId: intent.id,
+              toolId: intent.toolId,
+              mode: intent.mode,
+              title: i18n.t(intent.titleKey),
+              description: i18n.t(intent.descriptionKey),
+              icon: getAllToolsMetadata().find(tool => tool.id === intent.toolId)?.icon ?? 'auto_fix_high',
+              input: getToolIntentInvocationInput(intent, normalizedSearchTerm),
+              confidence: intent.confidence,
+            }))
+        ))
+        : Promise.resolve([]);
 
       const shouldSearchHistory = command.type !== 'tag';
       const historyApi = getChromeHistoryApi();
@@ -138,22 +142,25 @@ export const useGlobalSearch = (searchTerm: string) => {
         }) : Promise.resolve([]);
 
       // 2. 搜索书签
-      const bookmarkPromise = new Promise<SearchResultItem[]>((resolve) => {
+      const bookmarkPromise = getBookmarkSnapshot().then(({ bookmarks }) => {
         try {
-          const flattenedBookmarks = flattenBookmarks(allBookmarks);
-          const bookmarkResults = flattenedBookmarks
+          return bookmarks
             .filter(bookmark => bookmarkMatchesSearchCommand(bookmark, command))
             .map(bookmark => ({ ...bookmark, type: 'bookmark' as const }));
-          resolve(bookmarkResults);
         } catch (err) {
           logger.error('Bookmark search failed', err);
-          resolve([]); // 返回空数组
+          return [];
         }
       });
 
       // 并行执行所有搜索
       try {
-        const [historyResults, bookmarkResults] = await Promise.all([historyPromise, bookmarkPromise]);
+        const [smartToolResults, historyResults, bookmarkResults] = await Promise.all([
+          smartToolPromise,
+          historyPromise,
+          bookmarkPromise,
+        ]);
+        if (cancelled) return;
 
         // 检查是否有任何结果
         const totalResults: SearchResultItem[] = [...smartToolResults, ...historyResults, ...bookmarkResults];
@@ -164,11 +171,12 @@ export const useGlobalSearch = (searchTerm: string) => {
         // 合并并排序结果（这里简单合并，可以根据需求增加排序逻辑）
         setResults(totalResults);
       } catch (error) {
+        if (cancelled) return;
         logger.error('Error during global search', error);
         setError(i18n.t('search.searchFailed'));
         setResults([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -176,11 +184,14 @@ export const useGlobalSearch = (searchTerm: string) => {
       search();
     }, SEARCH_DEBOUNCE_TIME);
 
-    return () => clearTimeout(debounceTimeout);
-  }, [searchTerm, allBookmarks]);
+    return () => {
+      cancelled = true;
+      clearTimeout(debounceTimeout);
+    };
+  }, [searchTerm]);
 
   return {
-    loading: loading || bookmarksLoading,
+    loading,
     results,
     error,
   };

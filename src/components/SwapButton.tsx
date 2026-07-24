@@ -42,17 +42,19 @@ export const SwapButton: React.FC<SwapButtonProps> = ({
 
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={`
-        nb-btn nb-btn-secondary
+        nb-btn nb-btn-secondary min-h-11 min-w-11
         ${sizeClasses[size]}
         disabled:cursor-not-allowed
         ${className}
       `}
       title={t('tools.common.swap')}
+      aria-label={t('tools.common.swap')}
     >
-      <span className={`material-symbols-outlined ${iconSizes[size]}`}>
+      <span className={`material-symbols-outlined ${iconSizes[size]}`} aria-hidden="true">
         swap_horiz
       </span>
     </button>

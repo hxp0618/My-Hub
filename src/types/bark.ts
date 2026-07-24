@@ -28,6 +28,7 @@ export interface BarkNotificationOptions {
 export const BARK_NOTIFICATION_ERROR_KEYS = [
   'sendFailed',
   'networkError',
+  'hostPermissionDenied',
   'unknownError',
 ] as const;
 

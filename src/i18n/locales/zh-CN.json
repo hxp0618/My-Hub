@@ -308,20 +308,30 @@
       }
     },
     "fromClipboard": "来自剪贴板",
+    "clipboardPermissionDenied": "未授予剪贴板读取权限。",
+    "clipboardNoUrls": "剪贴板中没有可用的网址。",
+    "clipboardReadFailed": "无法读取剪贴板，请保持页面聚焦后重试。",
+    "clipboardUrlsLoaded_one": "已从剪贴板载入 {{count}} 个网址。",
+    "clipboardUrlsLoaded_other": "已从剪贴板载入 {{count}} 个网址。",
     "moreActions": "更多操作",
     "createWebCombo": "创建网页Combo",
     "editWebCombo": "编辑网页Combo",
     "deleteWebComboConfirm": "确定要删除此网页Combo吗？",
     "dontShowAgain": "不再显示",
+    "linksCount_one": "{{count}} 个链接",
+    "linksCount_other": "{{count}} 个链接",
     "linksCount": "{{count}} 个链接",
     "comboTitle": "标题",
     "comboTitlePlaceholder": "输入 Combo 标题",
     "comboUrls": "网址",
     "comboUrlPlaceholder": "https://example.com",
+    "removeComboUrl": "删除第 {{index}} 个网址",
     "addUrl": "添加网址"
   },
   "settings": {
     "title": "设置",
+    "previousSection": "显示前面的设置分区",
+    "nextSection": "显示更多设置分区",
     "theme": "主题",
     "themeDesc": "选择你喜欢的主题外观",
     "themeLight": "浅色模式",
@@ -372,6 +382,7 @@
       "testing": "测试中...",
       "testSuccess": "测试通知发送成功",
       "testFailed": "测试通知发送失败",
+      "hostPermissionDisabled": "未授予更新后服务地址的访问权限，已停用该通知渠道。",
       "telegram": {
         "title": "Telegram",
         "botToken": "Bot Token",
@@ -455,10 +466,11 @@
       "emptyModel": "模型不能为空。",
       "apiRequestFailed": "API 请求失败，状态码 {{status}}。",
       "invalidResponse": "API 响应格式异常。",
-      "networkError": "网络连接失败，请检查 API URL 是否正确。"
+      "networkError": "网络连接失败，请检查 API URL 是否正确。",
+      "hostPermissionDenied": "未授予该 API 地址的访问权限。"
     },
     "permissionsTitle": "权限说明",
-    "permissionsDesc": "这些权限仅用于当前功能入口，网页访问范围已限制为 http/https 页面。",
+    "permissionsDesc": "这些权限仅用于当前功能入口，自定义服务地址和剪贴板权限只会在你主动使用时请求。",
     "permissions": {
       "bookmarks": {
         "title": "书签",
@@ -477,13 +489,13 @@
       },
       "tabs": {
         "title": "标签页",
-        "scope": "tabs / activeTab",
+        "scope": "tabs",
         "desc": "打开书签、读取当前活动页信息和处理页面内操作入口，仅在用户触发相关功能时使用。"
       },
       "clipboard": {
         "title": "剪贴板读取",
         "scope": "clipboardRead",
-        "desc": "用于首页从剪贴板识别 URL、快捷添加内容和部分工具输入，不会自动上传剪贴板内容。"
+        "desc": "仅在你主动选择“来自剪贴板”时请求可选权限，不会自动读取剪贴板内容。"
       },
       "alarms": {
         "title": "定时任务",
@@ -491,9 +503,9 @@
         "desc": "驱动 Bark 定时通知和订阅到期提醒，保证浏览器后台可以按计划触发。"
       },
       "contentScripts": {
-        "title": "网页访问",
-        "scope": "http/https",
-        "desc": "只覆盖普通网页协议，用于页面交互、内容辅助，以及用户主动输入链接时读取在线二维码图片；不会访问 file、chrome-extension 或浏览器内部页面。"
+        "title": "按需网页访问",
+        "scope": "可选 http/https 服务地址",
+        "desc": "内置服务 API 使用固定白名单；自定义 LLM、Webhook、Bark、HTTP 测试和在线图片地址仅在你触发相关功能后请求访问，不再向所有网页注入脚本。"
       }
     },
     "cardsPerRow": "每行显示卡片数量",
@@ -555,6 +567,8 @@
     "daysAgo_one": "{{count}} 天前",
     "daysAgo_other": "{{count}} 天前",
     "daysAgo": "{{count}} 天前",
+    "days_one": "{{count}} 天",
+    "days_other": "{{count}} 天",
     "days": "{{count}} 天",
     "weeksAgo": "{{count}} 周前",
     "monthsAgo_one": "{{count}} 个月前",
@@ -718,6 +732,7 @@
       "streamUnavailable": "LLM 响应流不可用，请稍后重试",
       "invalidResponse": "LLM 响应格式无效",
       "networkError": "LLM 网络请求失败，请检查 API 地址或网络连接",
+      "hostPermissionDenied": "未授予该 LLM 服务地址的访问权限。",
       "unknownError": "LLM 请求失败，请稍后重试"
     }
   },
@@ -942,6 +957,7 @@
       "errors": {
         "sendFailed": "通知发送失败",
         "networkError": "网络错误，请稍后重试",
+        "hostPermissionDenied": "未授予该 Bark 服务器的访问权限。",
         "unknownError": "发生未知错误"
       },
       "testConfig": "测试配置",
@@ -988,6 +1004,7 @@
         "duplicateKey": "该设备密钥已存在",
         "labelTooLong": "备注不能超过 50 个字符",
         "invalidServer": "请输入有效的服务器地址",
+        "hostPermissionDenied": "未授予该 Bark 服务器的访问权限",
         "saveFailed": "保存失败，请重试",
         "dataCorrupted": "配置数据已损坏，已重置",
         "notFound": "配置不存在",
@@ -1579,6 +1596,7 @@
       "history": "历史记录",
       "clearHistory": "清空",
       "noHistory": "暂无历史记录",
+      "useFromHistory": "使用这条历史密码",
       "delete": "删除"
     },
     "htmlToMarkdown": {
@@ -1598,6 +1616,7 @@
       "emptyUrl": "请输入 URL",
       "invalidUrl": "无效的 URL 格式",
       "fetchError": "获取失败",
+      "hostPermissionDenied": "未授予该网页地址的访问权限。",
       "convertError": "转换失败",
       "cleanHtml": "智能提取正文"
     },
@@ -1757,11 +1776,14 @@
       "urlPlaceholder": "输入请求 URL...",
       "invalidUrl": "请输入有效的 URL（以 http:// 或 https:// 开头）",
       "send": "发送",
+      "method": "HTTP 方法",
       "clear": "清空",
       "headers": "请求头",
       "addHeader": "添加",
       "variables": "环境变量",
       "addVariable": "添加",
+      "toggleVariable": "启用第 {{index}} 个环境变量",
+      "removeVariable": "删除第 {{index}} 个环境变量",
       "variableKey": "变量名",
       "variableValue": "变量值",
       "variablesHint": "可在 URL、Header 和 Body 中使用 {{baseUrl}} 这类占位符。",
@@ -1773,17 +1795,25 @@
       "formKey": "字段名",
       "formValue": "字段值",
       "addFormRow": "添加字段",
+      "toggleFormField": "启用第 {{index}} 个表单字段",
+      "removeFormField": "删除第 {{index}} 个表单字段",
       "headerKey": "键",
       "headerValue": "值",
+      "toggleHeader": "启用第 {{index}} 个请求头",
+      "removeHeader": "删除第 {{index}} 个请求头",
       "body": "请求体",
+      "bodyMode": "请求体格式",
       "bodyPlaceholder": "输入 JSON 格式的请求体...",
       "invalidJsonBody": "请求体必须是有效的 JSON",
       "response": "响应",
       "error": "错误",
       "networkError": "网络请求失败，请检查 URL 或网络连接",
+      "hostPermissionDenied": "未授予该服务地址的访问权限。",
       "history": "历史记录",
       "clearHistory": "清空",
       "noHistory": "暂无历史记录",
+      "restoreHistory": "恢复 {{method}} 请求：{{url}}",
+      "deleteHistory": "删除 {{method}} 请求：{{url}}",
       "importCurl": "导入 curl",
       "exportCurl": "导出 curl",
       "import": "导入",

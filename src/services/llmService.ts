@@ -4,6 +4,7 @@ import { createLogger } from '../utils/logger';
 import { ChatMessage } from '../types/llm';
 import i18n from '../i18n';
 import { notifyAIConfigurationRequired } from '../utils/aiEvents';
+import { HostPermissionDeniedError, requireHostPermission } from '../utils/extensionPermissions';
 
 const logger = createLogger('[LLM Service]');
 const SUPPORTED_PROMPT_API_OUTPUT_LANGUAGES = ['en', 'es', 'ja'] as const;
@@ -27,6 +28,7 @@ export type LLMServiceErrorCode =
     | 'streamUnavailable'
     | 'invalidResponse'
     | 'networkError'
+    | 'hostPermissionDenied'
     | 'unknownError';
 
 export class LLMServiceError extends Error {
@@ -162,6 +164,9 @@ const getSafeSettingsForLog = (settings: ReturnType<typeof getLLMSettings>) => (
 
 const toLLMServiceError = (error: unknown): LLMServiceError => {
     if (error instanceof LLMServiceError) return error;
+    if (error instanceof HostPermissionDeniedError) {
+        return new LLMServiceError('hostPermissionDenied');
+    }
     if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
         return new LLMServiceError('networkError');
     }
@@ -285,6 +290,7 @@ export async function sendMessage(
 
 
   try {
+    await requireHostPermission(baseUrl);
     const response = await fetch(baseUrl, {
       method: 'POST',
       headers: {

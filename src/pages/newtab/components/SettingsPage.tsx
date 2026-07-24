@@ -43,6 +43,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ initialMenu }) => {
   const [activeMenu, setActiveMenu] = useState<SettingsMenu>(() => getInitialMenu(initialMenu));
   const navListRef = useRef<HTMLUListElement>(null);
   const activeMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const [navScrollState, setNavScrollState] = useState({ canPrevious: false, canNext: false });
+
+  const updateNavScrollState = useCallback(() => {
+    const list = navListRef.current;
+    if (!list) return;
+    const maxScrollLeft = Math.max(0, list.scrollWidth - list.clientWidth);
+    setNavScrollState({
+      canPrevious: list.scrollLeft > 2,
+      canNext: list.scrollLeft < maxScrollLeft - 2,
+    });
+  }, []);
 
   useEffect(() => {
     if (initialMenu) setActiveMenu(initialMenu);
@@ -60,22 +71,35 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ initialMenu }) => {
     } else if (buttonRect.right > listRect.right) {
       list.scrollLeft += buttonRect.right - listRect.right + 8;
     }
-  }, []);
+    updateNavScrollState();
+  }, [updateNavScrollState]);
 
   useEffect(() => {
+    const navList = navListRef.current;
     const frame = window.requestAnimationFrame(keepActiveMenuVisible);
     window.addEventListener('resize', keepActiveMenuVisible);
-    const resizeObserver = typeof ResizeObserver !== 'undefined' && navListRef.current
+    navList?.addEventListener('scroll', updateNavScrollState, { passive: true });
+    const resizeObserver = typeof ResizeObserver !== 'undefined' && navList
       ? new ResizeObserver(keepActiveMenuVisible)
       : null;
-    if (navListRef.current) resizeObserver?.observe(navListRef.current);
+    if (navList) resizeObserver?.observe(navList);
 
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', keepActiveMenuVisible);
+      navList?.removeEventListener('scroll', updateNavScrollState);
       resizeObserver?.disconnect();
     };
-  }, [activeMenu, keepActiveMenuVisible]);
+  }, [activeMenu, keepActiveMenuVisible, updateNavScrollState]);
+
+  const scrollSettingsNav = (direction: -1 | 1) => {
+    const list = navListRef.current;
+    if (!list) return;
+    list.scrollBy({
+      left: direction * Math.max(144, Math.round(list.clientWidth * 0.75)),
+      behavior: 'smooth',
+    });
+  };
 
   const handleMenuChange = (menu: SettingsMenu) => {
     setActiveMenu(menu);
@@ -96,22 +120,42 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ initialMenu }) => {
           </div>
         </div>
 
-        <ul ref={navListRef} className="settings-page-nav-list">
-          {SETTINGS_MENUS.map((menu) => (
-            <li key={menu.id}>
-              <button
-                ref={activeMenu === menu.id ? activeMenuButtonRef : undefined}
-                type="button"
-                onClick={() => handleMenuChange(menu.id)}
-                className={`settings-page-nav-button nb-settings-nav-item ${activeMenu === menu.id ? 'active' : ''}`}
-                aria-current={activeMenu === menu.id ? 'page' : undefined}
-              >
-                <span className="material-symbols-outlined text-base" aria-hidden="true">{menu.icon}</span>
-                <span>{t(menu.labelKey)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="settings-page-nav-scroll">
+          <button
+            type="button"
+            className="settings-page-nav-scroll-button nb-btn nb-btn-ghost"
+            onClick={() => scrollSettingsNav(-1)}
+            disabled={!navScrollState.canPrevious}
+            aria-label={t('settings.previousSection')}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+          </button>
+          <ul ref={navListRef} className="settings-page-nav-list">
+            {SETTINGS_MENUS.map((menu) => (
+              <li key={menu.id}>
+                <button
+                  ref={activeMenu === menu.id ? activeMenuButtonRef : undefined}
+                  type="button"
+                  onClick={() => handleMenuChange(menu.id)}
+                  className={`settings-page-nav-button nb-settings-nav-item ${activeMenu === menu.id ? 'active' : ''}`}
+                  aria-current={activeMenu === menu.id ? 'page' : undefined}
+                >
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{menu.icon}</span>
+                  <span>{t(menu.labelKey)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="settings-page-nav-scroll-button nb-btn nb-btn-ghost"
+            onClick={() => scrollSettingsNav(1)}
+            disabled={!navScrollState.canNext}
+            aria-label={t('settings.nextSection')}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+          </button>
+        </div>
       </nav>
 
       <main className="settings-page-content" aria-live="polite">

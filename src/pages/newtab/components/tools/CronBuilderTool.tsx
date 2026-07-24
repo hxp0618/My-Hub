@@ -134,11 +134,13 @@ export const CronBuilderTool: React.FC<ToolComponentProps> = ({
               className="nb-input flex-1 font-mono text-lg"
             />
             <button
+              type="button"
               onClick={handleCopy}
-              className="nb-btn nb-btn-secondary px-3"
+              className="nb-btn nb-btn-secondary min-h-11 min-w-11 px-3"
               title={t('tools.cronBuilder.copy')}
+              aria-label={t('tools.cronBuilder.copy')}
             >
-              <span className="material-symbols-outlined text-xl">content_copy</span>
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">content_copy</span>
             </button>
           </div>
           <p className="text-xs nb-text-secondary mt-1">

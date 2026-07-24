@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
 import type { QRCodeOptions, QRCodeImage } from '../types/qrcode';
 import { sanitizeQRCodeOptions } from '../types/qrcode';
+import { requireHostPermission } from './extensionPermissions';
 
 const IMAGE_CONTENT_TYPE_PREFIX = 'image/';
 const IMAGE_URL_EXTENSION_RE = /\.(?:png|jpe?g|webp|gif|bmp|svg|ico|avif)(?:[?#].*)?$/i;
@@ -320,6 +321,7 @@ export async function fetchImageDataUrl(
   const url = parseOnlineImageUrl(value);
   if (!url) throw new Error('invalidImageUrl');
 
+  await requireHostPermission(url);
   const response = await fetcher(url);
   if (!response.ok) throw new Error('imageUrlLoadError');
 

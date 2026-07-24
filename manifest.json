@@ -18,37 +18,30 @@
     "128": "icon-128.png"
   },
   "permissions": [
-    "clipboardRead",
-    "activeTab",
     "history",
     "storage",
     "bookmarks",
     "tabs",
     "alarms"
   ],
+  "optional_permissions": [
+    "clipboardRead"
+  ],
   "host_permissions": [
+    "https://api.siliconflow.cn/*",
+    "https://openrouter.ai/*",
+    "https://api.telegram.org/*",
+    "https://api.resend.com/*",
+    "https://api.day.app/*"
+  ],
+  "optional_host_permissions": [
     "http://*/*",
     "https://*/*"
-  ],
-  "content_scripts": [
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "src/pages/content/index.tsx"
-      ],
-      "css": [
-        "contentStyle.css"
-      ]
-    }
   ],
   "devtools_page": "src/pages/devtools/index.html",
   "web_accessible_resources": [
     {
       "resources": [
-        "contentStyle.css",
         "icon-128.png",
         "icon-32.png"
       ],

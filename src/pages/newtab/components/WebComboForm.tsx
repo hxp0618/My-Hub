@@ -76,11 +76,13 @@ const WebComboForm: React.FC<WebComboFormProps> = ({ combo, onSave, onCancel }) 
                 placeholder={t('home.comboUrlPlaceholder')}
               />
               <button
+                type="button"
                 onClick={() => removeUrlInput(index)}
-                className="nb-btn nb-btn-secondary p-2 min-w-[42px]"
+                className="nb-btn nb-btn-secondary min-h-11 min-w-11 p-2"
                 disabled={urls.length === 1}
+                aria-label={t('home.removeComboUrl', { index: index + 1 })}
               >
-                <span className="material-symbols-outlined icon-linear text-lg">delete</span>
+                <span className="material-symbols-outlined icon-linear text-lg" aria-hidden="true">delete</span>
               </button>
             </div>
           ))}

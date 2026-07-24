@@ -24,6 +24,7 @@ import {
 } from '../utils/scheduledTaskValidator';
 import { BarkKeyManager } from './BarkKeyManager';
 import { createLogger } from '../utils/logger';
+import { requireHostPermission } from '../utils/extensionPermissions';
 
 const scheduledTaskLogger = createLogger('[ScheduledTaskService]');
 
@@ -499,6 +500,7 @@ export class ScheduledTaskService {
         url += `?${queryString}`;
       }
 
+      await requireHostPermission(url);
       const response = await fetch(url);
       const data = await response.json();
 

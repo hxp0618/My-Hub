@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyFormProps } from '../../../../../types/bark';
 import { validateDeviceKey, validateLabel, validateServer } from '../../../../../utils/barkKeyManager';
+import { ensureHostPermission } from '../../../../../utils/extensionPermissions';
 
 export const KeyForm: React.FC<KeyFormProps> = ({
   mode,
@@ -62,16 +63,24 @@ export const KeyForm: React.FC<KeyFormProps> = ({
   };
 
   // 处理提交
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit({
-        label: label.trim(),
-        deviceKey: deviceKey.trim(),
-        server: server.trim() || 'https://api.day.app',
-      });
+    if (!validateForm()) return;
+
+    const normalizedServer = server.trim() || 'https://api.day.app';
+    if (!(await ensureHostPermission(normalizedServer))) {
+      setErrors(current => ({
+        ...current,
+        server: t('tools.barkNotifier.keys.hostPermissionDenied'),
+      }));
+      return;
     }
+
+    onSubmit({
+      label: label.trim(),
+      deviceKey: deviceKey.trim(),
+      server: normalizedServer,
+    });
   };
 
   return (

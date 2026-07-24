@@ -4,8 +4,6 @@ import { timeAgo } from '../utils';
 import { ItemCard, type ItemCardAction } from './ItemCard';
 import { Modal } from '../../../components/Modal';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
-import AddBookmarkForm from './AddBookmarkForm';
-import WebComboForm from './WebComboForm';
 import WebComboCard from './WebComboCard';
 import { v4 as uuidv4 } from 'uuid';
 import UnifiedSearchBar from '../../../components/UnifiedSearchBar';
@@ -15,33 +13,13 @@ import { ToolId } from '../../../types/tools';
 import { createToolInvocation } from '../../../types/toolInvocation';
 import type { ToolInvocation } from '../../../types/toolInvocation';
 import { SearchActionTarget } from '../../../types/searchActions';
-import { getAllBookmarkTags, addBookmarkTag } from '../../../db/indexedDB';
-import { buildTagGenerationPrompt } from '../../../lib/tagGenerationPrompts';
-import { parseGeneratedTags } from '../../../lib/bookmarkTags';
-import { sendMessage } from '../../../services/llmService';
 import { useToastContext } from '../../../contexts/ToastContext';
 import type { ChatMessage } from '../../../types/llm';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useTranslation } from 'react-i18next';
 import { createLogger } from '../../../utils/logger';
 import { getFaviconUrl, getUrlHostname } from '../../../utils/favicon';
+import { ensureClipboardReadPermission } from '../../../utils/extensionPermissions';
 import {
   cardsPerRow as cardsPerRowStorage,
   homeItemOrder,
@@ -53,67 +31,14 @@ import {
 } from '../../../utils/storageManager';
 
 const homePageLogger = createLogger('[HomePage]');
+const AddBookmarkForm = React.lazy(() => import('./AddBookmarkForm'));
+const WebComboForm = React.lazy(() => import('./WebComboForm'));
+const SortableHomeGrid = React.lazy(() => import('./SortableHomeGrid'));
 type BrowsableSearchResultItem = Exclude<SearchResultItem, ToolSearchResultItem | ActionSearchResultItem | ToolIntentSearchResultItem>;
 
 const isToolSearchResult = (item: SearchResultItem): item is ToolSearchResultItem => item.type === 'tool';
 const isActionSearchResult = (item: SearchResultItem): item is ActionSearchResultItem => item.type === 'action';
 const isToolIntentSearchResult = (item: SearchResultItem): item is ToolIntentSearchResultItem => item.type === 'tool-intent';
-
-// Sortable Card wrapper
-interface SortableCardProps {
-  id: string;
-  item: RecommendationItem | BrowsableSearchResultItem;
-  actions: ItemCardAction[];
-}
-
-const SortableCard: React.FC<SortableCardProps> = ({ id, item, actions }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const isSearchResult = 'type' in item;
-  const url = item.url!;
-  const title = item.title!;
-  const hostname = getUrlHostname(url);
-  const faviconUrl = isSearchResult
-    ? getFaviconUrl(url)
-    : item.favicon;
-  const visitCount = 'visitCount' in item ? item.visitCount : ('visitsInWindow' in item ? item.visitsInWindow : undefined);
-  const timeLabel = isSearchResult
-    ? timeAgo((item.type === 'history' ? item.lastVisitTime : item.dateAdded) || 0)
-    : timeAgo(item.lastVisitTime);
-  const tags = 'tags' in item ? (item.tags as string[]) : undefined;
-  const itemType = isSearchResult ? item.type : undefined;
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <ItemCard
-        href={url}
-        title={title}
-        hostname={hostname}
-        faviconUrl={faviconUrl}
-        visitCount={visitCount}
-        timeLabel={timeLabel}
-        tags={tags}
-        actions={actions}
-        type={itemType}
-        isDraggable={true}
-        dragHandleProps={listeners}
-        isDragging={isDragging}
-      />
-    </div>
-  );
-};
 
 interface HomePageProps {
   recommendations: RecommendationItem[];
@@ -143,6 +68,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
   const [itemToAddBookmark, setItemToAddBookmark] = useState<RecommendationItem | BrowsableSearchResultItem | null>(null);
   const [clipboardItems, setClipboardItems] = useState<RecommendationItem[]>([]);
+  const [isReadingClipboard, setIsReadingClipboard] = useState(false);
 
   // AI生成标签相关状态
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
@@ -160,14 +86,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     return homeItemOrder.get();
   });
 
-  // Drag and drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   // Web Combo state
   const [webCombos, setWebCombos] = useState<WebCombo[]>(() => {
     return webComboStorage.get();
@@ -179,44 +97,41 @@ export const HomePage: React.FC<HomePageProps> = ({
   const moreMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(moreMenuRef, () => setShowMoreMenu(false));
 
-  useEffect(() => {
-    const checkClipboard = async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const urls = text.match(urlRegex);
-
-        if (urls) {
-          const newItems: RecommendationItem[] = urls.map(url => ({
-            url: url,
-            title: url.length > 20 ? url.substring(0, 20) + '...' : url,
-            favicon: getFaviconUrl(url),
-            lastVisitTime: Date.now(),
-            visits: [],
-            visitsInWindow: 1,
-            isBookmark: false,
-            tags: [],
-          }));
-          setClipboardItems(newItems);
-        }
-        // On success, remove the listener to avoid re-checking
-        window.removeEventListener('focus', checkClipboard);
-      } catch (err) {
-        if (err instanceof Error && err.name === 'NotAllowedError') {
-          homePageLogger.debug('Waiting for document focus before reading clipboard');
-        } else {
-          homePageLogger.warn('Failed to read clipboard contents', err);
-        }
+  const handleReadClipboard = async () => {
+    setShowMoreMenu(false);
+    setIsReadingClipboard(true);
+    try {
+      const permissionGranted = await ensureClipboardReadPermission();
+      if (!permissionGranted) {
+        toast.warning(t('home.clipboardPermissionDenied'));
+        return;
       }
-    };
 
-    window.addEventListener('focus', checkClipboard);
-    checkClipboard(); // Initial attempt
+      const text = await navigator.clipboard.readText();
+      const urls = Array.from(new Set(text.match(/https?:\/\/[^\s]+/g) ?? []));
+      if (urls.length === 0) {
+        toast.info(t('home.clipboardNoUrls'));
+        return;
+      }
 
-    return () => {
-      window.removeEventListener('focus', checkClipboard);
-    };
-  }, []);
+      setClipboardItems(urls.map(url => ({
+        url,
+        title: url.length > 20 ? `${url.substring(0, 20)}...` : url,
+        favicon: getFaviconUrl(url),
+        lastVisitTime: Date.now(),
+        visits: [],
+        visitsInWindow: 1,
+        isBookmark: false,
+        tags: [],
+      })));
+      toast.success(t('home.clipboardUrlsLoaded', { count: urls.length }));
+    } catch (error) {
+      homePageLogger.warn('Failed to read clipboard contents', error);
+      toast.error(t('home.clipboardReadFailed'));
+    } finally {
+      setIsReadingClipboard(false);
+    }
+  };
 
   useEffect(() => {
     webComboStorage.set(webCombos);
@@ -251,19 +166,9 @@ export const HomePage: React.FC<HomePageProps> = ({
     '--home-grid-min': `min(100%, max(15rem, calc(${100 / cardsPerRow}% - ${(gridGapRem * (cardsPerRow - 1)) / cardsPerRow}rem)))`,
   }) as React.CSSProperties, [cardsPerRow]);
 
-  // Handle drag end
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = sortedAllItems.findIndex((item) => item.url === active.id);
-      const newIndex = sortedAllItems.findIndex((item) => item.url === over.id);
-
-      const newItems = arrayMove(sortedAllItems, oldIndex, newIndex);
-      const newOrder = newItems.map((item) => item.url);
-      setItemOrder(newOrder);
-      homeItemOrder.set(newOrder);
-    }
+  const handleOrderChange = (newOrder: string[]) => {
+    setItemOrder(newOrder);
+    homeItemOrder.set(newOrder);
   };
 
   const handleAddToNoMoreDisplayed = (url: string) => {
@@ -325,6 +230,16 @@ export const HomePage: React.FC<HomePageProps> = ({
     setTagGenerationAbortController(controller);
 
     try {
+      const [bookmarkDb, promptModule, tagModule, llmModule] = await Promise.all([
+        import('../../../db/indexedDB'),
+        import('../../../lib/tagGenerationPrompts'),
+        import('../../../lib/bookmarkTags'),
+        import('../../../services/llmService'),
+      ]);
+      const { getAllBookmarkTags, addBookmarkTag } = bookmarkDb;
+      const { buildTagGenerationPrompt } = promptModule;
+      const { parseGeneratedTags } = tagModule;
+      const { sendMessage } = llmModule;
       const existingBookmarkTags = await getAllBookmarkTags();
       const allExistingTags = Array.from(new Set(
         existingBookmarkTags.flatMap((bookmark: { tags: string[] }) => bookmark.tags)
@@ -438,8 +353,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
   };
 
-  const itemActions = (item: RecommendationItem | BrowsableSearchResultItem) => {
-    const actions = [];
+  const itemActions = (item: RecommendationItem | BrowsableSearchResultItem): ItemCardAction[] => {
+    const actions: ItemCardAction[] = [];
 
     const isBookmark = 'type' in item ? item.type === 'bookmark' : item.isBookmark;
 
@@ -579,6 +494,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                           >
                               <span className="material-symbols-outlined mr-2 text-base">add_circle</span>
                               {t('home.createWebCombo')}
+                          </button>
+                          <button
+                              type="button"
+                              onClick={handleReadClipboard}
+                              disabled={isReadingClipboard}
+                              className="w-full flex min-h-11 items-center px-4 py-2.5 text-sm text-[color:var(--nb-text)] hover:bg-[color:var(--nb-panel-muted)] cursor-pointer transition-colors disabled:cursor-wait"
+                              role="menuitem"
+                          >
+                              <span className="material-symbols-outlined mr-2 text-base" aria-hidden="true">
+                                {isReadingClipboard ? 'progress_activity' : 'content_paste'}
+                              </span>
+                              {t('home.fromClipboard')}
                           </button>
                       </div>
                   </div>
@@ -724,27 +651,32 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       ) : (
         <>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={sortedAllItems.map(item => item.url)}
-              strategy={rectSortingStrategy}
-            >
+          <React.Suspense
+            fallback={(
               <div className="home-card-grid" style={homeGridStyle}>
                 {sortedAllItems.map(item => (
-                  <SortableCard
+                  <ItemCard
                     key={item.url}
-                    id={item.url}
-                    item={item}
+                    href={item.url}
+                    title={item.title}
+                    hostname={getUrlHostname(item.url)}
+                    faviconUrl={item.favicon}
+                    visitCount={item.visitsInWindow}
+                    timeLabel={timeAgo(item.lastVisitTime)}
+                    tags={item.tags}
                     actions={itemActions(item)}
                   />
                 ))}
               </div>
-            </SortableContext>
-          </DndContext>
+            )}
+          >
+            <SortableHomeGrid
+              items={sortedAllItems}
+              gridStyle={homeGridStyle}
+              getActions={itemActions}
+              onOrderChange={handleOrderChange}
+            />
+          </React.Suspense>
           
           {webCombos.length > 0 && (
             <div className="mt-8 pt-6 border-t-2 border-[color:var(--nb-border)]/20">
@@ -774,25 +706,29 @@ export const HomePage: React.FC<HomePageProps> = ({
       <Modal isOpen={isBookmarkModalOpen} onClose={() => setIsBookmarkModalOpen(false)} title={t('modal.addBookmark')}>
 
         {itemToAddBookmark && (
-          <AddBookmarkForm
-            initialUrl={itemToAddBookmark.url!}
-            initialTitle={itemToAddBookmark.title!}
-            onSuccess={() => {
-              setIsBookmarkModalOpen(false);
-            }}
-          />
+          <React.Suspense fallback={<div className="min-h-24" role="status" aria-label={t('common.loading')} />}>
+            <AddBookmarkForm
+              initialUrl={itemToAddBookmark.url!}
+              initialTitle={itemToAddBookmark.title!}
+              onSuccess={() => {
+                setIsBookmarkModalOpen(false);
+              }}
+            />
+          </React.Suspense>
         )}
       </Modal>
 
       <Modal isOpen={isComboModalOpen} onClose={() => setIsComboModalOpen(false)} title={editingCombo ? t('home.editWebCombo') : t('home.createWebCombo')}>
-        <WebComboForm
-            combo={editingCombo}
-            onSave={handleSaveCombo}
-            onCancel={() => {
-                setIsComboModalOpen(false);
-                setEditingCombo(null);
-            }}
-        />
+        <React.Suspense fallback={<div className="min-h-24" role="status" aria-label={t('common.loading')} />}>
+          <WebComboForm
+              combo={editingCombo}
+              onSave={handleSaveCombo}
+              onCancel={() => {
+                  setIsComboModalOpen(false);
+                  setEditingCombo(null);
+              }}
+          />
+        </React.Suspense>
       </Modal>
 
       <ConfirmDialog

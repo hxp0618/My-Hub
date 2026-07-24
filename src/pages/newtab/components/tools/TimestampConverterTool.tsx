@@ -14,6 +14,19 @@ interface DateBoundary {
   endMilliseconds: number;
 }
 
+export const formatLocalDateInput = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const parseLocalDateInput = (value: string): Date | null => {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return buildStrictLocalDate(match[1], match[2], match[3]);
+};
+
 // 快速日期选项
 type QuickDateOption = 'today' | 'tomorrow' | 'yesterday' | 'thisWeek' | 'thisMonth';
 
@@ -293,40 +306,40 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
           <h4 className="text-sm font-medium nb-text mb-3">
             {t('tools.timestampConverter.current')}
           </h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center justify-between">
+          <div className="timestamp-responsive-grid">
+            <div className="timestamp-value-row">
               <span className="text-sm nb-text-secondary">
                 {t('tools.timestampConverter.seconds')}:
               </span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-lg font-semibold nb-text">
-                  {currentTimestamp.seconds}
-                </span>
-                <button
-                  onClick={() => handleCopyCurrentTimestamp('seconds')}
-                  className="nb-btn nb-btn-ghost p-1.5"
-                  title={t('tools.timestampConverter.copy')}
-                >
-                  <span className="material-symbols-outlined text-sm">content_copy</span>
-                </button>
-              </div>
+              <span className="timestamp-number text-lg font-semibold nb-text">
+                {currentTimestamp.seconds}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCopyCurrentTimestamp('seconds')}
+                className="timestamp-copy-button nb-btn nb-btn-ghost p-1.5"
+                title={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.seconds')}`}
+                aria-label={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.seconds')}`}
+              >
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">content_copy</span>
+              </button>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="timestamp-value-row">
               <span className="text-sm nb-text-secondary">
                 {t('tools.timestampConverter.milliseconds')}:
               </span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-lg font-semibold nb-text">
-                  {currentTimestamp.milliseconds}
-                </span>
-                <button
-                  onClick={() => handleCopyCurrentTimestamp('milliseconds')}
-                  className="nb-btn nb-btn-ghost p-1.5"
-                  title={t('tools.timestampConverter.copy')}
-                >
-                  <span className="material-symbols-outlined text-sm">content_copy</span>
-                </button>
-              </div>
+              <span className="timestamp-number text-lg font-semibold nb-text">
+                {currentTimestamp.milliseconds}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCopyCurrentTimestamp('milliseconds')}
+                className="timestamp-copy-button nb-btn nb-btn-ghost p-1.5"
+                title={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.milliseconds')}`}
+                aria-label={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.milliseconds')}`}
+              >
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">content_copy</span>
+              </button>
             </div>
           </div>
         </div>
@@ -371,52 +384,51 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
             </label>
             <input
               type="date"
-              value={selectedDate.toISOString().split('T')[0]}
-              onChange={(e) => setSelectedDate(new Date(e.target.value))}
+              value={formatLocalDateInput(selectedDate)}
+              onChange={(e) => {
+                const nextDate = parseLocalDateInput(e.target.value);
+                if (nextDate) setSelectedDate(nextDate);
+              }}
               className="nb-input w-full text-sm"
             />
           </div>
 
           {/* 边界时间戳显示 */}
           {dateBoundary && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="timestamp-responsive-grid">
               {/* 开始时间 */}
               <div className="p-3 nb-card-static">
                 <div className="text-xs nb-text-secondary mb-2">
                   {t('tools.timestampConverter.startTime')}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="timestamp-value-row timestamp-value-row--compact">
                     <span className="text-xs nb-text-secondary">
                       {t('tools.timestampConverter.seconds')}:
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm nb-text">
-                        {dateBoundary.startSeconds}
-                      </span>
-                      <button
-                        onClick={() => copy(dateBoundary.startSeconds.toString())}
-                        className="nb-btn nb-btn-ghost p-1"
-                      >
-                        <span className="material-symbols-outlined text-xs">content_copy</span>
-                      </button>
-                    </div>
+                    <span className="timestamp-number text-sm nb-text">{dateBoundary.startSeconds}</span>
+                    <button
+                      type="button"
+                      onClick={() => copy(dateBoundary.startSeconds.toString())}
+                      className="timestamp-copy-button nb-btn nb-btn-ghost p-1"
+                      aria-label={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.startTime')} ${t('tools.timestampConverter.seconds')}`}
+                    >
+                      <span className="material-symbols-outlined text-xs" aria-hidden="true">content_copy</span>
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="timestamp-value-row timestamp-value-row--compact">
                     <span className="text-xs nb-text-secondary">
                       {t('tools.timestampConverter.milliseconds')}:
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm nb-text">
-                        {dateBoundary.startMilliseconds}
-                      </span>
-                      <button
-                        onClick={() => copy(dateBoundary.startMilliseconds.toString())}
-                        className="nb-btn nb-btn-ghost p-1"
-                      >
-                        <span className="material-symbols-outlined text-xs">content_copy</span>
-                      </button>
-                    </div>
+                    <span className="timestamp-number text-sm nb-text">{dateBoundary.startMilliseconds}</span>
+                    <button
+                      type="button"
+                      onClick={() => copy(dateBoundary.startMilliseconds.toString())}
+                      className="timestamp-copy-button nb-btn nb-btn-ghost p-1"
+                      aria-label={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.startTime')} ${t('tools.timestampConverter.milliseconds')}`}
+                    >
+                      <span className="material-symbols-outlined text-xs" aria-hidden="true">content_copy</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -427,37 +439,33 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
                   {t('tools.timestampConverter.endTime')}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="timestamp-value-row timestamp-value-row--compact">
                     <span className="text-xs nb-text-secondary">
                       {t('tools.timestampConverter.seconds')}:
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm nb-text">
-                        {dateBoundary.endSeconds}
-                      </span>
-                      <button
-                        onClick={() => copy(dateBoundary.endSeconds.toString())}
-                        className="nb-btn nb-btn-ghost p-1"
-                      >
-                        <span className="material-symbols-outlined text-xs">content_copy</span>
-                      </button>
-                    </div>
+                    <span className="timestamp-number text-sm nb-text">{dateBoundary.endSeconds}</span>
+                    <button
+                      type="button"
+                      onClick={() => copy(dateBoundary.endSeconds.toString())}
+                      className="timestamp-copy-button nb-btn nb-btn-ghost p-1"
+                      aria-label={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.endTime')} ${t('tools.timestampConverter.seconds')}`}
+                    >
+                      <span className="material-symbols-outlined text-xs" aria-hidden="true">content_copy</span>
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="timestamp-value-row timestamp-value-row--compact">
                     <span className="text-xs nb-text-secondary">
                       {t('tools.timestampConverter.milliseconds')}:
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm nb-text">
-                        {dateBoundary.endMilliseconds}
-                      </span>
-                      <button
-                        onClick={() => copy(dateBoundary.endMilliseconds.toString())}
-                        className="nb-btn nb-btn-ghost p-1"
-                      >
-                        <span className="material-symbols-outlined text-xs">content_copy</span>
-                      </button>
-                    </div>
+                    <span className="timestamp-number text-sm nb-text">{dateBoundary.endMilliseconds}</span>
+                    <button
+                      type="button"
+                      onClick={() => copy(dateBoundary.endMilliseconds.toString())}
+                      className="timestamp-copy-button nb-btn nb-btn-ghost p-1"
+                      aria-label={`${t('tools.timestampConverter.copy')} ${t('tools.timestampConverter.endTime')} ${t('tools.timestampConverter.milliseconds')}`}
+                    >
+                      <span className="material-symbols-outlined text-xs" aria-hidden="true">content_copy</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -470,13 +478,13 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
           <h4 className="text-sm font-medium nb-text mb-2">
             {t('tools.timestampConverter.conversionTools')}
           </h4>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="timestamp-conversion-grid">
             {/* 时间戳转日期 */}
             <div className="flex flex-col min-h-0">
               <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
                 {t('tools.timestampConverter.timestampToDate')}
               </label>
-              <div className="flex gap-2 flex-shrink-0 mb-3">
+              <div className="timestamp-conversion-actions mb-3">
                 <input
                   type="text"
                   value={timestampInput}
@@ -503,7 +511,7 @@ export const TimestampConverterTool: React.FC<ToolComponentProps> = ({
               <label className="block text-sm font-medium nb-text mb-2 flex-shrink-0">
                 {t('tools.timestampConverter.dateToTimestamp')}
               </label>
-              <div className="flex gap-2 flex-shrink-0 mb-3">
+              <div className="timestamp-conversion-actions mb-3">
                 <input
                   type="text"
                   value={dateInput}

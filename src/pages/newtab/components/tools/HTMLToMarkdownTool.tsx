@@ -4,6 +4,7 @@ import { ToolCard } from '../../../../components/ToolCard';
 import { TOOL_METADATA, ToolId, ToolComponentProps } from '../../../../types/tools';
 import { useCopyToClipboard } from '../../../../hooks/useCopyToClipboard';
 import TurndownService from 'turndown';
+import { HostPermissionDeniedError, requireHostPermission } from '../../../../utils/extensionPermissions';
 
 /**
  * 创建优化的 Turndown 实例
@@ -137,13 +138,16 @@ export const HTMLToMarkdownTool: React.FC<ToolComponentProps> = ({ isExpanded, o
     setLoading(true);
     setError(null);
     try {
+      await requireHostPermission(url);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const fetchedHtml = await res.text();
       setHtml(fetchedHtml);
       setMarkdown(htmlToMarkdown(fetchedHtml, cleanHtml));
-    } catch {
-      setError(t('tools.htmlToMarkdown.fetchError'));
+    } catch (error) {
+      setError(t(error instanceof HostPermissionDeniedError
+        ? 'tools.htmlToMarkdown.hostPermissionDenied'
+        : 'tools.htmlToMarkdown.fetchError'));
     } finally {
       setLoading(false);
     }

@@ -20,6 +20,7 @@ import { ScheduledTask, CreateTaskParams, UpdateTaskParams, TaskExecutionRecord 
 import { ScheduledTaskService } from '../../../../services/ScheduledTaskService';
 import { ConfirmDialog } from '../../../../components/ConfirmDialog';
 import { createLogger } from '../../../../utils/logger';
+import { HostPermissionDeniedError, requireHostPermission } from '../../../../utils/extensionPermissions';
 
 const logger = createLogger('[BarkNotifierTool]');
 
@@ -222,60 +223,53 @@ const NotificationHistory: React.FC<{
                 return (
                   <div
                     key={record.id}
-                    className="group relative rounded-lg nb-border p-2.5 hover:shadow-sm transition-all cursor-pointer"
+                    className="group relative rounded-lg nb-border hover:shadow-sm transition-all"
                     style={{
                       backgroundColor: 'var(--nb-bg)',
                       borderLeftWidth: '3px',
                       borderLeftColor: record.status === 'success' ? 'var(--nb-accent-green)' : 'var(--nb-accent-pink)'
                     }}
-                    onClick={() => onReuse(record)}
-                    title={t('tools.barkNotifier.reuseNotification')}
                   >
-                  <div className="flex items-start gap-2">
-                    {/* 状态图标 */}
-                    <div className="flex-shrink-0 mt-0.5">
-                      {record.status === 'success' ? (
-                        <span className="text-xs" style={{ color: 'var(--nb-accent-green)' }}>✓</span>
-                      ) : (
-                        <span className="text-xs" style={{ color: 'var(--color-error-text)' }}>✗</span>
-                      )}
-                    </div>
-
-                    {/* 内容 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-sm nb-text truncate">
-                          {record.title}
-                        </span>
-                        <span className="text-xs nb-text-secondary whitespace-nowrap">
-                          {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      {record.body && (
-                        <p className="text-xs nb-text-secondary line-clamp-1 mt-0.5">
-                          {record.body}
-                        </p>
-                      )}
-                      {errorMessage && (
-                        <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--color-error-text)' }}>
-                          {errorMessage}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* 删除按钮 - hover 时显示 */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(record.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[var(--nb-bg-hover)] flex-shrink-0"
+                      type="button"
+                      className="block w-full p-2.5 pr-14 text-left"
+                      onClick={() => onReuse(record)}
+                      aria-label={t('tools.barkNotifier.reuseNotification')}
+                    >
+                      <span className="flex items-start gap-2">
+                        <span className="flex-shrink-0 mt-0.5" aria-hidden="true">
+                          {record.status === 'success' ? (
+                            <span className="text-xs" style={{ color: 'var(--nb-accent-green)' }}>✓</span>
+                          ) : (
+                            <span className="text-xs" style={{ color: 'var(--color-error-text)' }}>✗</span>
+                          )}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-baseline gap-2">
+                            <span className="font-semibold text-sm nb-text truncate">{record.title}</span>
+                            <span className="text-xs nb-text-secondary whitespace-nowrap">
+                              {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </span>
+                          {record.body && <span className="block text-xs nb-text-secondary line-clamp-1 mt-0.5">{record.body}</span>}
+                          {errorMessage && (
+                            <span className="block text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--color-error-text)' }}>
+                              {errorMessage}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(record.id)}
+                      className="nb-btn nb-btn-ghost absolute right-1 top-1 min-h-11 min-w-11 p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                      aria-label={t('common.delete')}
                       title={t('common.delete')}
                       style={{ color: 'var(--nb-accent-pink)' }}
                     >
-                      <span className="material-symbols-outlined text-sm">delete</span>
+                      <span className="material-symbols-outlined text-sm" aria-hidden="true">delete</span>
                     </button>
-                  </div>
                 </div>
                 );
               })}
@@ -389,6 +383,7 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
     const queryString = params.toString();
     if (queryString) url += `?${queryString}`;
 
+    await requireHostPermission(url);
     const response = await fetch(url);
     return response.json();
   }, [body, customIcon, defaultTitle, enableSound, messageGroup, title]);
@@ -425,8 +420,14 @@ export const BarkNotifierTool: React.FC<ToolComponentProps> = ({
             success: data.code === 200,
             errorMessageKey: data.code === 200 ? undefined : 'sendFailed' as BarkNotificationErrorKey,
           };
-        } catch {
-          return { key, success: false, errorMessageKey: 'networkError' as BarkNotificationErrorKey };
+        } catch (error) {
+          return {
+            key,
+            success: false,
+            errorMessageKey: (error instanceof HostPermissionDeniedError
+              ? 'hostPermissionDenied'
+              : 'networkError') as BarkNotificationErrorKey,
+          };
         }
       })
     );

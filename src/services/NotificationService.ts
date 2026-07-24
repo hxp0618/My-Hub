@@ -22,6 +22,7 @@ import {
   getSubscriptionNotificationErrorMessage,
 } from '../utils/subscriptionNotificationContent';
 import { getEnabledSubscriptionNotificationChannels } from '../utils/subscriptionNotificationChannels';
+import { HostPermissionDeniedError, requireHostPermission } from '../utils/extensionPermissions';
 
 /**
  * 通知发送结果
@@ -60,6 +61,7 @@ async function sendTelegramNotification(
     const message = `${content.title}\n\n${content.body}`;
     const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
     
+    await requireHostPermission(url);
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -77,11 +79,13 @@ async function sendTelegramNotification(
     } else {
       return { success: false, channel: 'telegram', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch {
+  } catch (error) {
     return {
       success: false,
       channel: 'telegram',
-      error: getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage(
+        error instanceof HostPermissionDeniedError ? 'hostPermissionDenied' : 'networkError'
+      ),
     };
   }
 }
@@ -98,6 +102,7 @@ async function sendEmailNotification(
   }
   
   try {
+    await requireHostPermission('https://api.resend.com/emails');
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -118,11 +123,13 @@ async function sendEmailNotification(
       await response.json().catch(() => null);
       return { success: false, channel: 'email', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch {
+  } catch (error) {
     return {
       success: false,
       channel: 'email',
-      error: getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage(
+        error instanceof HostPermissionDeniedError ? 'hostPermissionDenied' : 'networkError'
+      ),
     };
   }
 }
@@ -163,6 +170,7 @@ async function sendWebhookNotification(
       fetchOptions.body = JSON.stringify(payload);
     }
     
+    await requireHostPermission(config.url);
     const response = await fetch(config.url, fetchOptions);
     
     if (response.ok) {
@@ -170,11 +178,13 @@ async function sendWebhookNotification(
     } else {
       return { success: false, channel: 'webhook', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch {
+  } catch (error) {
     return {
       success: false,
       channel: 'webhook',
-      error: getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage(
+        error instanceof HostPermissionDeniedError ? 'hostPermissionDenied' : 'networkError'
+      ),
     };
   }
 }
@@ -219,6 +229,7 @@ async function sendBarkNotification(
     const body = encodeURIComponent(content.body);
     const url = `${server}/${deviceKey}/${title}/${body}`;
     
+    await requireHostPermission(url);
     const response = await fetch(url);
     const data = await response.json();
     
@@ -227,11 +238,13 @@ async function sendBarkNotification(
     } else {
       return { success: false, channel: 'bark', error: getSubscriptionNotificationErrorMessage('sendFailed') };
     }
-  } catch {
+  } catch (error) {
     return {
       success: false,
       channel: 'bark',
-      error: getSubscriptionNotificationErrorMessage('networkError'),
+      error: getSubscriptionNotificationErrorMessage(
+        error instanceof HostPermissionDeniedError ? 'hostPermissionDenied' : 'networkError'
+      ),
     };
   }
 }

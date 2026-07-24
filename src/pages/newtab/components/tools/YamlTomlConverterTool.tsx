@@ -269,12 +269,14 @@ export const YamlTomlConverterTool: React.FC<ToolComponentProps> = ({
 
           {/* 操作按钮 */}
           <button
+            type="button"
             onClick={handleSwap}
             disabled={!output}
-            className="nb-btn nb-btn-secondary p-2"
+            className="nb-btn nb-btn-secondary min-h-11 min-w-11 p-2"
             title={t('tools.yamlTomlConverter.swap')}
+            aria-label={t('tools.yamlTomlConverter.swap')}
           >
-            <span className="material-symbols-outlined text-lg">swap_horiz</span>
+            <span className="material-symbols-outlined text-lg" aria-hidden="true">swap_horiz</span>
           </button>
           <button
             onClick={handleConvert}

@@ -363,11 +363,13 @@ export const CaseConverterTool: React.FC<ToolComponentProps> = ({
                                             {t(`tools.caseConverter.types.${type}`)}
                                         </span>
                                         <button
+                                            type="button"
                                             onClick={() => handleCopy(result)}
-                                            className="nb-btn nb-btn-ghost text-xs p-1"
+                                            className="nb-btn nb-btn-ghost min-h-11 min-w-11 text-xs p-1"
                                             title={t('tools.caseConverter.copy')}
+                                            aria-label={t('tools.caseConverter.copy')}
                                         >
-                                            <span className="material-symbols-outlined text-sm">content_copy</span>
+                                            <span className="material-symbols-outlined text-sm" aria-hidden="true">content_copy</span>
                                         </button>
                                     </div>
                                     <code className={`text-sm nb-text font-mono break-all bg-[var(--nb-bg)] p-2 rounded ${batchMode ? 'whitespace-pre-wrap' : ''}`}>

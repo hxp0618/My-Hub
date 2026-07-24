@@ -15,6 +15,7 @@ import {
   HttpResponse,
   METHODS_WITH_BODY
 } from '../types/http';
+import { requireHostPermission } from './extensionPermissions';
 
 /**
  * 验证 URL 是否有效
@@ -261,6 +262,7 @@ export async function sendHttpRequest(options: HttpRequestOptions): Promise<Http
     fetchOptions.body = body;
   }
   
+  await requireHostPermission(url);
   const response = await fetch(url, fetchOptions);
   const endTime = performance.now();
   
