@@ -1614,12 +1614,12 @@ create-require@^1.1.0:
   resolved "https://registry.npmmirror.com/create-require/-/create-require-1.1.1.tgz"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
-cron-parser@^5.4.0:
-  version "5.4.0"
-  resolved "https://registry.npmmirror.com/cron-parser/-/cron-parser-5.4.0.tgz"
-  integrity sha512-HxYB8vTvnQFx4dLsZpGRa0uHp6X3qIzS3ZJgJ9v6l/5TJMgeWQbLkR5yiJ5hOxGbc9+jCADDnydIe15ReLZnJA==
+cron-parser@^5.6.2:
+  version "5.6.2"
+  resolved "https://registry.yarnpkg.com/cron-parser/-/cron-parser-5.6.2.tgz#8d1815ff06ebb3605c5c3e6cd62cbb18f955101c"
+  integrity sha512-yJ/G1LVir6CnlkLI40CsampPLKl1SprGGlUagWtGJxewytRVYezv5xVyzzbT+Pvzx+VIRvZVF7/a0eEMTxdnTA==
   dependencies:
-    luxon "^3.7.1"
+    luxon "^3.7.2"
 
 cross-spawn@^7.0.6:
   version "7.0.6"
@@ -3079,9 +3079,9 @@ lunar-javascript@^1.7.7:
   resolved "https://registry.npmmirror.com/lunar-javascript/-/lunar-javascript-1.7.7.tgz"
   integrity sha512-u/KYiwPIBo/0bT+WWfU7qO1d+aqeB90Tuy4ErXenr2Gam0QcWeezUvtiOIyXR7HbVnW2I1DKfU0NBvzMZhbVQw==
 
-luxon@^3.7.1:
+luxon@^3.7.2:
   version "3.7.2"
-  resolved "https://registry.npmmirror.com/luxon/-/luxon-3.7.2.tgz"
+  resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.7.2.tgz#d697e48f478553cca187a0f8436aff468e3ba0ba"
   integrity sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==
 
 magic-string@^0.30.12, magic-string@^0.30.21:
